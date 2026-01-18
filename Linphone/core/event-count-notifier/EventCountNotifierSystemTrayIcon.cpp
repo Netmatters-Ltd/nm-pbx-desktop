@@ -54,7 +54,7 @@ QSharedPointer<EventCountNotifier> EventCountNotifier::create(QObject *parent) {
 }
 
 EventCountNotifier::EventCountNotifier(QObject *parent) : AbstractEventCountNotifier(parent) {
-	QSvgRenderer renderer((QString(Constants::WindowIconPath)));
+	QSvgRenderer renderer((QString(Constants::TrayIconPath)));
 	if (!renderer.isValid()) qFatal("Invalid SVG Image.");
 
 	QPixmap buf(IconWidth, IconHeight);

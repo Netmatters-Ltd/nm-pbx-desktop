@@ -56,8 +56,16 @@ ec_filter=MSWebRTCAEC
 [ui]
 assistant_supports_phone_numbers/readonly=0
 use_qrcode=0
+disable_chat_feature=1
+disable_meetings_feature=1
 
 [video]
 auto_resize_preview_to_keep_ratio=1
 max_conference_size=vga
 other_display_mode=Hybrid
+automatically_accept=0
+automatically_initiate=0
+automatically_accept_direction=0
+capture_enabled=0
+display_enabled=0
+enabled=0

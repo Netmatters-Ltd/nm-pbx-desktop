@@ -1507,7 +1507,9 @@ void App::setSysTrayIcon() {
 		menu->addAction(restoreAction);
 		menu->addSeparator();
 	}
-	menu->addAction(markAllReadAction);
+    // Disabled as we don't support chat messages.
+	// menu->addAction(markAllReadAction);
+
 	//: Check for update
 	if (mSettings->isCheckForUpdateAvailable()) {
 		QAction *checkForUpdateAction = new QAction(tr("check_for_update"), root);
@@ -1526,7 +1528,7 @@ void App::setSysTrayIcon() {
 			}
 		});
 	}
-	systemTrayIcon->setIcon(QIcon(Constants::WindowIconPath));
+	systemTrayIcon->setIcon(QIcon(Constants::TrayIconPath));
 	systemTrayIcon->setToolTip(APPLICATION_NAME);
 	systemTrayIcon->show();
 	if (!mSystemTrayIcon) mSystemTrayIcon = systemTrayIcon;

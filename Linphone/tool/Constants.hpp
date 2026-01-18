@@ -128,7 +128,8 @@ public:
 	//--------------------------------------------------------------------------------
 
 	static constexpr char LinphoneDomain[] = "sip.linphone.org"; // Use for checking if config are Linphone defaults
-	static constexpr char WindowIconPath[] = ":/data/image/logo.svg";
+	static constexpr char WindowIconPath[] = ":/data/image/logo-small.svg";
+	static constexpr char TrayIconPath[] = ":/data/image/logo-small.svg"; // Optimized for small sizes
 	static constexpr char ApplicationMinimalQtVersion[] = "6.10.0";
 	static constexpr char DefaultConferenceURI[] =
 	    "sip:conference-factory@sip.linphone.org"; // Default for a Linphone account

@@ -791,7 +791,7 @@
     <message>
         <location filename="../../core/App.cpp" line="1633"/>
         <source>mark_all_read_action</source>
-        <translation>Marquer tout comme lu</translation>
+        <translation>Mark all as read</translation>
     </message>
 </context>
 <context>
@@ -2469,7 +2469,7 @@ Error</extracomment>
     <message>
         <location filename="../../view/Control/Display/Chat/ChatMessagesListView.qml" line="170"/>
         <source>chat_message_list_encrypted_header_message</source>
-        <extracomment>Messages in this conversation are e2e encrypted. 
+        <extracomment>Messages in this conversation are e2e encrypted.
  Only your correspondent can decrypt them.</extracomment>
         <translation>Messages in this conversation are e2e encrypted.
 Only your correspondent can decrypt them.</translation>
@@ -2477,9 +2477,9 @@ Only your correspondent can decrypt them.</translation>
     <message>
         <location filename="../../view/Control/Display/Chat/ChatMessagesListView.qml" line="172"/>
         <source>chat_message_list_not_encrypted_header_message</source>
-        <extracomment>Messages are not end to end encrypted, 
+        <extracomment>Messages are not end to end encrypted,
  may sure you don&apos;t share any sensitive information !</extracomment>
-        <translation>Messages are not end to end encrypted, 
+        <translation>Messages are not end to end encrypted,
  may sure you don&apos;t share any sensitive information !</translation>
     </message>
     <message>
