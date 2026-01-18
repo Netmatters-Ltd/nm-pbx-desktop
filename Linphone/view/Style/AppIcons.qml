@@ -2,7 +2,7 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-	property string welcomeLinphoneLogo: "image://internal/linphone.svg"
+	property string welcomeLogo: "image://internal/linphone.svg"
 	property string logo: "image://internal/logo.svg"
 	property string welcomeLock: "image://internal/secured.svg"
 	property string lock: "image://internal/lock.svg"
@@ -26,7 +26,7 @@ QtObject {
 	property string copyright: "image://internal/copyright.svg"
 	property string checkSquareOffset: "image://internal/check-square-offset.svg"
 	property string loginImage: "image://internal/login_image.svg"
-	property string belledonne: "image://internal/belledonne.svg"
+	property string bottomDecoration: "image://internal/belledonne.svg"
 	property string profile: "image://internal/user-circle.svg"
 	property string manageProfile: "image://internal/user-circle-gear.svg"
 	property string verif_page_image: "image://internal/verif_page_image.svg"

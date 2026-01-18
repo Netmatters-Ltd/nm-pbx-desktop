@@ -7,7 +7,7 @@ QtObject {
 
 	property var currentTheme: Themes.themes.hasOwnProperty(SettingsCpp.themeMainColor)
 							  ? Themes.themes[SettingsCpp.themeMainColor]
-							  : Themes.themes["orange"]
+							  : Themes.themes["nmpbx"]
     property var main1_100: currentTheme.main100
     property var main1_200: currentTheme.main200
     property var main1_300: currentTheme.main300
@@ -64,7 +64,7 @@ QtObject {
     // Warning: Qt 6.8.1 (current version) and previous versions, Qt only support COLRv0 fonts. Don't try to use v1.
     property string emojiFont: "Noto Color Emoji"
     property string flagFont: "Noto Color Emoji"
-    property string defaultFont: "Noto Sans"
+    property string defaultFont: "Poppins"
 
     property var numericPadPressedButtonColor: "#EEF7F8"
 

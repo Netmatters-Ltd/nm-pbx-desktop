@@ -1,23 +1,23 @@
 <RCC>
     <qresource prefix="/">
-        <file>font/Noto_Sans/NotoSans-Black.ttf</file>
-        <file>font/Noto_Sans/NotoSans-BlackItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Bold.ttf</file>
-        <file>font/Noto_Sans/NotoSans-BoldItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-ExtraBold.ttf</file>
-        <file>font/Noto_Sans/NotoSans-ExtraBoldItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-ExtraLight.ttf</file>
-        <file>font/Noto_Sans/NotoSans-ExtraLightItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Italic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Light.ttf</file>
-        <file>font/Noto_Sans/NotoSans-LightItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Medium.ttf</file>
-        <file>font/Noto_Sans/NotoSans-MediumItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Regular.ttf</file>
-        <file>font/Noto_Sans/NotoSans-SemiBold.ttf</file>
-        <file>font/Noto_Sans/NotoSans-SemiBoldItalic.ttf</file>
-        <file>font/Noto_Sans/NotoSans-Thin.ttf</file>
-        <file>font/Noto_Sans/NotoSans-ThinItalic.ttf</file>
+        <file>font/Poppins/Poppins-Black.ttf</file>
+        <file>font/Poppins/Poppins-BlackItalic.ttf</file>
+        <file>font/Poppins/Poppins-Bold.ttf</file>
+        <file>font/Poppins/Poppins-BoldItalic.ttf</file>
+        <file>font/Poppins/Poppins-ExtraBold.ttf</file>
+        <file>font/Poppins/Poppins-ExtraBoldItalic.ttf</file>
+        <file>font/Poppins/Poppins-ExtraLight.ttf</file>
+        <file>font/Poppins/Poppins-ExtraLightItalic.ttf</file>
+        <file>font/Poppins/Poppins-Italic.ttf</file>
+        <file>font/Poppins/Poppins-Light.ttf</file>
+        <file>font/Poppins/Poppins-LightItalic.ttf</file>
+        <file>font/Poppins/Poppins-Medium.ttf</file>
+        <file>font/Poppins/Poppins-MediumItalic.ttf</file>
+        <file>font/Poppins/Poppins-Regular.ttf</file>
+        <file>font/Poppins/Poppins-SemiBold.ttf</file>
+        <file>font/Poppins/Poppins-SemiBoldItalic.ttf</file>
+        <file>font/Poppins/Poppins-Thin.ttf</file>
+        <file>font/Poppins/Poppins-ThinItalic.ttf</file>
     </qresource>
     <qresource prefix="/emoji">
         <file>font/EmojiFont.ttf</file>

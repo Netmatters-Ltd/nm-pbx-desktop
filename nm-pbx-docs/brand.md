@@ -23,19 +23,31 @@ NR18 0WZ
 
 ## Icons
 
-SVG icons are available in `linphone-app\assets\images` with names starting "NMPBX_"
+SVG icons are available in this `brand` directory. They should be copied to the correct location as needed.
+
+All icons are provided as SVGs. They can be converted to other formats as needed.
+
+The `NMPBX_NMPBX_*` are landscape orientation. They feature a stylised version of the product name "NM PBX". `Black_Logo` and `Main_Logo` need to be on a light background. `White_and_Green_Logo` and `White_Logo` need a dark background.
+
+The `NMPBX_X_Isolated_*` are square. They feature just the "X" which is the primary logo. If the image is going to be displayed at small size (anything less than 50px) `NMPBX_X_Isolated_Small.svg` should be used.
+
+## Images
+
+A version of `dots.svg` that is repeated multiple times horizontally should be used in place of the "mountains" graphic used in some places at the bottom of screens in the original Linphone.
 
 ## Colours
 
 #25af4b as primary brand colour. If used as a background this should have black text on it.
 
-#oe2826 as secondary brand colour. If used as a background this should have white text on it.
+#0e2826 as secondary brand colour. If used as a background this should have white text on it.
 
 If using a gradient, it should go from #25af4b (the primary brand colour) to #a4cd3a.
 
 ## Typeface
 
-Poppins.
+Use Poppins for titles and body text.
+
+The truetype font files are available in the `Poppins` sub-directory of this `brand` directory. They should be copied to the correct location as needed.
 
 Bold for main titles.
 

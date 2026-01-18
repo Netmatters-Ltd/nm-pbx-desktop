@@ -162,8 +162,8 @@ Rectangle {
 
 		}
 		Image {
-			id: bottomMountains
-			source: AppIcons.belledonne
+			id: bottomDecoration
+			source: AppIcons.bottomDecoration
 			fillMode: Image.Stretch
 			Layout.fillWidth: true
             Layout.preferredHeight: Utils.getSizeWithScreenRatio(108)

@@ -39,7 +39,7 @@ public:
 	//----------------------------------------------------------------------------------
 
 	static constexpr char DefaultLocale[] = "en_EN";
-	static constexpr char DefaultFont[] = "Noto Sans";
+	static constexpr char DefaultFont[] = "Poppins";
 	static constexpr int DefaultFontPointSize = 10;
 
 #ifdef __APPLE__
@@ -65,13 +65,13 @@ public:
 	static constexpr char DefaultContactParametersOnRemove[] = "message-expires=0";
 	static constexpr int DefaultExpires = 600;
 	static constexpr int DefaultPublishExpires = 120;
-	static constexpr char DownloadUrl[] = "https://www.linphone.org/technical-corner/linphone";
+	static constexpr char DownloadUrl[] = "https://www.netmatters.co.uk/";
 	static constexpr char VersionCheckReleaseUrl[] = "https://download.linphone.org/releases";
 	static constexpr char VersionCheckNightlyUrl[] = "https://download.linphone.org/snapshots";
 	static constexpr char PasswordRecoveryUrl[] = "https://subscribe.linphone.org/recovery/email";
 	static constexpr char CguUrl[] = "https://www.linphone.org/en/terms-of-use/";
 	static constexpr char PrivatePolicyUrl[] = "https://www.linphone.org/en/privacy-policy/";
-	static constexpr char ContactUrl[] = "https://www.linphone.org/contact";
+	static constexpr char ContactUrl[] = "https://www.netmatters.co.uk/contact-us";
 	static constexpr char TranslationUrl[] = "https://weblate.linphone.org/projects/linphone-desktop/";
 
 	static constexpr int MaxMosaicParticipants =
@@ -80,7 +80,7 @@ public:
 	static constexpr char LinphoneBZip2_exe[] = "https://www.linphone.org/releases/windows/tools/bzip2/bzip2.exe";
 	static constexpr char LinphoneBZip2_dll[] = "https://www.linphone.org/releases/windows/tools/bzip2/bzip2.dll";
 	static constexpr char DefaultRlsUri[] = "sips:rls@sip.linphone.org";
-	static constexpr char DefaultLogsEmail[] = "linphone-desktop@belledonne-communications.com";
+	static constexpr char DefaultLogsEmail[] = "support@netmatters.co.uk";
 
 	static constexpr char DefaultFlexiAPIURL[] = "https://subscribe.linphone.org/api/"; // Need "/" at the end
 	static constexpr char RemoteProvisioningURL[] = "https://subscribe.linphone.org/api/provisioning";
@@ -124,10 +124,10 @@ public:
 	static constexpr int ThumbnailImageFileHeight = 345;
 
 	//--------------------------------------------------------------------------------
-	//								LINPHONE
+	//								NM PBX
 	//--------------------------------------------------------------------------------
 
-	static constexpr char LinphoneDomain[] = "sip.linphone.org"; // Use for checking if config are a Linphone
+	static constexpr char LinphoneDomain[] = "sip.linphone.org"; // Use for checking if config are Linphone defaults
 	static constexpr char WindowIconPath[] = ":/data/image/logo.svg";
 	static constexpr char ApplicationMinimalQtVersion[] = "6.10.0";
 	static constexpr char DefaultConferenceURI[] =
@@ -174,7 +174,7 @@ public:
 
 	static constexpr char LanguagePath[] = ":/data/languages/";
 
-	// The main windows of Linphone desktop.
+	// The main windows of NM PBX desktop.
 	static constexpr char QmlViewMainWindow[] = "qrc:/qt/qml/Linphone/view/Page/Window/Main/MainWindow.qml";
 	static constexpr char QmlViewCallsWindow[] = "qrc:/qt/qml/Linphone/view/Page/Window/Call/CallsWindow.qml";
 

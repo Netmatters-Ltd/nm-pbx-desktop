@@ -4,6 +4,14 @@ import QtQuick
 QtObject {
     property var themes: {
         return {
+            "nmpbx": {
+                "main100": "#D4F5DD",
+                "main200": "#A8EBBB",
+                "main300": "#7DE09A",
+                "main500": "#25AF4B",
+                "main600": "#1E8C3C",
+                "main700": "#17692D"
+            },
             "orange": {
                 "main100": "#FFEACB",
                 "main200": "#FFD098",
