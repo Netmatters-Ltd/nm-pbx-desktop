@@ -172,7 +172,7 @@ Make two edits to prevent the build system from searching for and linking the ma
    endif()
    ```
 
-2. Edit `external\linphone-sdk\mediastreamer2\CMakeLists.txt` around line 462. Change:
+2. Edit `external\linphone-sdk\mediastreamer2\CMakeLists.txt` around line 455. Change:
    ```cmake
    if(LIBM)
        list(APPEND LINK_LIBS m)
@@ -184,8 +184,6 @@ Make two edits to prevent the build system from searching for and linking the ma
        list(APPEND LINK_LIBS m)
    endif()
    ```
-
-It's possible you'll have another copy of those files at `linphone-sdk\mediastreamer2\src\CMakeLists.txt` and `linphone-sdk\mediastreamer2\CMakeLists.txt` if so apply the same changes there too.
 
 ### Environment
 
@@ -213,7 +211,7 @@ cd build
 
 If you have the build working and just need to re-run the whole thing:
 ```cmd
-cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON && cmake --build . --config RelWithDebInfo --parallel 10 && cmake --install . --config RelWithDebInfo
+cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON && cmake --build . --config RelWithDebInfo --parallel 10 && cmake --install . --config RelWithDebInfo && windeployqt6.exe OUTPUT\bin\nm-pbx.exe --release
 ```
 
 The following steps are this combined command broken down.
@@ -248,5 +246,16 @@ Run the install step to prepare a working executable. This isn't "installing" in
 ```cmd
 cmake --install . --config RelWithDebInfo
 ```
+
+### Add Qt6 DLLs
+
+Deploy Qt6 libraries and QML modules needed by the application. Run this from the build directory:
+
+```cmd
+windeployqt6.exe OUTPUT\bin\nm-pbx.exe --release
+```
+
+If you still get problems (in particular if the app seems to just do nothing when you run it) try running that again with `--qmldir C:\Users\sam.driver\Code\linphone-desktop\Linphone\view` added (the path will be different for you!)
+
 
 The final executable to actually run should be: `build\OUTPUT\bin\nm-pbx.exe`

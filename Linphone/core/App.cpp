@@ -1056,6 +1056,9 @@ void App::sendCommand() {
 				QString command(i);
 				receivedMessage(0, i.toLocal8Bit());
 			}
+		} else { // Primary with no arguments - show the main window
+			lDebug() << log().arg("No arguments. Executing show command");
+			receivedMessage(0, "show");
 		}
 	} else if (isPrimary()) {
 		lDebug() << log().arg("Run waiting process");
