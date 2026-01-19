@@ -12,9 +12,6 @@ LoginLayout {
 	id: mainItem
 	property bool showBackButton: false
 	signal goBack()
-	signal useSIPButtonClicked()
-	signal useRemoteConfigButtonClicked()
-	signal goToRegister()
 
 	titleContent: [
 		BigButton {
@@ -51,72 +48,32 @@ LoginLayout {
 		},
 		Item {
 			Layout.fillWidth: true
-		},
-		RowLayout {
-			visible: !SettingsCpp.assistantHideCreateAccount
-            spacing: Utils.getSizeWithScreenRatio(20)
-            Layout.rightMargin: Math.max(Utils.getSizeWithScreenRatio(10), Utils.getSizeWithScreenRatio(51 - ((51/(DefaultStyle.defaultWidth - mainWindow.minimumWidth))*(DefaultStyle.defaultWidth-mainWindow.width))))
-
-			Text {
-                Layout.rightMargin: Utils.getSizeWithScreenRatio(15)
-                //: "Pas encore de compte ?"
-                text: qsTr("assistant_no_account_yet")
-                font.pixelSize: Typography.p1.pixelSize
-                font.weight: Typography.p1.weight
-			}
-			BigButton {
-				Layout.alignment: Qt.AlignRight
-				style: ButtonStyle.main
-                //: "S'inscrire"
-                text: qsTr("assistant_account_register")
-				onClicked: {
-					console.debug("[LoginPage] User: go to register")
-					mainItem.goToRegister()
-				}
-			}
 		}
 	]
 	centerContent: [
-		Flickable {
+		ColumnLayout {
 			anchors.left: parent.left
 			anchors.top: parent.top
-            anchors.leftMargin: Utils.getSizeWithScreenRatio(127)
-			anchors.bottom: parent.bottom
-			ColumnLayout {
-				id: content
-				spacing: 0
-				LoginForm {
-					id: loginForm
-				}
-				BigButton {
-					Layout.preferredWidth: loginForm.width
-                    Layout.preferredHeight: Utils.getSizeWithScreenRatio(47)
-                    Layout.topMargin: Utils.getSizeWithScreenRatio(39)
-					visible: !SettingsCpp.assistantHideThirdPartyAccount
-                    //: "Compte SIP tiers"
-                    text: qsTr("assistant_login_third_party_sip_account_title")
-					style: ButtonStyle.secondary
-					onClicked: {mainItem.useSIPButtonClicked()}
-				}
-				BigButton {
-					Layout.preferredWidth: loginForm.width
-                    Layout.preferredHeight: Utils.getSizeWithScreenRatio(47)
-                    Layout.topMargin: Utils.getSizeWithScreenRatio(25)
-                    //: "Configuration distante"
-                    text: qsTr("assistant_login_remote_provisioning")
-					style: ButtonStyle.secondary
-					onClicked: {fetchConfigDialog.open()}
-				}
+			anchors.leftMargin: Utils.getSizeWithScreenRatio(127)
+			anchors.topMargin: Utils.getSizeWithScreenRatio(100)
+			spacing: 0
+			BigButton {
+				Layout.preferredWidth: Utils.getSizeWithScreenRatio(360)
+				Layout.preferredHeight: Utils.getSizeWithScreenRatio(47)
+				//: "Configuration distante"
+				text: qsTr("assistant_login_remote_provisioning")
+				style: ButtonStyle.secondary
+				onClicked: {fetchConfigDialog.open()}
 			}
 		},
 		Image {
 			z: -1
 			anchors.top: parent.top
 			anchors.right: parent.right
-            anchors.topMargin: Utils.getSizeWithScreenRatio(129)
-            anchors.rightMargin: Utils.getSizeWithScreenRatio(127)
-            width: Utils.getSizeWithScreenRatio(395)
-            height: Utils.getSizeWithScreenRatio(350)
+			anchors.topMargin: Utils.getSizeWithScreenRatio(129)
+			anchors.rightMargin: Utils.getSizeWithScreenRatio(127)
+			width: Utils.getSizeWithScreenRatio(395)
+			height: Utils.getSizeWithScreenRatio(350)
 			fillMode: Image.PreserveAspectFit
 			source: AppIcons.loginImage
 		}
