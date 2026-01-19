@@ -482,7 +482,7 @@ AbstractWindow {
                                                     : DefaultStyle.info_500_main 
                                                 : DefaultStyle.grey_0 
                                         : "transparent"
-                                    visible: mainWindow.call
+                                    visible: mainWindow.call && mainWindow.call.core.encryption !== LinphoneEnums.MediaEncryption.None
                                     imageSource: mainWindow.call
                                         ? mainWindow.call.core.encryption === LinphoneEnums.MediaEncryption.Srtp
                                             ? AppIcons.lockSimple
@@ -508,8 +508,7 @@ AbstractWindow {
                                                         //: Appel chiffré de bout en bout
                                                         : qsTr("call_zrtp_end_to_end_encrypted")
                                                     : mainWindow.call.core.encryption === LinphoneEnums.MediaEncryption.None
-                                                        //: "Appel non chiffré"
-                                                        ? qsTr("call_not_encrypted")
+                                                        ? ""
                                                         : qsTr("call_waiting_for_encryption_info")
                                             : ""
                                     color: mainWindow.conference || mainWindow.call?.core.encryption === LinphoneEnums.MediaEncryption.Srtp
