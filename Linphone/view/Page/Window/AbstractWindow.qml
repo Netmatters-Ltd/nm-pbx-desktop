@@ -19,9 +19,6 @@ ApplicationWindow {
     onActiveChanged: {
         if (active) UtilsCpp.setLastActiveWindow(this)
     }
-    onVisibleChanged: {
-        AppCpp.handleAppActivity()
-    }
     Component.onDestruction: if (UtilsCpp.getLastActiveWindow() === this) UtilsCpp.setLastActiveWindow(null)
 
     property bool isFullscreen: visibility == Window.FullScreen

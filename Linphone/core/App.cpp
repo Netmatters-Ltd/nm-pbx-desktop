@@ -1102,33 +1102,6 @@ bool App::notify(QObject *receiver, QEvent *event) {
 	return done;
 }
 
-void App::handleAppActivity() {
-	auto handle = [this](QSharedPointer<AccountCore> accountCore) {
-		if (!accountCore) return;
-		auto accountPresence = accountCore->getPresence();
-		if ((mMainWindow && mMainWindow->isActive() || (mCallsWindow && mCallsWindow->isActive())) &&
-		    accountPresence == LinphoneEnums::Presence::Away)
-			accountCore->lSetPresence(LinphoneEnums::Presence::Online, false);
-		else if (((!mMainWindow || !mMainWindow->isActive() || !mMainWindow->isVisible()) &&
-		          (!mCallsWindow || !mCallsWindow->isActive() || !mCallsWindow->isVisible())) &&
-		         accountPresence == LinphoneEnums::Presence::Online)
-			accountCore->lSetPresence(LinphoneEnums::Presence::Away, false);
-	};
-	if (mAccountList) {
-		for (auto &account : mAccountList->getSharedList<AccountCore>())
-			handle(account);
-	} else {
-		connect(
-		    this, &App::accountsChanged, this,
-		    [this, &handle] {
-			    if (mAccountList) {
-				    for (auto &account : mAccountList->getSharedList<AccountCore>())
-					    handle(account);
-			    }
-		    },
-		    Qt::SingleShotConnection);
-	}
-}
 
 QQuickWindow *App::getCallsWindow() {
 	return mCallsWindow;
@@ -1169,7 +1142,6 @@ QQuickWindow *App::getOrCreateCallsWindow(QVariant callGui) {
 		}
 		// window->setParent(mMainWindow);
 		mCallsWindow = window;
-		connect(mCallsWindow, &QQuickWindow::activeChanged, this, &App::handleAppActivity);
 	}
 	if (!callGui.isNull() && callGui.isValid()) mCallsWindow->setProperty("call", callGui);
 	return mCallsWindow;
@@ -1192,11 +1164,8 @@ QQuickWindow *App::getMainWindow() const {
 }
 
 void App::setMainWindow(QQuickWindow *data) {
-	if (mMainWindow) disconnect(mMainWindow, &QQuickWindow::activeChanged, this, nullptr);
 	if (mMainWindow != data) {
 		mMainWindow = data;
-		connect(mMainWindow, &QQuickWindow::activeChanged, this, &App::handleAppActivity);
-		handleAppActivity();
 		emit mainWindowChanged();
 	}
 }
@@ -1441,16 +1410,6 @@ bool App::event(QEvent *event) {
 	} else if (event->type() == QEvent::ApplicationStateChange) {
 		auto state = static_cast<QApplicationStateChangeEvent *>(event);
 		if (state->applicationState() == Qt::ApplicationActive) Utils::smartShowWindow(getLastActiveWindow());
-	} else if (event->type() == QEvent::ApplicationActivate) {
-		for (int i = 0; i < getAccountList()->rowCount(); ++i) {
-			auto accountCore = getAccountList()->getAt<AccountCore>(i);
-			emit accountCore->lSetPresence(LinphoneEnums::Presence::Online, false, false);
-		}
-	} else if (event->type() == QEvent::ApplicationDeactivate) {
-		for (int i = 0; i < getAccountList()->rowCount(); ++i) {
-			auto accountCore = getAccountList()->getAt<AccountCore>(i);
-			emit accountCore->lSetPresence(LinphoneEnums::Presence::Away, false, false);
-		}
 	}
 
 	return SingleApplication::event(event);
