@@ -958,8 +958,8 @@ AbstractWindow {
                                 icon.source: AppIcons.arrowsMerge
                                 icon.width: Utils.getSizeWithScreenRatio(32)
                                 icon.height: Utils.getSizeWithScreenRatio(32)
-                                //: call_action_merge_calls
-                                text: qsTr("Merger tous les appels")
+                                //: "Merge all calls"
+                                text: qsTr("Merge all calls")
                                 textSize: Utils.getSizeWithScreenRatio(14)
                                 onClicked: {
                                     callsModel.lMergeAll()

@@ -214,6 +214,11 @@ If you have the build working and just need to re-run the whole thing:
 cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON -DENABLE_UPDATE_CHECK=OFF && cmake --build . --config RelWithDebInfo --parallel 10 && cmake --install . --config RelWithDebInfo && windeployqt6.exe OUTPUT\bin\nm-pbx.exe --release --qmldir C:\Users\sam.driver\Code\linphone-desktop\Linphone\view
 ```
 
+Just build and install:
+```
+cmake --build . --config RelWithDebInfo --parallel 10 && cmake --install . --config RelWithDebInfo
+```
+
 The following steps are this combined command broken down.
 
 ### Configure

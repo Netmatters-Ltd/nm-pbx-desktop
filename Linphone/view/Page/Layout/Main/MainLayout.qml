@@ -111,7 +111,7 @@ Item {
             property string remoteName: currentCall ? currentCall.core.remoteName : ""
             contentItem: MediumButton {
                 style: ButtonStyle.toast
-                text: currentCallNotif.currentCall ? currentCallNotif.currentCall.core.conference ? ("Réunion en cours : ") + currentCallNotif.currentCall.core.conference.core.subject : (("Appel en cours : ") + currentCallNotif.remoteName) : "appel en cours"
+                text: currentCallNotif.currentCall ? currentCallNotif.currentCall.core.conference ? ("Meeting in progress: ") + currentCallNotif.currentCall.core.conference.core.subject : (("Call in progress: ") + currentCallNotif.remoteName) : "Call in progress"
                 onClicked: {
                     var callsWindow = UtilsCpp.getOrCreateCallsWindow(currentCallNotif.currentCall);
                     UtilsCpp.smartShowWindow(callsWindow);

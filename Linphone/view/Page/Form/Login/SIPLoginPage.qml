@@ -107,7 +107,7 @@ LoginLayout {
                                 pixelSize: Typography.p1.pixelSize
                                 weight: Typography.p1.weight
 							}
-                            text: qsTr("Certaines fonctionnalités telles que les conversations de groupe, les vidéo-conférences, etc… nécessitent un compte %1.\n\nCes fonctionnalités seront masquées si vous utilisez un compte SIP tiers.\n\nPour les activer dans un projet commercial, merci de nous contacter.").arg(applicationName)
+                            text: qsTr("Some features such as group conversations, video conferences, etc. require a %1 account.\n\nThese features will be hidden if you use a third-party SIP account.\n\nTo enable them in a commercial project, please contact us.").arg(applicationName)
 						}
 					}
 					SmallButton {
