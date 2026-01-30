@@ -10,7 +10,7 @@ QtObject {
                 "main300": "#7DE09A",
                 "main500": "#25AF4B",
                 "main600": "#1E8C3C",
-                "main700": "#17692D"
+                "main700": "#0e2826"
             },
             "orange": {
                 "main100": "#FFEACB",

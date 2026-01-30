@@ -21,12 +21,12 @@ ColumnLayout {
 	property var computedContactNameObj: UtilsCpp.getDisplayName(contactAddress)
 	property string computedContactName: computedContactNameObj ? computedContactNameObj.value: ""
 	property string contactName: contact
-		? contact.core.fullName 
+		? contact.core.fullName
 		: callHistoryGui
 			? callHistoryGui.core.displayName
 			: computedContactName
 
-	// Set this property to get the security informations 
+	// Set this property to get the security informations
 	// for a specific address and not for the entire contact
 	property string specificAddress: ""
 
@@ -131,7 +131,9 @@ ColumnLayout {
             button.icon.width: Utils.getSizeWithScreenRatio(24)
             button.icon.height: Utils.getSizeWithScreenRatio(24)
 			button.icon.source: AppIcons.phone
-            //: "Appel"
+            button.style: ButtonStyle.main
+            button.contentImageColor: DefaultStyle.grey_0
+            //: "Call"
             label: qsTr("contact_call_action")
 			button.onClicked: {
 				if (mainItem.specificAddress === "") mainWindow.startCallWithContact(mainItem.contact, false, mainItem)

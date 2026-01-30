@@ -43,9 +43,9 @@ QtObject {
     property var warning_500_main: "#FFDC2E"
     property var danger_700: "#9E3548"
     property var danger_900: "#723333"
-    property var success_500_main: "#4FAE80"
-    property var success_700: "#377d71"
-    property var success_900: "#1E4C53"
+    property var success_500_main: "#25AF4B"
+    property var success_700: "#1E8C3C"
+    property var success_900: "#0e2826"
     property var info_500_main: "#4AA8FF"
 
     property var vue_meter_light_green: "#6FF88D"
@@ -71,5 +71,5 @@ QtObject {
     property var groupCallButtonColor: "#EEF7F8"
 
     property var placeholders: '#CACACA'	// No name in design
-    
+
 }

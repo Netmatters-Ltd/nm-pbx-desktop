@@ -47,7 +47,7 @@ Control.Button {
 	ToolTip.delay: 500
 	// Border properties
 	property color borderColor: style?.borderColor?.normal || "transparent"
-	property color keyboardFocusedBorderColor: style?.borderColor?.keybaordFocused || DefaultStyle.main2_900
+	property color keyboardFocusedBorderColor: style?.borderColor?.keyboardFocused || DefaultStyle.main2_900
 	property real borderWidth: Utils.getSizeWithScreenRatio(1)
 	property real keyboardFocusedBorderWidth: Utils.getSizeWithScreenRatio(3)
 	// Image properties
@@ -56,12 +56,12 @@ Control.Button {
 	property var checkedImageColor: style && style.image && style.image.checked ? style.image.checked : Qt.darker(contentImageColor, 1.1)
 	property var pressedImageColor: style && style.image && style.image.pressed ? style.image.pressed : Qt.darker(contentImageColor, 1.1)
 	icon.source: style?.iconSource || ""
-	property color colorizationColor:  checkable && checked 
+	property color colorizationColor:  checkable && checked
 		? checkedImageColor
-		: pressed 
+		: pressed
 			? pressedImageColor
-			: hovered 
-				? hoveredImageColor 
+			: hovered
+				? hoveredImageColor
 				: contentImageColor
 	// Size properties
 	spacing: Utils.getSizeWithScreenRatio(5)
@@ -75,11 +75,11 @@ Control.Button {
 		cursorShape: containsMouse ? Qt.PointingHandCursor : Qt.ArrowCursor
 		acceptedButtons: Qt.NoButton
 	}
-	
+
 	background: Loader{
 		asynchronous: mainItem.asynchronous
 		anchors.fill: parent
-		
+
 		sourceComponent: Item {
 			width: mainItem.width
 			height: mainItem.height
@@ -89,7 +89,7 @@ Control.Button {
                 color: mainItem.backgroundColor
 				radius: mainItem.radius
 				border.color: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderColor : mainItem.borderColor
-				border.width: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderWidth : mainItem.borderWidth 
+				border.width: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderWidth : mainItem.borderWidth
 			}
 			MultiEffect {
 				enabled: mainItem.shadowEnabled
@@ -116,7 +116,7 @@ Control.Button {
 		width: mainItem.width
 		height: mainItem.height
 	}
-	
+
 	component ButtonText: Text {
 		id: buttonText
 		horizontalAlignment: mainItem.textHAlignment
@@ -151,14 +151,14 @@ Control.Button {
 			font.bold: true
 		}
 	}
-	
+
 	component ButtonImage: EffectImage {
 		imageSource: mainItem.icon.source
 		imageWidth: mainItem.icon.width
 		imageHeight: mainItem.icon.height
         colorizationColor: mainItem.colorizationColor
 	}
-	
+
 	contentItem: Control.StackView{
 		id: stacklayout
 		function updateComponent(){
@@ -179,17 +179,17 @@ Control.Button {
 				implicitWidth = Qt.binding(function() { return item.implicitWidth})
 			}
 		}
-		
+
 		Component.onCompleted: {
 			updateComponent()
 		}
-		
+
 		Connections{
 			target: mainItem
 			function onTextChanged(){stacklayout.updateComponent()}
 			function onIconChanged(){stacklayout.updateComponent()}
 		}
-		
+
 		Component{
 			id: imageTextComponent
 			// Workaround for centering the content when its
@@ -255,7 +255,7 @@ Control.Button {
 				: mainItem.icon.source.toString().length != 0
 					? 2
 					: 3
-					
+
 		width: mainItem.width
 		RowLayout {
 			spacing: mainItem.spacing

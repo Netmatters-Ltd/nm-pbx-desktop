@@ -159,16 +159,8 @@ Rectangle {
 			Layout.fillWidth: true
             Layout.topMargin: Math.max(Utils.getSizeWithScreenRatio(15), Utils.getSizeWithScreenRatio(70 - ((70/(DefaultStyle.defaultHeight - mainWindow.minimumHeight))*(DefaultStyle.defaultHeight-mainWindow.height))))
             Layout.alignment: Qt.AlignBottom
-
-		}
-		Image {
-			id: bottomDecoration
-			source: AppIcons.bottomDecoration
-			fillMode: Image.Stretch
-			Layout.fillWidth: true
-            Layout.preferredHeight: Utils.getSizeWithScreenRatio(108)
 		}
 	}
 
-} 
- 
+}
+

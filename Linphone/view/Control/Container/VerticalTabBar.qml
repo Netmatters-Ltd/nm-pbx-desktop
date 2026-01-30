@@ -18,7 +18,7 @@ Control.TabBar {
 	property AccountGui defaultAccount
 
 	property int visibleCount: 0
-	
+
 	// Call it after model is ready. If done before, Repeater will not be updated
 	function initButtons(){
 		actionsRepeater.model = mainItem.model
@@ -29,7 +29,7 @@ Control.TabBar {
 			if (child.visible) mainItem.visibleCount = mainItem.visibleCount + 1
 		})
 	}
-	
+
 	onDefaultAccountChanged: {
 		if (defaultAccount) defaultAccount.core?.lRefreshNotifications()
 	}
@@ -43,7 +43,7 @@ Control.TabBar {
             initButtons()
         }
     }
-	
+
     contentItem: ListView {
         model: mainItem.contentModel
         currentIndex: mainItem.currentIndex
@@ -66,24 +66,24 @@ Control.TabBar {
 		Rectangle {
 			id: bottomLeftCorner
 			anchors.fill: parent
-			color: DefaultStyle.main1_500_main
+			color: DefaultStyle.main1_700
             radius: Utils.getSizeWithScreenRatio(25)
 		}
 		Rectangle {
-			color: DefaultStyle.main1_500_main
+			color: DefaultStyle.main1_700
 			anchors.left: parent.left
 			anchors.top: parent.top
 			width: parent.width/2
 			height: parent.height/2
 		}
 		Rectangle {
-			color: DefaultStyle.main1_500_main
+			color: DefaultStyle.main1_700
 			y: parent.y + parent.height/2
 			width: parent.width
 			height: parent.height/2
 		}
 	}
-	
+
     Repeater {
 		id: actionsRepeater
 		Control.TabButton {
@@ -98,11 +98,11 @@ Control.TabBar {
 			text: modelData.accessibilityLabel
 			property bool keyboardFocus: FocusHelper.keyboardFocus
 			UnreadNotification {
-				unread: !defaultAccount 
+				unread: !defaultAccount
 				? -1
-				: index === 0 
+				: index === 0
 					? defaultAccount.core?.unreadCallNotifications || -1
-					: index === 2 
+					: index === 2
 						? defaultAccount.core?.unreadMessageNotifications || -1
 						: 0
 				anchors.right: parent.right
@@ -112,7 +112,7 @@ Control.TabBar {
 			MouseArea {
 				anchors.fill: tabButton
 				cursorShape: tabButton.hovered ? Qt.PointingHandCursor : Qt.ArrowCursor
-				acceptedButtons: Qt.NoButton				
+				acceptedButtons: Qt.NoButton
 			}
 			background: Rectangle{
 				// Black border for keyboard navigation
@@ -142,7 +142,7 @@ Control.TabBar {
 					font {
 						weight: mainItem.currentIndex === index
 							? Utils.getSizeWithScreenRatio(800)
-							: tabButton.hovered 
+							: tabButton.hovered
 								? Utils.getSizeWithScreenRatio(600)
 								: Utils.getSizeWithScreenRatio(400)
 						pixelSize: Utils.getSizeWithScreenRatio(11)

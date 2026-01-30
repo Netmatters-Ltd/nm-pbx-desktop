@@ -3,7 +3,7 @@
 .import Linphone as Linphone
 
 
-// Orange
+    // Primary brand colour
 	var main = {
 		color: {
 			normal: Linphone.DefaultStyle.main1_500_main,
@@ -21,11 +21,11 @@
 	}
 	var mainLightBorder =  Object.assign({
 			borderColor : {
-				keybaordFocused: Linphone.DefaultStyle.main2_0
+				keyboardFocused: Linphone.DefaultStyle.main2_0
 			}
 		}, main)
 
-// White with orange border
+    // White with primary brand border
 	var secondary = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -34,7 +34,7 @@
 		},
 		borderColor: {
 			normal: Linphone.DefaultStyle.main1_500_main,
-			keybaordFocused: Linphone.DefaultStyle.main2_900
+			keyboardFocused: Linphone.DefaultStyle.main2_900
 		},
 		text: {
 			normal: Linphone.DefaultStyle.main1_500_main,
@@ -46,7 +46,7 @@
 		}
 	}
 
-	// White with orange icon
+	// White with primary brand coloured icon
 	var player = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -63,7 +63,7 @@
 		}
 	}
 
-// Light orange
+    // Light variant of primary brand colour
 	var tertiary = {
 		color: {
 			normal: Linphone.DefaultStyle.main1_100,
@@ -80,7 +80,7 @@
 		}
 	}
 
-// Blue-grey
+    // Blue-grey
 	var grey = {
 		color: {
 			normal: Linphone.DefaultStyle.main2_200,
@@ -97,7 +97,7 @@
 		}
 	}
 
-// Red phone
+    // Red phone
 	var phoneRed = {
 		iconSource: Linphone.AppIcons.endCall,
 		color: {
@@ -116,11 +116,11 @@
 	}
 	var phoneRedLightBorder =  Object.assign({
 			borderColor : {
-				keybaordFocused: Linphone.DefaultStyle.main2_0
+				keyboardFocused: Linphone.DefaultStyle.main2_0
 			}
 		}, phoneRed)
 
-// Green phone
+    // Green (success) phone
 	var phoneGreen = {
 		iconSource: Linphone.AppIcons.phone,
 		color: {
@@ -138,7 +138,7 @@
 		}
 	}
 
-// Checkable
+    // Checkable, grey then primary when active.
 	var checkable = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_500,
@@ -151,7 +151,7 @@
 			pressed: Linphone.DefaultStyle.grey_0
 		},
 		borderColor: {
-			keybaordFocused: Linphone.DefaultStyle.main2_0
+			keyboardFocused: Linphone.DefaultStyle.main2_0
 		},
 		image: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -160,7 +160,7 @@
 		}
 	}
 
-// No background light
+    // No background, uses light primary brand colour when hovered.
 	var noBackgroundLight = {
 		color: {
 			normal: "#00000000",
@@ -182,7 +182,7 @@
 		}
 	}
 
-// No background
+    // No background, primary brand colour on text and when hovered.
 	var noBackground = {
 		color: {
 			normal: "#00000000",
@@ -205,11 +205,11 @@
 	}
 	var noBackgroundLightBorder =  Object.assign({
 			borderColor : {
-				keybaordFocused: Linphone.DefaultStyle.main2_0
+				keyboardFocused: Linphone.DefaultStyle.main2_0
 			}
 		}, noBackground)
 
-// No background red
+    // No background red
 	var noBackgroundRed = {
 		color: {
 			normal: "#00000000",
@@ -229,7 +229,7 @@
 		}
 	}
 
-// No background orange
+    // No background, primary brand for text and hover.
 	var noBackgroundOrange = {
 		color: {
 			normal: "#00000000",
@@ -267,7 +267,7 @@
 		}
 	}
 
-// Icon + label button
+    // Icon + label button
 	var hoveredBackground = {
 		color: {
 			normal: "#00000000",
@@ -286,7 +286,7 @@
 		}
 	}
 
-// Icon + label red button
+    // Icon + label red button
 	var hoveredBackgroundRed = {
 		color: {
 			normal: "#00000000",
@@ -305,7 +305,7 @@
 		}
 	}
 
-// Numpad
+    // Numpad buttons for dialer.
 	var numericPad = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -318,7 +318,7 @@
 		}
 	}
 
-// Green toast
+    // Green (success) toast
 	var toast = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -327,7 +327,7 @@
 		},
 		borderColor: {
 			normal: Linphone.DefaultStyle.success_500_main,
-			keybaordFocused: Linphone.DefaultStyle.main2_900
+			keyboardFocused: Linphone.DefaultStyle.main2_900
 		},
 		text: {
 			normal: Linphone.DefaultStyle.success_500_main,
@@ -335,7 +335,7 @@
 		}
 	}
 
-// Security blue toast
+    // Security blue toast
 	var securityToast = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -344,7 +344,7 @@
 		},
 		borderColor: {
 			normal: Linphone.DefaultStyle.info_500_main,
-			keybaordFocused: Linphone.DefaultStyle.main2_900
+			keyboardFocused: Linphone.DefaultStyle.main2_900
 		},
 		text: {
 			normal: Linphone.DefaultStyle.info_500_main,
@@ -352,7 +352,7 @@
 		}
 	}
 
-// Security red toast
+    // Security red toast
 	var securityToastError = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -361,7 +361,7 @@
 		},
 		borderColor: {
 			normal: Linphone.DefaultStyle.danger_500_main,
-			keybaordFocused: Linphone.DefaultStyle.main2_900
+			keyboardFocused: Linphone.DefaultStyle.main2_900
 		},
 		text: {
 			normal: Linphone.DefaultStyle.danger_500_main,
@@ -369,7 +369,7 @@
 		}
 	}
 
-// White selected
+    // White selected
 	var whiteSelected = {
 		color: {
 			normal: Linphone.DefaultStyle.grey_0,
@@ -377,7 +377,7 @@
 			selected: Linphone.DefaultStyle.grey_200,
 		},
 		borderColor: {
-			keybaordFocused: Linphone.DefaultStyle.main2_900
+			keyboardFocused: Linphone.DefaultStyle.main2_900
 		}
 	}
 

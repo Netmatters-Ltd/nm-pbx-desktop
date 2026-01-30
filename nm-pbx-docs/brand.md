@@ -2,7 +2,7 @@
 
 ## Naming
 
-The application and the service as a whole is all called "NM PBX".
+The application and the service as a whole is all called "NMPBX" (always all caps, no spaces).
 
 It is provided by "Netmatters".
 
@@ -27,7 +27,7 @@ SVG icons are available in this `brand` directory. They should be copied to the 
 
 All icons are provided as SVGs. They can be converted to other formats as needed.
 
-The `NMPBX_NMPBX_*` are landscape orientation. They feature a stylised version of the product name "NM PBX". `Black_Logo` and `Main_Logo` need to be on a light background. `White_and_Green_Logo` and `White_Logo` need a dark background.
+The `NMPBX_NMPBX_*` are landscape orientation. They feature a stylised version of the product name "NMPBX". `Black_Logo` and `Main_Logo` need to be on a light background. `White_and_Green_Logo` and `White_Logo` need a dark background.
 
 The `NMPBX_X_Isolated_*` are square. They feature just the "X" which is the primary logo. If the image is going to be displayed at small size (anything less than 50px) `NMPBX_X_Isolated_Small.svg` should be used.
 
@@ -39,7 +39,7 @@ A version of `dots.svg` that is repeated multiple times horizontally should be u
 
 #25af4b as primary brand colour. If used as a background this should have black text on it.
 
-#0e2826 as secondary brand colour. If used as a background this should have white text on it.
+#0e2826 as secondary brand colour. If used as a background this should have white text on it. This should be used for branded items that should not be drawing attention.
 
 If using a gradient, it should go from #25af4b (the primary brand colour) to #a4cd3a.
 
