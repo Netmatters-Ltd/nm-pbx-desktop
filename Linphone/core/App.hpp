@@ -145,7 +145,6 @@ public:
 	void setCoreStarted(bool started);
 
 	QQuickWindow *getCallsWindow();
-	Q_INVOKABLE void handleAppActivity();
 	QQuickWindow *getOrCreateCallsWindow(QVariant callGui = QVariant());
 	void setCallsWindowProperty(const char *id, QVariant property);
 	void closeCallsWindow();

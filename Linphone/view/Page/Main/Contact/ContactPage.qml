@@ -382,10 +382,9 @@ AbstractMainPage {
                 id: contactDetail
                 anchors.fill: parent
                 contact: mainItem.selectedContact
-                button.color: DefaultStyle.main1_100
                 //: Edit
                 button.text: qsTr("contact_details_edit")
-                button.style: ButtonStyle.tertiary
+                button.style: ButtonStyle.noBackground
                 button.icon.source: AppIcons.pencil
                 button.onClicked: mainItem.editContact(mainItem.selectedContact)
                 button.visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
@@ -393,11 +392,14 @@ AbstractMainPage {
                 property var computedContactNameObj: UtilsCpp.getDisplayName(contactAddress)
                 property string computedContactName: computedContactNameObj ? computedContactNameObj.value : ""
                 property string contactName: contact ? contact.core.fullName : computedContactName
+
                 component ActionsButtons: RowLayout {
                     spacing: Utils.getSizeWithScreenRatio(58)
                     LabelButton {
                         button.icon.source: AppIcons.phone
-                        //: "Appel"
+                        button.style: ButtonStyle.main
+                        button.contentImageColor: DefaultStyle.grey_0
+                        //: "Call"
                         label: qsTr("contact_call_action")
                         width: Utils.getSizeWithScreenRatio(56)
                         height: Utils.getSizeWithScreenRatio(56)
@@ -422,7 +424,7 @@ AbstractMainPage {
                     LabelButton {
                         visible: SettingsCpp.videoEnabled
                         button.icon.source: AppIcons.videoCamera
-                        //: "Appel vidéo"
+                        //: "Video call"
                         label: qsTr("contact_video_call_action")
                         width: Utils.getSizeWithScreenRatio(56)
                         height: Utils.getSizeWithScreenRatio(56)

@@ -28,12 +28,12 @@ Control.Control{
     readonly property color defaultBackgroundColor: style?.color?.normal ?? DefaultStyle.grey_0
 	readonly property color hoveredBackgroundColor: style?.color?.hovered ?? defaultBackgroundColor
 	readonly property color selectedBackgroundColor: style?.color?.selected ?? defaultBackgroundColor
-	readonly property color focusedBackgroundColor: style?.color?.keybaordFocused ?? defaultBackgroundColor
+	readonly property color focusedBackgroundColor: style?.color?.keyboardFocused ?? defaultBackgroundColor
 	// Border properties
 	readonly property color defaultBorderColor: style?.borderColor?.normal ?? "transparent"
 	readonly property color hoveredBorderColor: style?.borderColor?.hovered ?? defaultBorderColor
 	readonly property color selectedBorderColor: style?.borderColor?.selected ?? defaultBorderColor
-	readonly property color keyboardFocusedBorderColor: style?.borderColor?.keybaordFocused || DefaultStyle.main2_900
+	readonly property color keyboardFocusedBorderColor: style?.borderColor?.keyboardFocused || DefaultStyle.main2_900
 	property real borderWidth: Utils.getSizeWithScreenRatio(1)
 	property real keyboardFocusedBorderWidth: Utils.getSizeWithScreenRatio(3)
 
@@ -45,7 +45,7 @@ Control.Control{
         radius: Utils.getSizeWithScreenRatio(10)
 		color: mainItem.isSelected ? mainItem.selectedBackgroundColor : hovered ? mainItem.hoveredBackgroundColor : mainItem.defaultBackgroundColor
 		border.color: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderColor : mainItem.isSelected ? mainItem.selectedBorderColor : hovered ? mainItem.hoveredBorderColor : mainItem.defaultBorderColor
-		border.width: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderWidth : mainItem.borderWidth 
+		border.width: mainItem.keyboardFocus ? mainItem.keyboardFocusedBorderWidth : mainItem.borderWidth
 		MouseArea{
 			id: mouseArea
 			anchors.fill: parent
@@ -82,7 +82,7 @@ Control.Control{
 						border.width: Utils.getSizeWithScreenRatio(3)
 						radius: width / 2
 					}
-				}	
+				}
 			}
 			Item {
                 Layout.preferredWidth: Utils.getSizeWithScreenRatio(200)
@@ -167,7 +167,7 @@ Control.Control{
 			}
 		}
 		Item{Layout.fillWidth: true}
-		Button {				
+		Button {
 			id: manageAccount
 			style: ButtonStyle.noBackground
 			icon.source: AppIcons.manageProfile
