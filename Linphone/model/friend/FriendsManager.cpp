@@ -87,13 +87,6 @@ std::shared_ptr<FriendsManager> FriendsManager::getInstance() {
 	return gFriendsManager;
 }
 
-void FriendsManager::reset() {
-	if (gFriendsManager) {
-		gFriendsManager->clearMaps();
-		gFriendsManager = nullptr;
-	}
-}
-
 QVariantMap FriendsManager::getKnownFriends() const {
 	return mKnownFriends;
 }

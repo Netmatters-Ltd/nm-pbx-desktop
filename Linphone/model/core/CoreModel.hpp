@@ -52,7 +52,6 @@ public:
 	~CoreModel();
 	static std::shared_ptr<CoreModel> create(const QString &configPath, QThread *parent);
 	static std::shared_ptr<CoreModel> getInstance();
-	static void reset();
 
 	std::shared_ptr<linphone::Core> getCore();
 	std::shared_ptr<LoggerModel> getLogger();
