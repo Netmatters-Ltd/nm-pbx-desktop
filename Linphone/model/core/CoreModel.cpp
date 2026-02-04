@@ -125,6 +125,15 @@ std::shared_ptr<CoreModel> CoreModel::getInstance() {
 	return gCoreModel;
 }
 
+void CoreModel::reset() {
+	if (gCoreModel) {
+		if (gCoreModel->mCore && gCoreModel->mCore->getGlobalState() == linphone::GlobalState::On) {
+			gCoreModel->mCore->stop();
+		}
+		gCoreModel = nullptr;
+	}
+}
+
 std::shared_ptr<linphone::Core> CoreModel::getCore() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
 	return mCore;

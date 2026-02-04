@@ -965,33 +965,10 @@ void App::clean() {
 	}
 }
 void App::restart() {
-	mCoreModelConnection->invokeToModel([this]() {
-		FriendsManager::getInstance()->clearMaps();
-		CoreModel::getInstance()->getCore()->stop();
-		mCoreModelConnection->invokeToCore([this]() {
-			mIsRestarting = true;
-			if (mAccountList) mAccountList->resetData();
-			if (mCallList) mCallList->resetData();
-			if (mChatList) mChatList->resetData();
-			if (mConferenceInfoList) mConferenceInfoList->resetData();
-			closeCallsWindow();
-			setMainWindow(nullptr);
-			setCoreStarted(false);
-			mEngine->clearComponentCache();
-			mEngine->clearSingletons();
-			delete mEngine;
-			mEngine = nullptr;
-			// if (mSettings) mSettings.reset();
-			initCore();
-			// Retrieve self from current Core/Model connection and reset Qt connections.
-			// auto oldConnection = mCoreModelConnection;
-			// oldConnection->mCore.lock();
-			// auto me = oldConnection->mCore.mQData;
-			// setSelf(me);
-			// oldConnection->mCore.unlock();
-			exit((int)StatusCode::gRestartCode);
-		});
-	});
+	lInfo() << log().arg("Configuration updated - exiting application");
+
+	// Clean exit - the clean() method and Qt's object hierarchy will handle cleanup
+	QCoreApplication::quit();
 }
 void App::createCommandParser() {
 	if (!mParser) delete mParser;
