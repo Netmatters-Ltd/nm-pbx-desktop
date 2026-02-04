@@ -36,6 +36,7 @@ public:
 	~FriendsManager();
 	static std::shared_ptr<FriendsManager> create(QObject *parent);
 	static std::shared_ptr<FriendsManager> getInstance();
+	static void reset();
 
 	QVariantMap getKnownFriends() const;
 	QVariantMap getUnknownFriends() const;

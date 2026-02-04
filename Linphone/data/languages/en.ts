@@ -658,7 +658,7 @@
         <location filename="../../core/App.cpp" line="365"/>
         <source>remote_provisioning_dialog</source>
         <extracomment>Voulez-vous télécharger et appliquer la configuration depuis cette adresse ?</extracomment>
-        <translation>Do you want to download and apply remote provisioning from this address ?</translation>
+        <translation>NMPBX will close to apply the remote provisioning. Please open the application again. The remote address being used is:</translation>
     </message>
     <message>
         <location filename="../../core/App.cpp" line="400"/>
@@ -4232,7 +4232,7 @@ Expiration : %1</translation>
         <location filename="../../view/Page/Form/Login/LoginPage.qml" line="136"/>
         <source>assistant_login_remote_provisioning_url</source>
         <extracomment>&apos;Veuillez entrer le lien de configuration qui vous a été fourni :&apos;</extracomment>
-        <translation>Please enter the setup link provided to you :</translation>
+        <translation>Please enter the setup link provided to you:</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Login/LoginPage.qml" line="138"/>
