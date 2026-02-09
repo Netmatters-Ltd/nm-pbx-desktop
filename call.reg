@@ -19,7 +19,7 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\Shell\Open]
 
 [HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\Shell\Open\Command]
-@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\NMPBX.bat\" \"%1\""
+@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\build\\OUTPUT\\bin\\NMPBX.exe\" --minimized \"%1\""
 
 [HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel]
 @="NMPBX Call Handler"
@@ -32,7 +32,7 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\Shell\Open]
 
 [HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\Shell\Open\Command]
-@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\NMPBX.bat\" \"%1\""
+@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\build\\OUTPUT\\bin\\NMPBX.exe\" --minimized \"%1\""
 
 [HKEY_CURRENT_USER\SOFTWARE\NMPBX]
 

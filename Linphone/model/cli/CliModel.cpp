@@ -400,15 +400,39 @@ void CliModel::executeCommand(const QString &command) { //, CommandFormat *forma
 		} else {
 			std::shared_ptr<linphone::Address> address;
 			QString qAddress = transformedCommand;
-			if (Utils::isUsername(transformedCommand)) {
+
+			// For tel:/callto: URIs, extract just the phone number to let interpretUrl append domain
+			if (scheme == "tel" || scheme == "callto") {
+				// Remove the scheme prefix to get just the phone number
+				QStringList parts = tempSipAddress;
+				parts.removeFirst(); // Remove "sip" (already transformed from tel/callto)
+				QString addressToInterpret = parts.join(':'); // Rejoin in case there were colons in the number
+
+				lInfo() << log().arg("[URI Handler] Scheme: %1, Extracted number: %2")
+				               .arg(scheme)
+				               .arg(addressToInterpret);
+
+				// Use interpretUrl to properly append default SIP domain
+				address = ToolModel::interpretUrl(addressToInterpret);
+				if (address) {
+					qAddress = Utils::coreStringToAppString(address->asString());
+					lInfo() << log().arg("[URI Handler] Interpreted address: %1").arg(qAddress);
+				} else {
+					lWarning() << log().arg("[URI Handler] Failed to interpret address: %1").arg(addressToInterpret);
+				}
+			} else if (Utils::isUsername(transformedCommand)) {
 				address = linphone::Factory::get()->createAddress(
 				    Utils::appStringToCoreString(transformedCommand + "@to.remove"));
 				address->setDomain("");
 				qAddress = Utils::coreStringToAppString(address->asString());
 				if (address && qAddress.isEmpty()) qAddress = transformedCommand;
-			} else
-				address = linphone::Factory::get()->createAddress(
-				    Utils::appStringToCoreString(transformedCommand)); // Test if command is an address
+			} else {
+				// Use interpretUrl for other URI types
+				address = ToolModel::interpretUrl(transformedCommand);
+				if (address) {
+					qAddress = Utils::coreStringToAppString(address->asString());
+				}
+			}
 			// if (format) *format = UriFormat;
 			lInfo() << log().arg("Detecting URI command: `%1`…").arg(command);
 			QString functionName;
