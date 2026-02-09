@@ -1,0 +1,50 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\callto]
+@="URL:callto"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\tel]
+@="URL:tel"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto]
+@="NMPBX Call Handler"
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\DefaultIcon]
+@="C:\\Users\\sam.driver\\Code\\linphone-desktop\\build\\OUTPUT\\bin\\NMPBX.exe,0"
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\Shell]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\Shell\Open]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.callto\Shell\Open\Command]
+@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\NMPBX.bat\" \"%1\""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel]
+@="NMPBX Call Handler"
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\DefaultIcon]
+@="C:\\Users\\sam.driver\\Code\\linphone-desktop\\build\\OUTPUT\\bin\\NMPBX.exe,0"
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\Shell]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\Shell\Open]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\NMPBX.tel\Shell\Open\Command]
+@="\"C:\\Users\\sam.driver\\Code\\linphone-desktop\\NMPBX.bat\" \"%1\""
+
+[HKEY_CURRENT_USER\SOFTWARE\NMPBX]
+
+[HKEY_CURRENT_USER\SOFTWARE\NMPBX\Capabilities]
+"ApplicationDescription"="NMPBX telephony application for making and receiving calls"
+"ApplicationName"="NMPBX"
+"ApplicationIcon"="C:\\Users\\sam.driver\\Code\\linphone-desktop\\build\\OUTPUT\\bin\\NMPBX.exe,0"
+"FriendlyAppName"="NMPBX"
+
+[HKEY_CURRENT_USER\SOFTWARE\NMPBX\Capabilities\URLAssociations]
+"callto"="NMPBX.callto"
+"tel"="NMPBX.tel"
+
+[HKEY_CURRENT_USER\SOFTWARE\RegisteredApplications]
+"NMPBX"="Software\\NMPBX\\Capabilities"
