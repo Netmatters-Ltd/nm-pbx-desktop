@@ -216,10 +216,9 @@ AbstractSettingsLayout {
 					onClicked: {
 						var mainWin = UtilsCpp.getMainWindow()
 						mainWin.showConfirmationLambdaPopup("",
-                            //: "Se déconnecter du compte ?"
+                            //: "Log out of the account?"
                             qsTr("manage_account_dialog_remove_account_title"),
-                            //: Si vous souhaitez supprimer définitivement votre compte rendez-vous sur : https://sip.linphone.org
-                            qsTr("manage_account_dialog_remove_account_message"),
+                            "",
 							function (confirmed) {
 								if (confirmed) {
 									account.core.removeAccount()
