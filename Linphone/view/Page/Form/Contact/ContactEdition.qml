@@ -29,8 +29,8 @@ MainRightPanel {
     property string saveButtonText: qsTr("save")
 	property string oldPictureUri
     property int addressCount: 0
-	
-	signal closeEdition(var redirectAddress)	
+
+	signal closeEdition(var redirectAddress)
 
 	Dialog {
 		id: confirmDialog
@@ -84,7 +84,7 @@ MainRightPanel {
 				event.accepted = true
 			}
 		}
-		
+
 		// Let some time to GUI to set fields on losing focus.
 		Timer{
 			id: saveDelay
@@ -460,8 +460,8 @@ MainRightPanel {
 				Item{Layout.fillHeight: true}
 			}
 		}
-		
+
 	}
 
-	
+
 }

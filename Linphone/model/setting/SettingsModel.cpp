@@ -1049,7 +1049,7 @@ DEFINE_GETSET_CONFIG(SettingsModel,
 						hideSipAddresses,
 						HideSipAddresses,
 						"hide_sip_addresses",
-						false) 
+						true)
 DEFINE_GETSET_CONFIG(SettingsModel,
 							bool,
 							Bool,
