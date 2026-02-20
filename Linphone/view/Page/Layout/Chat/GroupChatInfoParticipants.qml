@@ -155,7 +155,7 @@ ColumnLayout {
 									icon.height: Utils.getSizeWithScreenRatio(32)
 									onClicked: {
 										detailOptions.close()
-										UtilsCpp.copyToClipboard(UtilsCpp.getUsername(participantGui.core.sipAddress))
+										UtilsCpp.copyToClipboard(SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(participantGui.core.sipAddress) : participantGui.core.sipAddress)
 									}
 								}
 								Rectangle {

@@ -507,7 +507,7 @@ AbstractMainPage {
                                     detailOptions.close()
                                     var success = UtilsCpp.copyToClipboard(
                                                 mainItem.selectedRowHistoryGui
-                                                && UtilsCpp.getUsername(mainItem.selectedRowHistoryGui.core.remoteAddress))
+                                                && (SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(mainItem.selectedRowHistoryGui.core.remoteAddress) : mainItem.selectedRowHistoryGui.core.remoteAddress))
                                     if (success)
                                         UtilsCpp.showInformationPopup(
                                                     //: Adresse copiée

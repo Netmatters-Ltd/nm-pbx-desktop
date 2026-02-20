@@ -189,7 +189,7 @@ Item {
 					Layout.fillWidth: true
 					horizontalAlignment: Text.AlignHCenter
 					property string _text: mainItem.call && mainItem.call.core.remoteAddress
-					text: UtilsCpp.getUsername(_text)
+					text: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_text) : _text
 					color: DefaultStyle.grey_0
 					font {
                         pixelSize: Utils.getSizeWithScreenRatio(14)
@@ -266,7 +266,7 @@ Item {
 				: mainItem.account && mainItem.identityAddress
 					? mainItem.identityAddress.value
 					: ""
-			text: UtilsCpp.getUsername(_text)
+			text: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_text) : _text
 			color: DefaultStyle.grey_0
 			font {
                 pixelSize: Utils.getSizeWithScreenRatio(14)
