@@ -98,7 +98,8 @@ VariantObject *Utils::getDisplayName(const QString &address) {
 
 QString Utils::getUsername(const QString &address) {
 	QString res = address;
-	if (res.startsWith("sip:")) res.remove("sip:");
+	if (res.startsWith("sips:")) res.remove("sips:");
+	else if (res.startsWith("sip:")) res.remove("sip:");
 	int splitIndex = res.lastIndexOf('@');
 	if (splitIndex != -1) res.truncate(splitIndex);
 	return res;
