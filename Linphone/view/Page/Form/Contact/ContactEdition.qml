@@ -29,8 +29,8 @@ MainRightPanel {
     property string saveButtonText: qsTr("save")
 	property string oldPictureUri
     property int addressCount: 0
-	
-	signal closeEdition(var redirectAddress)	
+
+	signal closeEdition(var redirectAddress)
 
 	Dialog {
 		id: confirmDialog
@@ -84,7 +84,7 @@ MainRightPanel {
 				event.accepted = true
 			}
 		}
-		
+
 		// Let some time to GUI to set fields on losing focus.
 		Timer{
 			id: saveDelay
@@ -315,7 +315,7 @@ MainRightPanel {
                                     if (text.length != 0) mainItem.contact.core.setAddressAt(index, label, text)
 								}
 								property string _initialText: modelData.address
-								initialText: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_initialText) : _initialText
+								initialText: UtilsCpp.getUsername(_initialText)
 								backgroundColor: DefaultStyle.grey_0
 								focus: true
 								KeyNavigation.right: removeAddressButton
@@ -460,8 +460,8 @@ MainRightPanel {
 				Item{Layout.fillHeight: true}
 			}
 		}
-		
+
 	}
 
-	
+
 }

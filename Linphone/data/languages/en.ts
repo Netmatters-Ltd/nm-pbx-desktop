@@ -28,7 +28,7 @@
         <location filename="../../view/Page/Window/AbstractWindow.qml" line="82"/>
         <source>contact_dialog_pick_phone_number_or_sip_address_title</source>
         <extracomment>&quot;Choisissez un numéro ou adresse SIP&quot;</extracomment>
-        <translation>Choose a SIP number or address</translation>
+        <translation>Choose a number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Window/AbstractWindow.qml" line="309"/>
@@ -245,7 +245,7 @@
         <location filename="../../view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml" line="107"/>
         <source>sip_address</source>
         <extracomment>SIP address</extracomment>
-        <translation>SIP address</translation>
+        <translation>Number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml" line="127"/>
@@ -257,13 +257,13 @@
         <location filename="../../view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml" line="129"/>
         <source>account_settings_sip_address_copied_message</source>
         <extracomment>Your SIP address has been copied in the clipboard</extracomment>
-        <translation>Your SIP address has been copied in the clipboard</translation>
+        <translation>Your number has been copied to the clipboard</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml" line="133"/>
         <source>account_settings_sip_address_copied_error_message</source>
         <extracomment>Error copying your SIP address</extracomment>
-        <translation>Error copying your SIP address</translation>
+        <translation>Error copying your number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml" line="143"/>
@@ -436,7 +436,7 @@
         <location filename="../../view/Page/Layout/Settings/AccountSettingsParametersLayout.qml" line="90"/>
         <source>voicemail_address_tooltip</source>
         <extracomment>SIP address dialed when clicking the voicemail button</extracomment>
-        <translation>SIP address dialed when clicking the voicemail button</translation>
+        <translation>Number dialed when clicking the voicemail button</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/AccountSettingsParametersLayout.qml" line="117"/>
@@ -922,7 +922,7 @@
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="44"/>
         <source>settings_call_forward_activate_subtitle</source>
         <extracomment>&quot;Enable call forwarding to voicemail or sip address&quot;</extracomment>
-        <translation>Forward calls to voicemail or a Number / SIP Address / number</translation>
+        <translation>Forward calls to voicemail or a number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="56"/>
@@ -938,13 +938,13 @@
     <message>
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="69"/>
         <source>settings_call_forward_to_sipaddress</source>
-        <translation>Number / SIP Address</translation>
+        <translation>Number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="106"/>
         <source>settings_call_forward_sipaddress_title</source>
         <extracomment>SIP Address</extracomment>
-        <translation>Number / SIP Address:</translation>
+        <translation>Number:</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="107"/>
@@ -954,7 +954,7 @@
     <message>
         <location filename="../../view/Page/Layout/Settings/CallForwardSettingsLayout.qml" line="26"/>
         <source>settings_call_forward_address_cannot_be_empty</source>
-        <translation>A number or SIP address is mandatory</translation>
+        <translation>A number is mandatory</translation>
     </message>
     <message>
         <source>settings_call_forward_address_timeout</source>
@@ -1357,13 +1357,13 @@
         <location filename="../../view/Page/Main/Call/CallPage.qml" line="502"/>
         <source>menu_copy_sip_address</source>
         <extracomment>&quot;Copier l&apos;adresse SIP&quot;</extracomment>
-        <translation>Copy SIP address</translation>
+        <translation>Copy number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Main/Call/CallPage.qml" line="514"/>
         <source>sip_address_copied_to_clipboard_toast</source>
         <extracomment>Adresse copiée</extracomment>
-        <translation>SIP address copied</translation>
+        <translation>Number copied</translation>
     </message>
     <message>
         <location filename="../../view/Page/Main/Call/CallPage.qml" line="516"/>
@@ -2745,7 +2745,7 @@ Only your correspondent can decrypt them.</translation>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="99"/>
         <source>contact_editor_mandatory_address_or_number_not_filled</source>
         <extracomment>&quot;Veuillez saisir une adresse ou un numéro de téléphone&quot;</extracomment>
-        <translation>Please enter a SIP address or phone number</translation>
+        <translation>Please enter a number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="116"/>
@@ -2809,25 +2809,25 @@ Only your correspondent can decrypt them.</translation>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="314"/>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="346"/>
         <source>sip_address</source>
-        <translation>SIP address</translation>
+        <translation>Number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="324"/>
         <source>sip_address_number_accessible_name</source>
         <extracomment>&quot;SIP address number %1&quot;</extracomment>
-        <translation>SIP address number %1</translation>
+        <translation>Number %1</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="339"/>
         <source>remove_sip_address_accessible_name</source>
         <extracomment>&quot;Remove SIP address %1&quot;</extracomment>
-        <translation>Remove SIP address %1</translation>
+        <translation>Remove number %1</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="369"/>
         <source>new_sip_address_accessible_name</source>
         <extracomment>&quot;New SIP address&quot;</extracomment>
-        <translation>New SIP address</translation>
+        <translation>New number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Form/Contact/ContactEdition.qml" line="405"/>
@@ -3793,7 +3793,7 @@ Expiration : %1</translation>
         <location filename="../../core/friend/FriendCore.cpp" line="590"/>
         <source>sip_address</source>
         <extracomment>&quot;Adresse SIP&quot;</extracomment>
-        <translation>SIP address</translation>
+        <translation>Number</translation>
     </message>
     <message>
         <location filename="../../core/friend/FriendCore.cpp" line="33"/>
@@ -3853,7 +3853,7 @@ Expiration : %1</translation>
     <message>
         <location filename="../../view/Page/Layout/Chat/GroupChatInfoParticipants.qml" line="152"/>
         <source>group_infos_copy_sip_address</source>
-        <translation>Copy SIP Address</translation>
+        <translation>Copy number</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Chat/GroupChatInfoParticipants.qml" line="172"/>
@@ -5906,7 +5906,7 @@ To enable them in a commercial project, please contact us.</translation>
         <location filename="../../model/tool/ToolModel.cpp" line="311"/>
         <source>call_error_uninterpretable_sip_address</source>
         <extracomment>&quot;The calling address is not an interpretable SIP address : %1</extracomment>
-        <translation>The calling address is not an interpretable SIP address : %1</translation>
+        <translation>The calling address could not be interpreted: %1</translation>
     </message>
     <message>
         <location filename="../../model/tool/ToolModel.cpp" line="386"/>

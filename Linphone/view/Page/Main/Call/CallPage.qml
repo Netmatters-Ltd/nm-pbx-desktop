@@ -130,7 +130,7 @@ AbstractMainPage {
         }
     }
 
-    Component {                 
+    Component {
         id: historyListItem
         FocusScope {
             objectName: "historyListItem"
@@ -322,7 +322,7 @@ AbstractMainPage {
                         policy: Control.ScrollBar.AsNeeded
                     }
                 }
-                
+
             }
         }
     }
@@ -507,7 +507,7 @@ AbstractMainPage {
                                     detailOptions.close()
                                     var success = UtilsCpp.copyToClipboard(
                                                 mainItem.selectedRowHistoryGui
-                                                && mainItem.selectedRowHistoryGui.core.remoteAddress)
+                                                && UtilsCpp.getUsername(mainItem.selectedRowHistoryGui.core.remoteAddress))
                                     if (success)
                                         UtilsCpp.showInformationPopup(
                                                     //: Adresse copiée

@@ -17,7 +17,7 @@ ColumnLayout {
     property var participants
     property ChatGui chatGui
     signal manageParticipantsRequested()
-    
+
     property bool isGroupEditable: chatGui && chatGui.core.meAdmin && !chatGui.core.isReadOnly
 
 	RowLayout {
@@ -52,7 +52,7 @@ ColumnLayout {
 		contentItem: ColumnLayout {
 			id: contentColumn
 			spacing: Utils.getSizeWithScreenRatio(16)
-			
+
 			Item {
 				Layout.topMargin: Utils.getSizeWithScreenRatio(7)
 			}
@@ -95,11 +95,11 @@ ColumnLayout {
 							}
 						}
 					}
-					
+
 					Item {
 						Layout.fillWidth: true
 					}
-					
+
 					PopupButton {
 						id: detailOptions
 						popup.x: width
@@ -155,7 +155,7 @@ ColumnLayout {
 									icon.height: Utils.getSizeWithScreenRatio(32)
 									onClicked: {
 										detailOptions.close()
-										UtilsCpp.copyToClipboard(participantGui.core.sipAddress)
+										UtilsCpp.copyToClipboard(UtilsCpp.getUsername(participantGui.core.sipAddress))
 									}
 								}
 								Rectangle {
@@ -189,10 +189,10 @@ ColumnLayout {
 							}
 						}
 					}
-					
+
 				}
 			}
-			
+
 			MediumButton {
 				id: manageParticipants
 				visible: mainItem.isGroupEditable

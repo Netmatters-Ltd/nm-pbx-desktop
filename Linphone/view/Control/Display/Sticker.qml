@@ -33,7 +33,7 @@ Item {
 			? callState === LinphoneEnums.CallState.Paused
 			: callState === LinphoneEnums.CallState.PausedByRemote
 
-	property string remoteAddress: account 
+	property string remoteAddress: account
 		? account.core.identityAddress
 		: participantDevice
 			? participantDevice.core.address
@@ -56,15 +56,15 @@ Item {
 
 	property var contactObj: call ? UtilsCpp.findFriendByAddress(call.core.remoteAddress) : null
 	property var contact: contactObj && contactObj.value || null
-	
+
 	property var identityAddress: account ? UtilsCpp.getDisplayName(account.core.identityAddress) : null
     property bool videoEnabled: (previewEnabled && call && call.core.cameraEnabled)
         || (!previewEnabled && call && call.core.remoteVideoEnabled)
         || (participantDevice && participantDevice.core.videoEnabled)
 	property string qmlName
 	property bool displayAll : !!mainItem.call
-	property bool mutedStatus: participantDevice 
-		? participantDevice.core.isMuted 
+	property bool mutedStatus: participantDevice
+		? participantDevice.core.isMuted
 		: account && call
 			? call.core.conference && call.core.microphoneMuted
 			: false
@@ -103,7 +103,7 @@ Item {
 				id: centerItem
 				visible: !mainItem.remoteIsPaused
 				anchors.centerIn: parent
-				height: mainItem.conference 
+				height: mainItem.conference
 					? background.minSize * 142 / 372
                     : Utils.getSizeWithScreenRatio(120)
 				width: height
@@ -189,7 +189,7 @@ Item {
 					Layout.fillWidth: true
 					horizontalAlignment: Text.AlignHCenter
 					property string _text: mainItem.call && mainItem.call.core.remoteAddress
-					text: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_text) : _text
+					text: UtilsCpp.getUsername(_text)
 					color: DefaultStyle.grey_0
 					font {
                         pixelSize: Utils.getSizeWithScreenRatio(14)
@@ -230,7 +230,7 @@ Item {
 					isPreview: mainItem.previewEnabled
 					call: mainItem.call
 					participantDevice: mainItem.participantDevice
-					
+
 					onRequestNewRenderer: {
 						console.log("Request new renderer for " +mainItem.qmlName)
 						resetTimer.restart()
@@ -266,7 +266,7 @@ Item {
 				: mainItem.account && mainItem.identityAddress
 					? mainItem.identityAddress.value
 					: ""
-			text: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_text) : _text
+			text: UtilsCpp.getUsername(_text)
 			color: DefaultStyle.grey_0
 			font {
                 pixelSize: Utils.getSizeWithScreenRatio(14)
@@ -289,7 +289,7 @@ Item {
 		anchors.top: parent.top
         anchors.rightMargin: Utils.getSizeWithScreenRatio(8)
         anchors.topMargin: Utils.getSizeWithScreenRatio(8)
-		
+
         height: Utils.getSizeWithScreenRatio(18)
 		spacing: 0
 		Rectangle {

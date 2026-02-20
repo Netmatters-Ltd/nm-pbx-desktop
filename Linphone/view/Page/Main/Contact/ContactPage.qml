@@ -511,7 +511,7 @@ AbstractMainPage {
                                                     Text {
                                                         Layout.fillWidth: true
                                                         property string _text: listViewModelData.address
-                                                        text: SettingsCpp.hideSipAddresses ? UtilsCpp.getUsername(_text) : _text
+                                                        text: UtilsCpp.getUsername(_text)
                                                         font {
                                                             pixelSize: Typography.p1.pixelSize
                                                             weight: Typography.p1.weight

@@ -110,7 +110,7 @@ AbstractSettingsLayout {
 				}
 				Text {
 					Layout.alignment: Qt.AlignLeft
-					text: model.core.identityAddress
+					text: UtilsCpp.getUsername(model.core.identityAddress)
 					color: DefaultStyle.main2_600
 					font: Typography.p1
 				}
@@ -122,7 +122,7 @@ AbstractSettingsLayout {
 					icon.source: AppIcons.copy
 					style: ButtonStyle.noBackground
 					onClicked: {
-						if (UtilsCpp.copyToClipboard(model.core.identityAddress)) {
+						if (UtilsCpp.copyToClipboard(UtilsCpp.getUsername(model.core.identityAddress))) {
 							//: Copied
 							UtilsCpp.showInformationPopup(qsTr("copied"),
 							//: Your SIP address has been copied in the clipboard
