@@ -69,6 +69,12 @@ void CarddavModel::save(
 		}
 		lInfo() << log().arg("Adding auth info with username") << username;
 		mCreatedAuthInfo = linphone::Factory::get()->createAuthInfo(username, "", password, "", realm, "");
+		// Disable store_ha1_passwd so the plaintext password is preserved in memory
+		// and on disk. The default behaviour computes an MD5 HA1 hash and then clears
+		// the plaintext password, which breaks HTTP Basic authentication as used by
+		// CardDAV servers.
+		auto config = core->getConfig();
+		config->setInt("sip", "store_ha1_passwd", 0);
 		core->addAuthInfo(mCreatedAuthInfo);
 	} else {
 		lInfo() << log().arg("No auth info provided upon saving.");
