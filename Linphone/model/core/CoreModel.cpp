@@ -32,43 +32,9 @@
 #include "core/notifier/Notifier.hpp"
 #include "core/path/Paths.hpp"
 #include "core/setting/SettingsCore.hpp"
+#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
-
-// Attaches to a CardDAV FriendList as a listener, triggers a sync, and
-// emits cardDAVAddressBookSynchronized on the main thread when done so
-// that the contact list UI refreshes. Manages its own lifetime.
-class CardDAVSyncAgent : public linphone::FriendListListener,
-                         public std::enable_shared_from_this<CardDAVSyncAgent> {
-public:
-	void start(const std::shared_ptr<linphone::FriendList> &friendList) {
-		mFriendList = friendList;
-		mKeepAlive = shared_from_this();
-		mFriendList->addListener(shared_from_this());
-		mFriendList->synchronizeFriendsFromServer();
-	}
-
-	void onSyncStatusChanged(const std::shared_ptr<linphone::FriendList> &friendList,
-	                         linphone::FriendList::SyncStatus status,
-	                         const std::string &) override {
-		if (status == linphone::FriendList::SyncStatus::Successful ||
-		    status == linphone::FriendList::SyncStatus::Failure) {
-			mFriendList->removeListener(shared_from_this());
-			mFriendList = nullptr;
-			if (status == linphone::FriendList::SyncStatus::Successful) {
-				QMetaObject::invokeMethod(
-				    App::getInstance()->getSettings().get(),
-				    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
-				    Qt::QueuedConnection);
-			}
-			mKeepAlive = nullptr;
-		}
-	}
-
-private:
-	std::shared_ptr<linphone::FriendList> mFriendList;
-	std::shared_ptr<CardDAVSyncAgent> mKeepAlive;
-};
 
 #if defined(Q_OS_MACOS)
 #include "core/event-count-notifier/EventCountNotifierMacOs.hpp"

@@ -21,6 +21,7 @@
 #include "SettingsModel.hpp"
 #include "core/App.hpp"
 #include "core/path/Paths.hpp"
+#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/core/CoreModel.hpp"
 #include "model/tool/ToolModel.hpp"
 // #include "model/tool/VfsUtils.hpp"
@@ -58,6 +59,7 @@ SettingsModel::SettingsModel() {
 		    if (gstate == linphone::GlobalState::On) { // reached when misc|config-uri is set in config and app starts
 			                                           // and after config is fetched.
 			    notifyConfigReady();
+			    applyCardDAVProvisioning();
 		    }
 	    });
 	QObject::connect(CoreModel::getInstance().get(), &CoreModel::configuringStatus, this,
@@ -67,6 +69,7 @@ SettingsModel::SettingsModel() {
 		                 if (status == linphone::ConfiguringState::Successful) {
 			                 mConfig = core->getConfig();
 			                 notifyConfigReady();
+			                 applyCardDAVProvisioning();
 		                 }
 	                 });
 	QObject::connect(
@@ -763,6 +766,87 @@ void SettingsModel::setCardDAVListForNewFriends(std::string name) {
 		auto config = core->getConfig();
 		config->setString(UiSection, "friend_list_to_store_newly_created_contacts", name);
 	}
+}
+
+// =============================================================================
+// CardDAV provisioning
+// =============================================================================
+
+void SettingsModel::applyCardDAVProvisioning() {
+	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	if (!core) return;
+
+	auto config = core->getConfig();
+	const std::string provSection("carddav_provision");
+	auto serverUrl = config->getString(provSection, "server_url", "");
+	if (serverUrl.empty()) return;
+
+	auto username = config->getString(provSection, "username", "");
+	auto password = config->getString(provSection, "password", "");
+	auto displayName = config->getString(provSection, "display_name", "");
+
+	// Derive a display name from the server hostname if one isn't provided.
+	if (displayName.empty()) {
+		auto schemePos = serverUrl.find("://");
+		if (schemePos != std::string::npos) {
+			auto hostStart = schemePos + 3;
+			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
+			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
+			displayName = serverUrl.substr(hostStart, hostEnd - hostStart);
+		}
+		if (displayName.empty()) displayName = "Contacts";
+	}
+
+	// Extract the server hostname so auth info can be matched by domain.
+	std::string serverHost;
+	{
+		auto schemePos = serverUrl.find("://");
+		if (schemePos != std::string::npos) {
+			auto hostStart = schemePos + 3;
+			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
+			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
+			serverHost = serverUrl.substr(hostStart, hostEnd - hostStart);
+		}
+	}
+
+	// Store auth info if credentials are provided.  We store with an empty
+	// realm so the SDK matches on domain alone, which is correct for HTTP
+	// Basic authentication used by CardDAV servers.
+	if (!username.empty() && !serverHost.empty()) {
+		auto existing = core->findAuthInfo("", username, serverHost);
+		if (existing) core->removeAuthInfo(existing);
+		auto authInfo = linphone::Factory::get()->createAuthInfo(username, "", password, "", "", serverHost);
+		// Disable HA1 storage so the plaintext password is preserved — required
+		// for HTTP Basic authentication used by CardDAV servers.
+		config->setInt("sip", "store_ha1_passwd", 0);
+		core->addAuthInfo(authInfo);
+		lInfo() << sLog().arg("CardDAV provisioning: stored auth info for") << serverHost;
+	}
+
+	// Find an existing provisioned friend list by URL, or create one.
+	std::shared_ptr<linphone::FriendList> friendList;
+	for (auto &fl : core->getFriendsLists()) {
+		if (fl->getType() == linphone::FriendList::Type::CardDAV && fl->getUri() == serverUrl) {
+			friendList = fl;
+			break;
+		}
+	}
+
+	if (!friendList) {
+		friendList = core->createFriendList();
+		friendList->setType(linphone::FriendList::Type::CardDAV);
+		friendList->enableDatabaseStorage(true);
+		friendList->setUri(serverUrl);
+		core->addFriendList(friendList);
+		lInfo() << sLog().arg("CardDAV provisioning: created friend list for") << serverUrl;
+	}
+
+	friendList->setDisplayName(displayName);
+
+	// Kick off an immediate sync so contacts are available straight away.
+	auto agent = std::make_shared<CardDAVSyncAgent>();
+	agent->start(friendList);
 }
 
 // CardDAV min characters for research
