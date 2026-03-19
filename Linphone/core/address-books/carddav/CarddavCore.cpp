@@ -20,6 +20,7 @@
 
 #include "CarddavCore.hpp"
 #include "core/App.hpp"
+#include "model/core/CoreModel.hpp"
 
 DEFINE_ABSTRACT_OBJECT(CarddavCore)
 
@@ -37,6 +38,25 @@ CarddavCore::CarddavCore(const std::shared_ptr<linphone::FriendList> &carddavFri
 	if (carddavFriendList) {
 		mDisplayName = Utils::coreStringToAppString(carddavFriendList->getDisplayName());
 		mUri = Utils::coreStringToAppString(carddavFriendList->getUri());
+
+		// Look up stored auth info for this CardDAV server by matching the server hostname.
+		std::string uriStr = carddavFriendList->getUri();
+		std::string serverHost;
+		auto schemePos = uriStr.find("://");
+		if (schemePos != std::string::npos) {
+			auto hostStart = schemePos + 3;
+			auto hostEnd = uriStr.find_first_of(":/", hostStart);
+			if (hostEnd == std::string::npos) hostEnd = uriStr.length();
+			serverHost = uriStr.substr(hostStart, hostEnd - hostStart);
+		}
+		if (!serverHost.empty()) {
+			auto authInfo = CoreModel::getInstance()->getCore()->findAuthInfo("", "", serverHost);
+			if (authInfo) {
+				mUsername = Utils::coreStringToAppString(authInfo->getUsername());
+				mPassword = Utils::coreStringToAppString(authInfo->getPassword());
+				mRealm = Utils::coreStringToAppString(authInfo->getRealm());
+			}
+		}
 	}
 	mStoreNewFriendsInIt = mCarddavModel->storeNewFriendsInIt();
 }
