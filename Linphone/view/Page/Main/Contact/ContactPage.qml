@@ -11,6 +11,8 @@ import "qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js" as Utils
 
 AbstractMainPage {
     id: mainItem
+    leftPanelFixed: false
+    fixedPanelWidth: 504
     //: "Ajouter un contact"
     noItemButtonText: qsTr("contacts_add")
     //: "Aucun contact pour le moment"
@@ -291,7 +293,7 @@ AbstractMainPage {
                         weight: Typography.h4.weight
                     }
                 }
-                AllContactListView {
+                AllContactGridView {
                     id: contactList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -435,20 +437,23 @@ AbstractMainPage {
                 }
                 bannerContent: [
                     ColumnLayout {
-                        spacing: 0
+                        spacing: Utils.getSizeWithScreenRatio(2)
+                        Layout.fillWidth: true
                         Text {
                             text: contactDetail.contactName
                             Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
                             maximumLineCount: 1
+                            elide: Text.ElideRight
                             font {
-                                pixelSize: Typography.h2.pixelSize
-                                weight: Typography.h2.weight
+                                pixelSize: Typography.h4.pixelSize
+                                weight: Typography.h4.weight
                                 capitalization: Font.Capitalize
                             }
                         }
                         Text {
                             visible: contactDetail.contact
-                            horizontalAlignment: Text.AlignLeft
+                            horizontalAlignment: Text.AlignHCenter
                             Layout.fillWidth: true
                             text: contactDetail.contact ? contactDetail.contact.core.presenceStatus : ""
                             color: contactDetail.contact ? contactDetail.contact.core.presenceColor : 'transparent'
@@ -456,10 +461,9 @@ AbstractMainPage {
                         }
                     },
                     ActionsButtons {
-                        visible: !contactDetail.useVerticalLayout
+                        Layout.alignment: Qt.AlignHCenter
                     }
                 ]
-                secondLineContent: ActionsButtons {}
                 content: Flickable {
                     contentWidth: parent.width
                     ColumnLayout {

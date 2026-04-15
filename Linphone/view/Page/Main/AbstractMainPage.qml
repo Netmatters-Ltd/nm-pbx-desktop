@@ -23,6 +23,9 @@ FocusScope {
 	property alias rightPanel: rightPanel
 	property int rightPanelStackTopMargin: 0
 	property int rightPanelStackBottomMargin: 0
+	property bool leftPanelFixed: true
+	property int fixedPanelWidth: 404
+	property int leftPanelMinWidth: 220
 	signal noItemButtonPressed()
 
 	// Control.SplitView {
@@ -50,7 +53,7 @@ FocusScope {
 	// 				id: defaultItem
 	// 				Layout.fillWidth: true
 	// 				Layout.fillHeight: true
-					
+
 	// 				RowLayout {
 	// 					Layout.fillHeight: true
 	// 					Layout.fillWidth: true
@@ -110,7 +113,7 @@ FocusScope {
 	// 						Layout.fillWidth: true
 	// 					}
 	// 				}
-					
+
 	// 			}
 	// 			ColumnLayout {
 	// 				id: rightPanelItem
@@ -126,8 +129,9 @@ FocusScope {
 		spacing: 0
 		ColumnLayout {
 			id: leftPanel
-            Layout.preferredWidth: Utils.getSizeWithScreenRatio(404)
-			Layout.fillWidth:false
+			Layout.preferredWidth: mainItem.leftPanelFixed ? Utils.getSizeWithScreenRatio(mainItem.fixedPanelWidth) : -1
+			Layout.fillWidth: !mainItem.leftPanelFixed
+			Layout.minimumWidth: mainItem.leftPanelFixed ? -1 : Utils.getSizeWithScreenRatio(mainItem.leftPanelMinWidth)
 			spacing:0
 		}
 		Rectangle {
@@ -139,7 +143,8 @@ FocusScope {
 			id: rightPanel
 			clip: true
 			color: mainItem.rightPanelColor
-			Layout.fillWidth: true
+			Layout.preferredWidth: mainItem.leftPanelFixed ? -1 : Utils.getSizeWithScreenRatio(mainItem.fixedPanelWidth)
+			Layout.fillWidth: mainItem.leftPanelFixed
 			Layout.fillHeight: true
 
 			StackLayout {
@@ -147,7 +152,7 @@ FocusScope {
 				anchors.fill: parent
 				ColumnLayout {
 					id: defaultItem
-					
+
 					RowLayout {
 						Layout.alignment: Qt.AlignHCenter
 						Item {
@@ -189,7 +194,7 @@ FocusScope {
 							Layout.fillWidth: true
 						}
 					}
-					
+
 				}
 				Control.StackView {
 					id: rightPanelStackView
