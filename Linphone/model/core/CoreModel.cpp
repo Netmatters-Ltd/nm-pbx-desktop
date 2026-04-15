@@ -31,7 +31,6 @@
 #include "core/App.hpp"
 #include "core/notifier/Notifier.hpp"
 #include "core/path/Paths.hpp"
-#include "core/setting/SettingsCore.hpp"
 #include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
@@ -114,7 +113,14 @@ void CoreModel::start() {
 		for (auto &friendList : mCore->getFriendsLists()) {
 			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
 				auto agent = std::make_shared<CardDAVSyncAgent>();
-				agent->start(friendList);
+				agent->start(friendList, []() {
+					QMetaObject::invokeMethod(
+					    App::getInstance()->getSettings().get(),
+					    []() {
+						    emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized();
+					    },
+					    Qt::QueuedConnection);
+				});
 			}
 		}
 	};

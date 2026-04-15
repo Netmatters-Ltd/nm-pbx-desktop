@@ -21,21 +21,22 @@
 #ifndef CARDDAV_SYNC_AGENT_HPP
 #define CARDDAV_SYNC_AGENT_HPP
 
-#include "core/App.hpp"
-#include "core/setting/SettingsCore.hpp"
 #include <linphone++/linphone.hh>
-#include <QMetaObject>
+#include <functional>
 #include <memory>
 
 // Attaches to a CardDAV FriendList as a listener, triggers a sync, and
-// emits cardDAVAddressBookSynchronized on the main thread when done so
-// that the contact list UI refreshes. Manages its own lifetime via a
-// self-referential shared_ptr that is cleared on completion.
+// calls the optional onSuccess callback (on the Linphone thread) when
+// the sync completes successfully. Manages its own lifetime.
 class CardDAVSyncAgent : public linphone::FriendListListener,
                          public std::enable_shared_from_this<CardDAVSyncAgent> {
 public:
-	void start(const std::shared_ptr<linphone::FriendList> &friendList) {
+	using SuccessCallback = std::function<void()>;
+
+	void start(const std::shared_ptr<linphone::FriendList> &friendList,
+	           SuccessCallback onSuccess = nullptr) {
 		mFriendList = friendList;
+		mOnSuccess = std::move(onSuccess);
 		mKeepAlive = shared_from_this();
 		mFriendList->addListener(shared_from_this());
 		mFriendList->synchronizeFriendsFromServer();
@@ -48,11 +49,8 @@ public:
 		    status == linphone::FriendList::SyncStatus::Failure) {
 			mFriendList->removeListener(shared_from_this());
 			mFriendList = nullptr;
-			if (status == linphone::FriendList::SyncStatus::Successful) {
-				QMetaObject::invokeMethod(
-				    App::getInstance()->getSettings().get(),
-				    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
-				    Qt::QueuedConnection);
+			if (status == linphone::FriendList::SyncStatus::Successful && mOnSuccess) {
+				mOnSuccess();
 			}
 			mKeepAlive = nullptr;
 		}
@@ -61,6 +59,7 @@ public:
 private:
 	std::shared_ptr<linphone::FriendList> mFriendList;
 	std::shared_ptr<CardDAVSyncAgent> mKeepAlive;
+	SuccessCallback mOnSuccess;
 };
 
 #endif // CARDDAV_SYNC_AGENT_HPP

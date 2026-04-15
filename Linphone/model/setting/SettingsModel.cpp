@@ -846,7 +846,12 @@ void SettingsModel::applyCardDAVProvisioning() {
 
 	// Kick off an immediate sync so contacts are available straight away.
 	auto agent = std::make_shared<CardDAVSyncAgent>();
-	agent->start(friendList);
+	agent->start(friendList, []() {
+		QMetaObject::invokeMethod(
+		    App::getInstance()->getSettings().get(),
+		    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
+		    Qt::QueuedConnection);
+	});
 }
 
 // CardDAV min characters for research
@@ -1105,7 +1110,7 @@ DEFINE_GETSET_CONFIG(SettingsModel,
 						disableCallRecordings,
 						DisableCallRecordings,
 						"disable_call_recordings_feature",
-						false) 
+						false)
 DEFINE_GETSET_CONFIG(SettingsModel,
 						bool,
 						Bool,
@@ -1119,7 +1124,7 @@ DEFINE_GETSET_CONFIG(SettingsModel,
 						assistantDisableQrCode,
 						AssistantDisableQrCode,
 						"assistant_disable_qr_code",
-						true) 
+						true)
 DEFINE_GETSET_CONFIG(SettingsModel,
 						bool,
 						Bool,
@@ -1158,7 +1163,7 @@ DEFINE_GETSET_CONFIG_STRING(SettingsModel,
 							assistantThirdPartySipAccountTransport,
 							AssistantThirdPartySipAccountTransport,
 							"assistant_third_party_sip_account_transport",
-							"TLS") 
+							"TLS")
 DEFINE_GETSET_CONFIG(SettingsModel,
 							bool,
 							Bool,
