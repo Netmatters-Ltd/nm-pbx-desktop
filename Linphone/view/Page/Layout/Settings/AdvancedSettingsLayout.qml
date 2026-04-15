@@ -37,12 +37,6 @@ AbstractSettingsLayout {
 			contentComponent: audioCodecsComponent,
 		},
 		{
-            //: Video codecs
-            title: qsTr("settings_advanced_video_codecs_title"),
-			subTitle: "",
-			contentComponent: videoCodecsComponent
-		},
-		{
 			title: "",
 			subTitle: "",
 			contentComponent: hideFpsComponent

@@ -14,9 +14,9 @@ AbstractMainPage {
 
 	id: mainItem
 	showDefaultItem: false
-	
+
 	signal goBack()
-	
+
 	leftPanelContent: ColumnLayout {
 		id: leftPanel
 		Layout.fillWidth: true
@@ -82,37 +82,6 @@ AbstractMainPage {
             spacing: Utils.getSizeWithScreenRatio(32)
 			HelpIconLabelButton {
 				Layout.fillWidth: true
-				iconSource: AppIcons.detective
-                //: "Règles de confidentialité"
-                title: qsTr("help_about_privacy_policy_title")
-                //: Quelles informations %1 collecte et utilise
-                subTitle: qsTr("help_about_privacy_policy_subtitle").arg(applicationName)
-				onClicked: {
-					rightPanelStackView.clear()
-					Qt.openUrlExternally(ConstantsCpp.PrivatePolicyUrl)
-				}
-			}
-			RowLayout {
-				HelpIconLabelButton {
-					Layout.preferredWidth: width
-					Layout.minimumWidth: width
-					iconSource: AppIcons.info
-					//: "Version"
-					title: qsTr("help_about_version_title")
-					subTitle: AppCpp.shortApplicationVersion
-					onClicked: {}
-				}
-				Item{Layout.fillWidth: true}
-				MediumButton {
-					style: ButtonStyle.tertiary
-					Layout.fillWidth: true
-					//: Check update
-					text: qsTr("help_check_for_update_button_label")
-					onClicked: AppCpp.checkForUpdate(true)
-				}
-			}
-			HelpIconLabelButton {
-				Layout.fillWidth: true
 				iconSource: AppIcons.license
                 //: "Licences GPLv3"
                 title: qsTr("help_about_gpl_licence_title")
@@ -122,26 +91,6 @@ AbstractMainPage {
 					Qt.openUrlExternally(applicationLicenceUrl)
 				}
 			}
-			HelpIconLabelButton {
-				Layout.fillWidth: true
-				iconSource: AppIcons.world
-                //: "Contribuer à la traduction de %1"
-                title: qsTr("help_about_contribute_translations_title").arg(applicationName)
-				onClicked: {
-					rightPanelStackView.clear()
-					Qt.openUrlExternally(ConstantsCpp.TranslationUrl)
-				}
-			}
-		}
-		Text {
-			Layout.leftMargin: leftPanel.leftMargin
-			Layout.rightMargin: leftPanel.rightMargin
-            Layout.topMargin: Utils.getSizeWithScreenRatio(32)
-			Layout.fillWidth: true
-            //: "À propos de %1"
-            text: qsTr("help_about_title").arg(applicationName)
-			color: DefaultStyle.main2_600
-			font: Typography.h4
 		}
 		HelpIconLabelButton {
 			id: troubleShooting
