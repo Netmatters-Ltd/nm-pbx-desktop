@@ -124,11 +124,18 @@ Item {
             spacing: 0
             anchors.topMargin: Utils.getSizeWithScreenRatio(25)
 
-            VerticalTabBar {
-                id: tabbar
+            Item {
+                id: leftPanelContainer
                 Layout.fillHeight: true
                 Layout.preferredWidth: Utils.getSizeWithScreenRatio(82)
-                defaultAccount: accountProxy.defaultAccount
+
+                VerticalTabBar {
+                    id: tabbar
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: navSettingsButton.top
+                    defaultAccount: accountProxy.defaultAccount
                 currentIndex: 0
                 onCountChanged: if (currentIndex >= count) currentIndex = 0
                 Binding on currentIndex {
@@ -204,7 +211,119 @@ Item {
                     if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
                         currentIndex = 0;
                 }
+                }
+
+                Item {
+                    id: dialButton
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: dialButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: DefaultStyle.main1_700
+                    }
+
+                    ColumnLayout {
+                        id: dialButtonContent
+                        anchors.centerIn: parent
+                        spacing: Utils.getSizeWithScreenRatio(4)
+
+                        EffectImage {
+                            imageSource: AppIcons.dialer
+                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+                            Layout.alignment: Qt.AlignHCenter
+                            fillMode: Image.PreserveAspectFit
+                            colorizationColor: DefaultStyle.grey_0
+                            useColor: true
+                        }
+
+                        Text {
+                            text: qsTr("Dial")
+                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
+                            font.weight: dialButtonMouse.containsMouse
+                                ? Utils.getSizeWithScreenRatio(600)
+                                : Utils.getSizeWithScreenRatio(400)
+                            color: DefaultStyle.grey_0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            leftPadding: Utils.getSizeWithScreenRatio(3)
+                            rightPadding: Utils.getSizeWithScreenRatio(3)
+                        }
+                    }
+
+                    MouseArea {
+                        id: dialButtonMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            mainItem.goToNewCall()
+                            Qt.callLater(function() {
+                                if (magicSearchBar.numericPadPopup)
+                                    magicSearchBar.numericPadPopup.open()
+                            })
+                        }
+                    }
+                }
+
+                Item {
+                    id: navSettingsButton
+                    visible: !SettingsCpp.hideSettings
+                    anchors.bottom: dialButton.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: visible ? navSettingsButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64) : 0
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: DefaultStyle.main1_700
+                    }
+
+                    ColumnLayout {
+                        id: navSettingsButtonContent
+                        anchors.centerIn: parent
+                        spacing: Utils.getSizeWithScreenRatio(4)
+
+                        EffectImage {
+                            imageSource: AppIcons.settings
+                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+                            Layout.alignment: Qt.AlignHCenter
+                            fillMode: Image.PreserveAspectFit
+                            colorizationColor: DefaultStyle.grey_0
+                            useColor: true
+                        }
+
+                        Text {
+                            text: qsTr("Settings")
+                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
+                            font.weight: navSettingsButtonMouse.containsMouse
+                                ? Utils.getSizeWithScreenRatio(600)
+                                : Utils.getSizeWithScreenRatio(400)
+                            color: DefaultStyle.grey_0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            leftPadding: Utils.getSizeWithScreenRatio(3)
+                            rightPadding: Utils.getSizeWithScreenRatio(3)
+                        }
+                    }
+
+                    MouseArea {
+                        id: navSettingsButtonMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var page = settingsPageComponent.createObject(mainItem)
+                            openContextualMenuComponent(page)
+                        }
+                    }
+                }
             }
+
             ColumnLayout {
                 spacing: 0
 
