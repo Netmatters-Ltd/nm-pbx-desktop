@@ -82,15 +82,6 @@ Rectangle {
                 spacing: Utils.getSizeWithScreenRatio(17)
 				Layout.alignment: Qt.AlignTop | Qt.AlignLeft
 				AboutLine {
-					imageSource: AppIcons.detective
-                    //: "Politique de confidentialité"
-                    title: qsTr("help_about_privacy_policy_title")
-                    //: "Visiter notre potilique de confidentialité"
-                    text: qsTr("help_about_privacy_policy_link")
-					enableMouseArea: true
-					onContentClicked: Qt.openUrlExternally(ConstantsCpp.PrivatePolicyUrl)
-				}
-				AboutLine {
 					imageSource: AppIcons.info
                     //: "Version"
                     title: qsTr("help_about_version_title")
