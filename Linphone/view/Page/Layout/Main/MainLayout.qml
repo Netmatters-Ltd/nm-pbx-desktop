@@ -136,143 +136,99 @@ Item {
                     anchors.right: parent.right
                     anchors.bottom: navSettingsButton.top
                     defaultAccount: accountProxy.defaultAccount
-                currentIndex: 0
-                onCountChanged: if (currentIndex >= count) currentIndex = 0
-                Binding on currentIndex {
-                    when: mainItem.contextualMenuOpenedComponent != undefined
-                    value: -1
-                }
-                model: [
-                    {
-                        "icon": AppIcons.phone,
-                        "selectedIcon": AppIcons.phoneSelected,
-                        //: "Appels"
-                        "label": qsTr("bottom_navigation_calls_label"),
-                        //: "Open calls page"
-                        "accessibilityLabel": qsTr("open_calls_page_accessible_name")
-                    },
-                    {
-                        "icon": AppIcons.adressBook,
-                        "selectedIcon": AppIcons.adressBookSelected,
-                        //: "Contacts"
-                        "label": qsTr("bottom_navigation_contacts_label"),
-                        //: "Open contacts page"
-                        "accessibilityLabel": qsTr("open_contacts_page_accessible_name")
-                    },
-                    {
-                        "icon": AppIcons.chatTeardropText,
-                        "selectedIcon": AppIcons.chatTeardropTextSelected,
-                        //: "Conversations"
-                        "label": qsTr("bottom_navigation_conversations_label"),
-                        //: "Open conversations page"
-                        "accessibilityLabel": qsTr("open_conversations_page_accessible_name"),
-                        "visible": !SettingsCpp.disableChatFeature
-                    },
-                    {
-                        "icon": AppIcons.videoconference,
-                        "selectedIcon": AppIcons.videoconferenceSelected,
-                        //: "Réunions"
-                        "label": qsTr("bottom_navigation_meetings_label"),
-                        //: "Open meetings page"
-                        "accessibilityLabel": qsTr("open_contact_page_accessible_name"),
-                        "visible": !SettingsCpp.disableMeetingsFeature
+                    currentIndex: 0
+                    onCountChanged: if (currentIndex >= count) currentIndex = 0
+                    Binding on currentIndex {
+                        when: mainItem.contextualMenuOpenedComponent != undefined
+                        value: -1
                     }
-                ]
-                onCurrentIndexChanged: {
-                    if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
-                        return;
-                    if (currentIndex === 0 && accountProxy.defaultAccount)
-                        accountProxy.defaultAccount.core?.lResetMissedCalls();
-                    if (mainItem.contextualMenuOpenedComponent) {
-                        closeContextualMenuComponent();
+                    model: [
+                        {
+                            "icon": AppIcons.phone,
+                            "selectedIcon": AppIcons.phoneSelected,
+                            //: "Appels"
+                            "label": qsTr("bottom_navigation_calls_label"),
+                            //: "Open calls page"
+                            "accessibilityLabel": qsTr("open_calls_page_accessible_name")
+                        },
+                        {
+                            "icon": AppIcons.adressBook,
+                            "selectedIcon": AppIcons.adressBookSelected,
+                            //: "Contacts"
+                            "label": qsTr("bottom_navigation_contacts_label"),
+                            //: "Open contacts page"
+                            "accessibilityLabel": qsTr("open_contacts_page_accessible_name")
+                        }
+                        // {
+                        //     "icon": AppIcons.chatTeardropText,
+                        //     "selectedIcon": AppIcons.chatTeardropTextSelected,
+                        //     //: "Conversations"
+                        //     "label": qsTr("bottom_navigation_conversations_label"),
+                        //     //: "Open conversations page"
+                        //     "accessibilityLabel": qsTr("open_conversations_page_accessible_name"),
+                        //     "visible": !SettingsCpp.disableChatFeature
+                        // },
+                        // {
+                        //     "icon": AppIcons.videoconference,
+                        //     "selectedIcon": AppIcons.videoconferenceSelected,
+                        //     //: "Réunions"
+                        //     "label": qsTr("bottom_navigation_meetings_label"),
+                        //     //: "Open meetings page"
+                        //     "accessibilityLabel": qsTr("open_contact_page_accessible_name"),
+                        //     "visible": !SettingsCpp.disableMeetingsFeature
+                        // }
+                    ]
+                    onCurrentIndexChanged: {
+                        if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
+                            return;
+                        if (currentIndex === 0 && accountProxy.defaultAccount)
+                            accountProxy.defaultAccount.core?.lResetMissedCalls();
+                        if (mainItem.contextualMenuOpenedComponent) {
+                            closeContextualMenuComponent();
+                        }
                     }
-                }
-                Keys.onPressed: event => {
-                    if (event.key == Qt.Key_Right) {
-                        mainStackView.currentItem.forceActiveFocus();
+                    Keys.onPressed: event => {
+                        if (event.key == Qt.Key_Right) {
+                            mainStackView.currentItem.forceActiveFocus();
+                        }
                     }
-                }
-                Component.onCompleted: {
-                    if (SettingsCpp.shortcutCount > 0) {
-                        var shortcuts = SettingsCpp.shortcuts;
-                        shortcuts.forEach(shortcut => {
-                            model.push({
-                                "icon": shortcut.icon,
-                                "selectedIcon": shortcut.icon,
-                                "label": shortcut.name,
-                                "colored": true,
-                                "link": shortcut.link
+                    headerButton: ({
+                        "icon": AppIcons.dialer,
+                        //: "Dial"
+                        "label": qsTr("Dial")
+                    })
+                    onHeaderButtonClicked: {
+                        mainItem.goToNewCall()
+                        Qt.callLater(function() {
+                            if (magicSearchBar.numericPadPopup)
+                                magicSearchBar.numericPadPopup.open()
+                        })
+                    }
+                    Component.onCompleted: {
+                        if (SettingsCpp.shortcutCount > 0) {
+                            var shortcuts = SettingsCpp.shortcuts;
+                            shortcuts.forEach(shortcut => {
+                                model.push({
+                                    "icon": shortcut.icon,
+                                    "selectedIcon": shortcut.icon,
+                                    "label": shortcut.name,
+                                    "colored": true,
+                                    "link": shortcut.link
+                                });
                             });
-                        });
-                    }
-                    initButtons();
-                    currentIndex = SettingsCpp.getLastActiveTabIndex();
-                    tabbar.updateVisibleCount()
-                    if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
-                        currentIndex = 0;
-                }
-                }
-
-                Item {
-                    id: dialButton
-                    anchors.bottom: parent.bottom
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: dialButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64)
-
-                    Rectangle {
-                        anchors.fill: parent
-                        color: DefaultStyle.main1_700
-                    }
-
-                    ColumnLayout {
-                        id: dialButtonContent
-                        anchors.centerIn: parent
-                        spacing: Utils.getSizeWithScreenRatio(4)
-
-                        EffectImage {
-                            imageSource: AppIcons.dialer
-                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
-                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
-                            Layout.alignment: Qt.AlignHCenter
-                            fillMode: Image.PreserveAspectFit
-                            colorizationColor: DefaultStyle.grey_0
-                            useColor: true
                         }
-
-                        Text {
-                            text: qsTr("Dial")
-                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
-                            font.weight: dialButtonMouse.containsMouse
-                                ? Utils.getSizeWithScreenRatio(600)
-                                : Utils.getSizeWithScreenRatio(400)
-                            color: DefaultStyle.grey_0
-                            Layout.fillWidth: true
-                            horizontalAlignment: Text.AlignHCenter
-                            leftPadding: Utils.getSizeWithScreenRatio(3)
-                            rightPadding: Utils.getSizeWithScreenRatio(3)
-                        }
-                    }
-
-                    MouseArea {
-                        id: dialButtonMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            mainItem.goToNewCall()
-                            Qt.callLater(function() {
-                                if (magicSearchBar.numericPadPopup)
-                                    magicSearchBar.numericPadPopup.open()
-                            })
-                        }
+                        initButtons();
+                        currentIndex = SettingsCpp.getLastActiveTabIndex();
+                        tabbar.updateVisibleCount()
+                        if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
+                            currentIndex = 0;
                     }
                 }
 
                 Item {
                     id: navSettingsButton
                     visible: !SettingsCpp.hideSettings
-                    anchors.bottom: dialButton.top
+                    anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: visible ? navSettingsButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64) : 0

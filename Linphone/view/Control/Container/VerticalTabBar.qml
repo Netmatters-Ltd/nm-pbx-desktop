@@ -19,6 +19,12 @@ Control.TabBar {
 
 	property int visibleCount: 0
 
+	// Optional header action button - rendered at the top of the list, above the tab buttons.
+	// Does not trigger tab navigation. Expected shape: { icon, label }
+	// Connect onHeaderButtonClicked to handle the click.
+	property var headerButton: null
+	signal headerButtonClicked()
+
 	// Call it after model is ready. If done before, Repeater will not be updated
 	function initButtons(){
 		actionsRepeater.model = mainItem.model
@@ -58,6 +64,8 @@ Control.TabBar {
         // highlightRangeMode: ListView.ApplyRange
         // preferredHighlightBegin: 40
         // preferredHighlightEnd: width - 40
+
+        header: headerButtonComponent
     }
 
 	background: Item {
@@ -167,6 +175,53 @@ Control.TabBar {
 			}
 			onClicked: {
 				mainItem.setCurrentIndex(TabBar.index)
+			}
+		}
+	}
+
+	Component {
+		id: headerButtonComponent
+		Item {
+			width: ListView.view ? ListView.view.width : 0
+			height: mainItem.headerButton !== null
+				? headerButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64)
+				: 0
+
+			ColumnLayout {
+				id: headerButtonContent
+				anchors.centerIn: parent
+				spacing: Utils.getSizeWithScreenRatio(4)
+
+				EffectImage {
+					imageSource: mainItem.headerButton?.icon ?? ""
+					Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+					Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+					Layout.alignment: Qt.AlignHCenter
+					fillMode: Image.PreserveAspectFit
+					colorizationColor: DefaultStyle.grey_0
+					useColor: true
+				}
+
+				Text {
+					text: mainItem.headerButton?.label ?? ""
+					font.pixelSize: Utils.getSizeWithScreenRatio(11)
+					font.weight: headerButtonMouse.containsMouse
+						? Utils.getSizeWithScreenRatio(600)
+						: Utils.getSizeWithScreenRatio(400)
+					color: DefaultStyle.grey_0
+					Layout.fillWidth: true
+					horizontalAlignment: Text.AlignHCenter
+					leftPadding: Utils.getSizeWithScreenRatio(3)
+					rightPadding: Utils.getSizeWithScreenRatio(3)
+				}
+			}
+
+			MouseArea {
+				id: headerButtonMouse
+				anchors.fill: parent
+				hoverEnabled: true
+				cursorShape: Qt.PointingHandCursor
+				onClicked: mainItem.headerButtonClicked()
 			}
 		}
 	}
