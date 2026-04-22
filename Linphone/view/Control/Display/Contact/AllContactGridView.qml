@@ -49,6 +49,12 @@ Flickable {
         mainItem.highlightedContact = null
     }
 
+    function forceFullRefresh() {
+        mainItem.loading = true
+        mainItem.resetSelections()
+        magicSearchProxy.forceUpdate()
+    }
+
     onSearchBarTextChanged: {
         if (!pauseSearch && (mainItem.searchOnEmpty || searchBarText != '')) {
             searchText = searchBarText.length === 0 ? "*" : searchBarText

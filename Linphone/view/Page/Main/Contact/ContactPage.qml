@@ -25,6 +25,7 @@ AbstractMainPage {
                                     != "contactEdition"
     property FriendGui selectedContact
     property string initialFriendToDisplay
+    property bool manualCardDAVRefreshRequested: false
     onInitialFriendToDisplayChanged: {
         if (initialFriendToDisplay != '' && contactList.selectContact(initialFriendToDisplay) != -1)
             initialFriendToDisplay = ""
@@ -63,6 +64,24 @@ AbstractMainPage {
             || rightPanelStackView.currentItem.objectName != "contactEdition") {
             goToContactDetails()
         }
+    }
+
+    Connections {
+        target: SettingsCpp
+        function onCardDAVAddressBookSynchronized() {
+            if (manualCardDAVRefreshRequested) {
+                manualRefreshTimeout.stop()
+                manualCardDAVRefreshRequested = false
+                contactList.forceFullRefresh()
+            }
+        }
+    }
+
+    Timer {
+        id: manualRefreshTimeout
+        interval: 30000
+        repeat: false
+        onTriggered: manualCardDAVRefreshRequested = false
     }
 
     onNoItemButtonPressed: createContact("", "")
@@ -238,6 +257,24 @@ AbstractMainPage {
                 color: DefaultStyle.main2_700
                 font.pixelSize: Typography.h2.pixelSize
                 font.weight: Typography.h2.weight
+            }
+            Button {
+                id: refreshContactsButton
+                visible: !rightPanelStackView.currentItem
+                         || rightPanelStackView.currentItem.objectName !== "contactEdition"
+                style: ButtonStyle.noBackground
+                icon.source: AppIcons.reloadArrow
+                Layout.preferredWidth: Utils.getSizeWithScreenRatio(28)
+                Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)
+                icon.width: Utils.getSizeWithScreenRatio(28)
+                icon.height: Utils.getSizeWithScreenRatio(28)
+                onClicked: {
+                    manualCardDAVRefreshRequested = true
+                    manualRefreshTimeout.restart()
+                    SettingsCpp.refreshCardDAVAddressBooks()
+                }
+                KeyNavigation.down: searchBar
+                Accessible.name: "Refresh contacts"
             }
             Button {
                 id: createContactButton
