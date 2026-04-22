@@ -163,11 +163,15 @@ void FriendModel::clearAddresses() {
 }
 
 QString FriendModel::getDefaultAddress() const {
-	return Utils::coreStringToAppString(mMonitor->getAddress()->asStringUriOnly());
+	auto addr = mMonitor->getAddress();
+	if (!addr) return QString();
+	return Utils::coreStringToAppString(addr->asStringUriOnly());
 }
 
 QString FriendModel::getDefaultFullAddress() const {
-	return Utils::coreStringToAppString(mMonitor->getAddress()->asString());
+	auto addr = mMonitor->getAddress();
+	if (!addr) return QString();
+	return Utils::coreStringToAppString(addr->asString());
 }
 
 QString FriendModel::getFullName() const {
