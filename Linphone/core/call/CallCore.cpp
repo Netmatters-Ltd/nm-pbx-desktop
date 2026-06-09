@@ -268,6 +268,14 @@ void CallCore::setSelf(QSharedPointer<CallCore> me) {
 	                                                                          const std::string &message) {
 		bool isConf = call && call->getConference() != nullptr;
 		auto subject = call->getConference() ? Utils::coreStringToAppString(call->getConference()->getSubject()) : "";
+		if (state == linphone::Call::State::Connected) {
+			auto micMuted = call->getMicrophoneMuted();
+			auto speakerMuted = call->getSpeakerMuted();
+			mCallModelConnection->invokeToCore([this, micMuted, speakerMuted]() {
+				setMicrophoneMuted(micMuted);
+				setSpeakerMuted(speakerMuted);
+			});
+		}
 		mCallModelConnection->invokeToCore([this, state, subject, isConf]() {
 			lDebug() << log().arg("::onStateChanged") << LinphoneEnums::fromLinphone(state);
 			setRecordable(state == linphone::Call::State::StreamsRunning);
