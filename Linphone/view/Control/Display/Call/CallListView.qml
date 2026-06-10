@@ -100,6 +100,7 @@ ListView {
 		}
 		Button {
 			id: pausingButton
+			visible: !mainItem.isTransferList
 			enabled: !(modelData.core.state === LinphoneEnums.CallState.PausedByRemote)
             Layout.preferredWidth: Utils.getSizeWithScreenRatio(28)
             Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)
