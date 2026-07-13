@@ -13,11 +13,16 @@ AbstractMainPage {
     id: mainItem
     leftPanelFixed: false
     fixedPanelWidth: 504
-    //: "Ajouter un contact"
-    noItemButtonText: qsTr("contacts_add")
+    // Contacts are read-only within the app: no empty-state create button.
+    noItemButtonText: ""
     //: "Aucun contact pour le moment"
     emptyListText: qsTr("contacts_list_empty")
     newItemIconSource: AppIcons.plusCircle
+
+    // Which slice of the address book this page shows (extensions vs contacts).
+    property int extensionFilter: MagicSearchProxy.ExtensionFilter.All
+    // Header title, defaults to the generic Contacts label.
+    property string pageTitle: qsTr("bottom_navigation_contacts_label")
 
     // disable left panel contact list interaction while a contact is being edited
     property bool leftPanelEnabled: !rightPanelStackView.currentItem
@@ -252,8 +257,7 @@ AbstractMainPage {
             Layout.fillHeight: false
             Text {
                 Layout.fillWidth: true
-                //: "Contacts"
-                text: qsTr("bottom_navigation_contacts_label")
+                text: mainItem.pageTitle
                 color: DefaultStyle.main2_700
                 font.pixelSize: Typography.h2.pixelSize
                 font.weight: Typography.h2.weight
@@ -276,23 +280,6 @@ AbstractMainPage {
                 KeyNavigation.down: searchBar
                 Accessible.name: "Refresh contacts"
             }
-            Button {
-                id: createContactButton
-                visible: !rightPanelStackView.currentItem
-                         || rightPanelStackView.currentItem.objectName !== "contactEdition"
-                style: ButtonStyle.noBackground
-                icon.source: AppIcons.plusCircle
-                Layout.preferredWidth: Utils.getSizeWithScreenRatio(28)
-                Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)
-                icon.width: Utils.getSizeWithScreenRatio(28)
-                icon.height: Utils.getSizeWithScreenRatio(28)
-                onClicked: {
-                    mainItem.createContact("", "")
-                }
-                KeyNavigation.down: searchBar
-                //: Create new contact
-                Accessible.name: qsTr("create_contact_accessible_name")
-            }
         }
 
         ColumnLayout {
@@ -311,7 +298,7 @@ AbstractMainPage {
                 Layout.fillWidth: true
                 //: Rechercher un contact
                 placeholderText: qsTr("search_bar_look_for_contact_text")
-                KeyNavigation.up: createContactButton
+                KeyNavigation.up: refreshContactsButton
                 KeyNavigation.down: contactList
             }
             ColumnLayout {
@@ -337,6 +324,7 @@ AbstractMainPage {
                     Layout.rightMargin: Utils.getSizeWithScreenRatio(8)
                     searchBarText: searchBar.text
                     hideSuggestions: true
+                    extensionFilter: mainItem.extensionFilter
                     sourceFlags: LinphoneEnums.MagicSearchSource.Friends
                                  | LinphoneEnums.MagicSearchSource.FavoriteFriends
                                  | LinphoneEnums.MagicSearchSource.LdapServers
@@ -426,7 +414,8 @@ AbstractMainPage {
                 button.style: ButtonStyle.noBackground
                 button.icon.source: AppIcons.pencil
                 button.onClicked: mainItem.editContact(mainItem.selectedContact)
-                button.visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                // Contacts are read-only within the app.
+                button.visible: false
                 property string contactAddress: contact ? contact.core.defaultAddress : ""
                 property var computedContactNameObj: UtilsCpp.getDisplayName(contactAddress)
                 property string computedContactName: computedContactNameObj ? computedContactNameObj.value : ""
@@ -777,7 +766,8 @@ AbstractMainPage {
                             content: ColumnLayout {
                                 spacing: Utils.getSizeWithScreenRatio(10)
                                 ColumnLayout {
-                                    visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                                    // Contacts are read-only within the app.
+                                    visible: false
                                     IconLabelButton {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
@@ -875,7 +865,8 @@ AbstractMainPage {
                                 // 	color: DefaultStyle.main2_200
                                 // }
                                 ColumnLayout {
-                                    visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                                    // Contacts are read-only within the app.
+                                    visible: false
                                     Rectangle {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(1)

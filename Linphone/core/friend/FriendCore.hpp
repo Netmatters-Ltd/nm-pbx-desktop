@@ -76,6 +76,7 @@ class FriendCore : public QObject, public AbstractObject {
 	Q_PROPERTY(bool isLdap READ isLdap CONSTANT)
 	Q_PROPERTY(bool isAppFriend READ isAppFriend CONSTANT)
 	Q_PROPERTY(bool isCardDAV READ isCardDAV CONSTANT)
+	Q_PROPERTY(bool isExtension READ isExtension CONSTANT)
 
 public:
 	// Should be call from model Thread. Will be automatically in App thread after initialization
@@ -145,6 +146,7 @@ public:
 	bool isLdap() const;
 	bool isAppFriend() const;
 	bool isCardDAV() const;
+	bool isExtension() const;
 	bool getReadOnly() const;
 
 	std::shared_ptr<FriendModel> getFriendModel();
@@ -209,6 +211,7 @@ protected:
 	bool mIsStored;
 	QString mVCardString;
 	bool mIsLdap, mIsCardDAV, mIsAppFriend;
+	bool mIsInternal = false;
 	std::shared_ptr<FriendModel> mFriendModel;
 	QSharedPointer<SafeConnection<FriendCore, FriendModel>> mFriendModelConnection;
 	QSharedPointer<SafeConnection<FriendCore, CoreModel>> mCoreModelConnection;

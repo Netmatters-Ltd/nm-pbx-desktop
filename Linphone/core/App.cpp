@@ -575,6 +575,10 @@ void App::initCore() {
 		    Utils::checkDownloadedCodecsUpdates();
 		    lDebug() << log().arg("Setting Video Codec Priority Policy");
 		    CoreModel::getInstance()->getCore()->setVideoCodecPriorityPolicy(linphone::CodecPriorityPolicy::Auto);
+		    // The audio codec settings UI has been removed, so make sure Opus (48000 Hz) stays enabled.
+		    lDebug() << log().arg("Ensuring Opus (48000 Hz) audio codec is enabled");
+		    auto opusPayloadType = CoreModel::getInstance()->getCore()->getPayloadType("opus", 48000, -1);
+		    if (opusPayloadType) opusPayloadType->enable(true);
 		    lDebug() << log().arg("Creating Ui");
 		    QMetaObject::invokeMethod(App::getInstance()->thread(), [this, settings] {
 			    // Initialize DestopTools here to have logs into files in case of errors.

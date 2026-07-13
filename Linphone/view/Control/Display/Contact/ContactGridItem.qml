@@ -15,8 +15,6 @@ FocusScope {
 	property bool isHighlighted: false
 
 	property var displayName: searchResultItem ? searchResultItem.core.fullName : ""
-	property string defaultAddress: searchResultItem ? searchResultItem.core.defaultAddress : ""
-	property string extension: UtilsCpp.getUsername(defaultAddress)
 	property string presenceNote: searchResultItem ? searchResultItem.core.presenceNote : ""
 
 	signal clicked(var mouse)
@@ -82,14 +80,7 @@ FocusScope {
 				Layout.fillWidth: true
 				Layout.alignment: Qt.AlignHCenter
 				horizontalAlignment: Text.AlignHCenter
-				text: {
-					var name = mainItem.displayName || ""
-					var ext = mainItem.extension || ""
-					if (ext.length > 0 && ext !== name) {
-						return name + " [" + ext + "]"
-					}
-					return name
-				}
+				text: mainItem.displayName || ""
 				font {
 					pixelSize: Typography.p2.pixelSize
 					weight: Typography.p2.weight

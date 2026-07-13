@@ -107,6 +107,7 @@ QtObject {
 	property string signOut: "image://internal/sign-out.svg"
 	property string userRectangle: "image://internal/user-rectangle.svg"
 	property string usersTwo: "image://internal/users.svg"
+	property string usersTwoSelected: "image://internal/users-fill.svg"
 	property string globe: "image://internal/globe-hemisphere-west.svg"
 	property string slide: "image://internal/slideshow.svg"
 	property string busyIndicator: "image://internal/busy-indicator.svg"

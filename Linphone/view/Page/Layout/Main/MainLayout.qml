@@ -28,11 +28,11 @@ Item {
     signal accountRemoved
 
     function goToNewCall() {
-        tabbar.currentIndex = 0;
+        tabbar.currentIndex = 2;
         mainItem.openNewCallRequest();
     }
     function goToCallHistory() {
-        tabbar.currentIndex = 0;
+        tabbar.currentIndex = 2;
         mainItem.openCallHistory();
     }
     function displayContactPage(contactAddress) {
@@ -40,11 +40,11 @@ Item {
         mainItem.displayContactRequested(contactAddress);
     }
     function displayChatPage(contactAddress) {
-        tabbar.currentIndex = 2;
+        tabbar.currentIndex = 3;
         mainItem.displayChatRequested(contactAddress);
     }
     function openChat(chat) {
-        tabbar.currentIndex = 2;
+        tabbar.currentIndex = 3;
         mainItem.openChatRequested(chat);
     }
     function createContact(name, address) {
@@ -52,7 +52,7 @@ Item {
         mainItem.createContactRequested(name, address);
     }
     function scheduleMeeting(subject, addresses) {
-        tabbar.currentIndex = 3;
+        tabbar.currentIndex = 4;
         mainItem.scheduleMeetingRequested(subject, addresses);
     }
 
@@ -88,7 +88,7 @@ Item {
     AccountProxy {
         id: accountProxy
         sourceModel: AppCpp.accounts
-        onDefaultAccountChanged: if (tabbar.currentIndex === 0 && defaultAccount)
+        onDefaultAccountChanged: if (tabbar.currentIndex === 2 && defaultAccount)
             defaultAccount.core?.lResetMissedCalls()
     }
 
@@ -144,12 +144,12 @@ Item {
                     }
                     model: [
                         {
-                            "icon": AppIcons.phone,
-                            "selectedIcon": AppIcons.phoneSelected,
-                            //: "Appels"
-                            "label": qsTr("bottom_navigation_calls_label"),
-                            //: "Open calls page"
-                            "accessibilityLabel": qsTr("open_calls_page_accessible_name")
+                            "icon": AppIcons.usersTwo,
+                            "selectedIcon": AppIcons.usersTwoSelected,
+                            //: "Extensions"
+                            "label": qsTr("bottom_navigation_extensions_label"),
+                            //: "Open extensions page"
+                            "accessibilityLabel": qsTr("open_extensions_page_accessible_name")
                         },
                         {
                             "icon": AppIcons.adressBook,
@@ -158,6 +158,14 @@ Item {
                             "label": qsTr("bottom_navigation_contacts_label"),
                             //: "Open contacts page"
                             "accessibilityLabel": qsTr("open_contacts_page_accessible_name")
+                        },
+                        {
+                            "icon": AppIcons.phone,
+                            "selectedIcon": AppIcons.phoneSelected,
+                            //: "Appels"
+                            "label": qsTr("bottom_navigation_calls_label"),
+                            //: "Open calls page"
+                            "accessibilityLabel": qsTr("open_calls_page_accessible_name")
                         }
                         // {
                         //     "icon": AppIcons.chatTeardropText,
@@ -181,7 +189,7 @@ Item {
                     onCurrentIndexChanged: {
                         if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
                             return;
-                        if (currentIndex === 0 && accountProxy.defaultAccount)
+                        if (currentIndex === 2 && accountProxy.defaultAccount)
                             accountProxy.defaultAccount.core?.lResetMissedCalls();
                         if (mainItem.contextualMenuOpenedComponent) {
                             closeContextualMenuComponent();
@@ -256,9 +264,7 @@ Item {
                         Text {
                             text: qsTr("Settings")
                             font.pixelSize: Utils.getSizeWithScreenRatio(11)
-                            font.weight: navSettingsButtonMouse.containsMouse
-                                ? Utils.getSizeWithScreenRatio(600)
-                                : Utils.getSizeWithScreenRatio(400)
+                            font.weight: Utils.getSizeWithScreenRatio(400)
                             color: DefaultStyle.grey_0
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
@@ -661,6 +667,33 @@ Item {
                         }
                         Loader {
                             active: mainStackLayout.currentIndex === 0
+                            sourceComponent: ContactPage {
+                                id: extensionPage
+                                extensionFilter: MagicSearchProxy.ExtensionFilter.Extensions
+                                //: "Extensions"
+                                pageTitle: qsTr("bottom_navigation_extensions_label")
+                            }
+                        }
+                        Loader {
+                            active: mainStackLayout.currentIndex === 1
+                            sourceComponent: ContactPage {
+                                id: contactPage
+                                extensionFilter: MagicSearchProxy.ExtensionFilter.Contacts
+                                //: "Contacts"
+                                pageTitle: qsTr("bottom_navigation_contacts_label")
+                                Connections {
+                                    target: mainItem
+                                    function onCreateContactRequested(name, address) {
+                                        contactPage.createContact(name, address);
+                                    }
+                                    function onDisplayContactRequested(contactAddress) {
+                                        contactPage.initialFriendToDisplay = contactAddress;
+                                    }
+                                }
+                            }
+                        }
+                        Loader {
+                            active: mainStackLayout.currentIndex === 2
                             sourceComponent: CallPage {
                                 id: callPage
                                 Connections {
@@ -684,31 +717,10 @@ Item {
                                 Component.onCompleted: {
                                     magicSearchBar.numericPadPopup = callPage.numericPadPopup;
                                 }
-                                onGoToCallForwardSettings: {
-                                    var page = settingsPageComponent.createObject(parent, {
-                                        defaultIndex: 1
-                                    });
-                                    openContextualMenuComponent(page);
-                                }
                             }
                         }
                         Loader {
-                            active: mainStackLayout.currentIndex === 1
-                            sourceComponent: ContactPage {
-                                id: contactPage
-                                Connections {
-                                    target: mainItem
-                                    function onCreateContactRequested(name, address) {
-                                        contactPage.createContact(name, address);
-                                    }
-                                    function onDisplayContactRequested(contactAddress) {
-                                        contactPage.initialFriendToDisplay = contactAddress;
-                                    }
-                                }
-                            }
-                        }
-                        Loader {
-                            active: mainStackLayout.currentIndex === 2
+                            active: mainStackLayout.currentIndex === 3
                             sourceComponent: ChatPage {
                                 id: chatPage
                                 Connections {
@@ -727,7 +739,7 @@ Item {
                         }
 
                         Loader {
-                            active: mainStackLayout.currentIndex === 3
+                            active: mainStackLayout.currentIndex === 4
                             sourceComponent: Component {
                                 id: meetingComp
                                 MeetingPage {

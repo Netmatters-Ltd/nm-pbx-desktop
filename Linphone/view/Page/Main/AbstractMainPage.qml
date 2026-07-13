@@ -180,6 +180,7 @@ FocusScope {
 							}
 							BigButton {
 								Layout.alignment: Qt.AlignHCenter
+								visible: mainItem.noItemButtonText !== ""
 								icon.source: mainItem.newItemIconSource
 								style: ButtonStyle.main
 								text: mainItem.noItemButtonText

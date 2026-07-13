@@ -107,13 +107,12 @@ Control.TabBar {
 			text: modelData.accessibilityLabel
 			property bool keyboardFocus: FocusHelper.keyboardFocus
 			UnreadNotification {
+				// Tab order: 0 = Extensions, 1 = Contacts, 2 = Calls.
 				unread: !defaultAccount
 				? -1
-				: index === 0
+				: index === 2
 					? defaultAccount.core?.unreadCallNotifications || -1
-					: index === 2
-						? defaultAccount.core?.unreadMessageNotifications || -1
-						: 0
+					: 0
 				anchors.right: parent.right
                 anchors.rightMargin: Utils.getSizeWithScreenRatio(15)
 				anchors.top: parent.top
@@ -149,11 +148,7 @@ Control.TabBar {
 					visible: buttonIcon.isImageReady
 					text: modelData.label
 					font {
-						weight: mainItem.currentIndex === index
-							? Utils.getSizeWithScreenRatio(800)
-							: tabButton.hovered
-								? Utils.getSizeWithScreenRatio(600)
-								: Utils.getSizeWithScreenRatio(400)
+						weight: Utils.getSizeWithScreenRatio(400)
 						pixelSize: Utils.getSizeWithScreenRatio(11)
 					}
 					color: DefaultStyle.grey_0
@@ -211,9 +206,7 @@ Control.TabBar {
 				Text {
 					text: mainItem.headerButton?.label ?? ""
 					font.pixelSize: Utils.getSizeWithScreenRatio(11)
-					font.weight: headerButtonMouse.containsMouse
-						? Utils.getSizeWithScreenRatio(600)
-						: Utils.getSizeWithScreenRatio(400)
+					font.weight: Utils.getSizeWithScreenRatio(400)
 					color: DefaultStyle.grey_0
 					Layout.fillWidth: true
 					horizontalAlignment: Text.AlignHCenter

@@ -4394,6 +4394,18 @@ Ablauf: %1</translation>
         <translation>Kontakte öffnen</translation>
     </message>
     <message>
+        <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="149"/>
+        <source>bottom_navigation_extensions_label</source>
+        <extracomment>&quot;Extensions&quot;</extracomment>
+        <translation>Nebenstellen</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="151"/>
+        <source>open_extensions_page_accessible_name</source>
+        <extracomment>&quot;Open extensions page&quot;</extracomment>
+        <translation>Nebenstellenseite öffnen</translation>
+    </message>
+    <message>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="159"/>
         <source>bottom_navigation_conversations_label</source>
         <extracomment>&quot;Conversations&quot;</extracomment>

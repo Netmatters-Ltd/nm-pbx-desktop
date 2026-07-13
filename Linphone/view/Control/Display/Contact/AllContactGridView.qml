@@ -17,6 +17,7 @@ Flickable {
     property bool hideSuggestions: false
     property bool showFavorites: true
     property var sourceFlags: LinphoneEnums.MagicSearchSource.All
+    property int extensionFilter: MagicSearchProxy.ExtensionFilter.All
 
     property FriendGui highlightedContact
 
@@ -124,12 +125,14 @@ Flickable {
         id: favoritesProxy
         parentProxy: mainItem.mainModel
         showMe: mainItem.showMe
+        extensionFilter: mainItem.extensionFilter
         filterType: MagicSearchProxy.FilteringTypes.Favorites
     }
 
     MagicSearchProxy {
         id: contactsProxy
         parentProxy: mainItem.mainModel
+        extensionFilter: mainItem.extensionFilter
         filterType: MagicSearchProxy.FilteringTypes.App
                     | (mainItem.searchText != '*'
                        && mainItem.searchText != ''
@@ -141,6 +144,7 @@ Flickable {
     MagicSearchProxy {
         id: suggestionsProxy
         parentProxy: mainItem.mainModel
+        extensionFilter: mainItem.extensionFilter
         filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
         initialDisplayItems: contactsProxy.haveMore
             ? 0

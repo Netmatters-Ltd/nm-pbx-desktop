@@ -40,12 +40,19 @@ class MagicSearchProxy : public LimitProxy {
 
 	Q_PROPERTY(MagicSearchProxy *parentProxy READ getParentProxy WRITE setParentProxy NOTIFY parentProxyChanged)
 	Q_PROPERTY(MagicSearchProxy *hideListProxy READ getHideListProxy WRITE setHideListProxy NOTIFY hideListProxyChanged)
+	Q_PROPERTY(
+	    int extensionFilter READ getExtensionFilter WRITE setExtensionFilter NOTIFY extensionFilterChanged)
 
 public:
 	enum class FilteringTypes { None = 0, Favorites = 1, App = 2, Ldap = 4, CardDAV = 8, Other = 16 };
 	Q_ENUM(FilteringTypes)
 
-	DECLARE_SORTFILTER_CLASS(MagicSearchProxy *mHideListProxy = nullptr;)
+	// Orthogonal to FilteringTypes: partitions results into internal PBX extensions vs external
+	// contacts. Applied as an AND gate on top of the source-based FilteringTypes.
+	enum class ExtensionFilter { All = 0, Extensions = 1, Contacts = 2 };
+	Q_ENUM(ExtensionFilter)
+
+	DECLARE_SORTFILTER_CLASS(MagicSearchProxy *mHideListProxy = nullptr; int mExtensionFilter = 0;)
 	MagicSearchProxy(QObject *parent = Q_NULLPTR);
 	~MagicSearchProxy();
 
@@ -71,6 +78,9 @@ public:
 	MagicSearchProxy *getHideListProxy() const;
 	void setHideListProxy(MagicSearchProxy *proxy);
 
+	int getExtensionFilter() const;
+	void setExtensionFilter(int extensionFilter);
+
 	// Q_INVOKABLE forceUpdate();
 	Q_INVOKABLE int findFriendIndexByAddress(const QString &address);
 	Q_INVOKABLE FriendGui *findFriendByAddress(const QString &address);
@@ -86,6 +96,7 @@ signals:
 	void localFriendCreated(int index);
 	void parentProxyChanged();
 	void hideListProxyChanged();
+	void extensionFilterChanged();
 	void initialized();
 	void resultsProcessed();
 
