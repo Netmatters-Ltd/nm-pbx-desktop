@@ -4350,7 +4350,7 @@ Expiration : %1</translation>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="470"/>
         <source>contact_presence_status_disable_do_not_disturb</source>
         <extracomment>&quot;Désactiver ne pas déranger&quot;</extracomment>
-        <translation>Disable do not disturb</translation>
+        <translation>Unmute ringer</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="381"/>
@@ -4385,7 +4385,7 @@ Expiration : %1</translation>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="472"/>
         <source>contact_presence_status_enable_do_not_disturb</source>
         <extracomment>&quot;Activer ne pas déranger&quot;</extracomment>
-        <translation>Enable do not disturb</translation>
+        <translation>Mute ringer</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="487"/>
@@ -4420,7 +4420,7 @@ Expiration : %1</translation>
         <location filename="../../view/Page/Layout/Main/MainLayout.qml" line="557"/>
         <source>drawer_menu_add_account</source>
         <extracomment>&quot;Ajouter un compte&quot;</extracomment>
-        <translation>Add an account</translation>
+        <translation>Change account</translation>
     </message>
 </context>
 <context>
@@ -6064,7 +6064,7 @@ To enable them in a commercial project, please contact us.</translation>
     <message>
         <location filename="../../tool/Utils.cpp" line="1846"/>
         <source>contact_presence_status_away</source>
-        <translation>Idle/Away</translation>
+        <translation>Away</translation>
     </message>
     <message>
         <location filename="../../tool/Utils.cpp" line="188"/>

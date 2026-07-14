@@ -59,6 +59,9 @@ Loader{
 	
 	property bool securityBreach: securityLevel === LinphoneEnums.SecurityLevel.Unsafe
 	property bool displayPresence: true
+	// When set (used for the user's own avatar), the fallback shows the account's
+	// extension number instead of the display name initials.
+	property bool showExtension: false
 
 	asynchronous: true
 	sourceComponent: Component{
@@ -146,7 +149,9 @@ Loader{
 					width: height
 					Rectangle {
 						id: initialItem
-						property string initials: mainItem.isConference || (mainItem.displayNameVal && mainItem.displayNameVal[0] === "+") ? "" : UtilsCpp.getInitials(mainItem.displayNameVal)
+						property string initials: mainItem.showExtension
+							? UtilsCpp.getUsername(mainItem._address)
+							: (mainItem.isConference || (mainItem.displayNameVal && mainItem.displayNameVal[0] === "+") ? "" : UtilsCpp.getInitials(mainItem.displayNameVal))
 						radius: width / 2
 						color: DefaultStyle.main2_200
 						height: stackView.height
@@ -157,6 +162,11 @@ Loader{
 							verticalAlignment: Text.AlignVCenter
 							horizontalAlignment: Text.AlignHCenter
 							text: initialItem.initials
+							// Shrink to fit so longer values (e.g. a 3-digit extension) stay inside the circle.
+							fontSizeMode: Text.HorizontalFit
+							minimumPixelSize: 1
+							leftPadding: initialItem.width * 0.12
+							rightPadding: initialItem.width * 0.12
 							font {
 								pixelSize: initialItem.height * 36 / 120
 								weight: Typography.h4.weight

@@ -134,7 +134,7 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.bottom: navSettingsButton.top
+                    anchors.bottom: navPortalButton.top
                     defaultAccount: accountProxy.defaultAccount
                     currentIndex: 0
                     onCountChanged: if (currentIndex >= count) currentIndex = 0
@@ -230,6 +230,54 @@ Item {
                         tabbar.updateVisibleCount()
                         if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
                             currentIndex = 0;
+                    }
+                }
+
+                Item {
+                    id: navPortalButton
+                    anchors.bottom: navSettingsButton.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: navPortalButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(48)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: DefaultStyle.main1_700
+                    }
+
+                    ColumnLayout {
+                        id: navPortalButtonContent
+                        anchors.centerIn: parent
+                        spacing: Utils.getSizeWithScreenRatio(4)
+
+                        EffectImage {
+                            imageSource: AppIcons.globe
+                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+                            Layout.alignment: Qt.AlignHCenter
+                            fillMode: Image.PreserveAspectFit
+                            colorizationColor: DefaultStyle.grey_0
+                            useColor: true
+                        }
+
+                        Text {
+                            //: "Portal"
+                            text: qsTr("Portal")
+                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
+                            font.weight: Utils.getSizeWithScreenRatio(400)
+                            color: DefaultStyle.grey_0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            leftPadding: Utils.getSizeWithScreenRatio(3)
+                            rightPadding: Utils.getSizeWithScreenRatio(3)
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.openUrlExternally("https://portal.nmpbx.uk")
                     }
                 }
 
@@ -481,6 +529,7 @@ Item {
                                     height: avatarButton.height
                                     width: avatarButton.width
                                     account: accountProxy.defaultAccount
+                                    showExtension: true
                                 }
                                 Rectangle {
                                     // Black border for keyboard navigation
@@ -530,20 +579,6 @@ Item {
                                     anchors.fill: parent
 
                                     IconLabelButton {
-                                        id: accountButton
-                                        Layout.fillWidth: true
-                                        visible: !SettingsCpp.hideAccountSettings
-                                        icon.width: Utils.getSizeWithScreenRatio(32)
-                                        icon.height: Utils.getSizeWithScreenRatio(32)
-
-                                        //: Mon compte
-                                        text: qsTr("drawer_menu_manage_account")
-                                        icon.source: AppIcons.manageProfile
-                                        onClicked: openAccountSettings(accountProxy.defaultAccount ? accountProxy.defaultAccount : accountProxy.firstAccount())
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(0) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(0) : null
-                                    }
-                                    IconLabelButton {
                                         id: dndButton
                                         Layout.fillWidth: true
                                         icon.width: Utils.getSizeWithScreenRatio(32)
@@ -556,8 +591,8 @@ Item {
                                             settingsMenuButton.popup.close();
                                             SettingsCpp.dnd = !SettingsCpp.dnd;
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(1) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(1) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(0) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(0) : null
                                     }
                                     IconLabelButton {
                                         id: settingsButton
@@ -571,8 +606,8 @@ Item {
                                             var page = settingsPageComponent.createObject(parent);
                                             openContextualMenuComponent(page)
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(2) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(2) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(1) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(1) : null
                                     }
                                     IconLabelButton {
                                         id: recordsButton
@@ -583,23 +618,8 @@ Item {
                                         //: "Enregistrements"
                                         text: qsTr("recordings_title")
                                         icon.source: AppIcons.micro
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(3) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(3) : null
-                                    }
-                                    IconLabelButton {
-                                        id: helpButton
-                                        Layout.fillWidth: true
-                                        icon.width: Utils.getSizeWithScreenRatio(32)
-                                        icon.height: Utils.getSizeWithScreenRatio(32)
-                                        //: "Aide"
-                                        text: qsTr("help_title")
-                                        icon.source: AppIcons.question
-                                        onClicked: {
-                                            var page = helpPageComponent.createObject(parent);
-                                            openContextualMenuComponent(page)
-                                        }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(4) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(4) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(2) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(2) : null
                                     }
                                     IconLabelButton {
                                         id: quitButton
@@ -619,8 +639,8 @@ Item {
                                                 }
                                             });
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(5) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(5) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(3) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(3) : null
                                     }
                                     Rectangle {
                                         Layout.fillWidth: true
@@ -638,8 +658,8 @@ Item {
                                         text: qsTr("drawer_menu_add_account")
                                         icon.source: AppIcons.plusCircle
                                         onClicked: mainItem.addAccountRequest()
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(7) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(7) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(5) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(5) : null
                                     }
                                 }
                             }
