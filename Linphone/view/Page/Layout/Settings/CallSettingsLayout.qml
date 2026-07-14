@@ -58,14 +58,6 @@ AbstractSettingsLayout {
                 propertyOwner: SettingsCpp
             }
             SwitchSetting {
-                Layout.fillWidth: true
-                //: "Activer l’enregistrement automatique des appels"
-                titleText: qsTr("settings_calls_auto_record_title")
-                propertyName: "automaticallyRecordCallsEnabled"
-                propertyOwner: SettingsCpp
-                visible: !SettingsCpp.disableCallRecordings
-            }
-            SwitchSetting {
                 //: Tonalités
                 titleText: qsTr("settings_call_enable_tones_title")
                 //: Activer les tonalités

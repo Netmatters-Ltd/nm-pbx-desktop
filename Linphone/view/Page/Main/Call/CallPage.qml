@@ -18,7 +18,6 @@ AbstractMainPage {
 
     property var selectedRowHistoryGui
     signal listViewUpdated
-    signal goToCallForwardSettings
 
     onVisibleChanged: if (!visible) {
         goToCallHistory()
@@ -221,42 +220,6 @@ AbstractMainPage {
                         value: false
                     }
                 }
-				Rectangle {
-					visible: SettingsCpp.callForwardToAddress.length > 0
-					Layout.fillWidth: true
-					Layout.preferredHeight: Utils.getSizeWithScreenRatio(40)
-					Layout.topMargin: Utils.getSizeWithScreenRatio(18)
-					Layout.rightMargin: Utils.getSizeWithScreenRatio(39)
-					color: "transparent"
-					radius: Utils.getSizeWithScreenRatio(25)
-					border.color: DefaultStyle.warning_500_main
-					border.width: Utils.getSizeWithScreenRatio(2)
-
-					RowLayout {
-						anchors.centerIn: parent
-						spacing: Utils.getSizeWithScreenRatio(10)
-						EffectImage {
-							fillMode: Image.PreserveAspectFit
-							imageSource: AppIcons.callForward
-							colorizationColor: DefaultStyle.warning_500_main
-							Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
-							Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
-						}
-						Text {
-							text: qsTr("call_forward_to_address_info") + (SettingsCpp.callForwardToAddress == 'voicemail' ? qsTr("call_forward_to_address_info_voicemail") : SettingsCpp.callForwardToAddress)
-							color: DefaultStyle.warning_500_main
-							font: Typography.p1
-						}
-					}
-
-					MouseArea {
-						anchors.fill: parent
-						cursorShape: Qt.PointingHandCursor
-						onClicked: {
-							goToCallForwardSettings()
-						}
-					}
-				}
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
