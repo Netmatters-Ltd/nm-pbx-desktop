@@ -19,3 +19,9 @@ For our use, we're only concerned with the 64-bit Windows build.
 ## Language
 
 This project supports translation into multiple languages. However we are only concerned with the English version. Use British English. Translate any hardcoded text in other languages that may be user-visible.
+
+## Building / Compiling
+
+When you need to build the project, you MUST ask the user to perform the build for you. DO NOT attempt to build the project yourself.
+
+There are steps involved in building that you do not have access to, and attempting to perform a build yourself may disrupt future work.

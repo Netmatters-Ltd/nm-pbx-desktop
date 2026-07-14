@@ -246,6 +246,7 @@ public:
 
 	Q_INVOKABLE void cleanLogs() const;
 	Q_INVOKABLE void sendLogs() const;
+	Q_INVOKABLE void refreshCardDAVAddressBooks();
 	QString getLogsEmail() const;
 	QString getLogsFolder() const;
 	void setLogsFolder(QString folder);

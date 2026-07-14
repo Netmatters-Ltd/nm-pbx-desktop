@@ -17,7 +17,6 @@ ColumnLayout {
 	PresenceStatusItem { presence: LinphoneEnums.Presence.Away; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
 	PresenceStatusItem { presence: LinphoneEnums.Presence.Busy; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
 	PresenceStatusItem { presence: LinphoneEnums.Presence.DoNotDisturb; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
-	PresenceStatusItem { presence: LinphoneEnums.Presence.Offline; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
 
 	RowLayout {
 		spacing: 0

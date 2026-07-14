@@ -62,13 +62,33 @@ void CarddavModel::save(
 	// Auth info handled in lazy mode, if provided handle otherwise ignore.
 	// TODO: add dialog to ask user before removing existing auth info if existing already - (comment from Android)
 	if (!username.empty() && !realm.empty()) {
+		// Extract hostname from the CardDAV server URI so we can store it
+		// as the domain on the auth info. This allows the SDK's CardDAV HTTP
+		// layer to look up the correct auth info by matching the request
+		// host to the auth info domain, avoiding ambiguity when multiple
+		// auth infos share the same realm (e.g. SIP and CardDAV).
+		std::string serverHost;
+		auto schemePos = uri.find("://");
+		if (schemePos != std::string::npos) {
+			auto hostStart = schemePos + 3;
+			auto hostEnd = uri.find_first_of(":/", hostStart);
+			if (hostEnd == std::string::npos) hostEnd = uri.length();
+			serverHost = uri.substr(hostStart, hostEnd - hostStart);
+		}
+
 		mRemovedAuthInfo = core->findAuthInfo(realm, username, "");
 		if (mRemovedAuthInfo != nullptr) {
 			lWarning() << log().arg("Auth info with username ") << username << " already exists, removing it first.";
 			core->removeAuthInfo(mRemovedAuthInfo);
 		}
 		lInfo() << log().arg("Adding auth info with username") << username;
-		mCreatedAuthInfo = linphone::Factory::get()->createAuthInfo(username, "", password, "", realm, "");
+		mCreatedAuthInfo = linphone::Factory::get()->createAuthInfo(username, "", password, "", realm, serverHost);
+		// Disable store_ha1_passwd so the plaintext password is preserved in memory
+		// and on disk. The default behaviour computes an MD5 HA1 hash and then clears
+		// the plaintext password, which breaks HTTP Basic authentication as used by
+		// CardDAV servers.
+		auto config = core->getConfig();
+		config->setInt("sip", "store_ha1_passwd", 0);
 		core->addAuthInfo(mCreatedAuthInfo);
 	} else {
 		lInfo() << log().arg("No auth info provided upon saving.");

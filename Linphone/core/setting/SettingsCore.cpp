@@ -21,6 +21,7 @@
 #include "SettingsCore.hpp"
 #include "core/App.hpp"
 #include "core/path/Paths.hpp"
+#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
@@ -1055,6 +1056,25 @@ void SettingsCore::cleanLogs() const {
 
 void SettingsCore::sendLogs() const {
 	mSettingsModelConnection->invokeToModel([this]() { SettingsModel::getInstance()->sendLogs(); });
+}
+
+void SettingsCore::refreshCardDAVAddressBooks() {
+	mSettingsModelConnection->invokeToModel([this]() {
+		auto core = CoreModel::getInstance()->getCore();
+		if (!core) return;
+
+		for (auto &friendList : core->getFriendsLists()) {
+			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
+				auto agent = std::make_shared<CardDAVSyncAgent>();
+				agent->start(friendList, []() {
+					QMetaObject::invokeMethod(
+					    App::getInstance()->getSettings().get(),
+					    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
+					    Qt::QueuedConnection);
+				});
+			}
+		}
+	});
 }
 
 QString SettingsCore::getLogsEmail() const {

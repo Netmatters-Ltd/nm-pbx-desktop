@@ -20,6 +20,7 @@
 
 #include "FriendCore.hpp"
 #include "core/App.hpp"
+#include "model/core/CoreModel.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 #include "tool/thread/SafeConnection.hpp"
@@ -67,6 +68,20 @@ FriendCore::FriendCore(const std::shared_ptr<linphone::Friend> &contact, bool is
 		for (auto &address : addresses) {
 			mAddressList.append(Utils::createFriendAddressVariant(
 			    tr("sip_address"), Utils::coreStringToAppString(address->asStringUriOnly())));
+		}
+		// A friend is an "extension" (internal PBX user) when it has at least one SIP address on the
+		// default account's domain, as opposed to an external contact. Mirrors the mobile apps'
+		// ContactAvatarModel.isInternal.
+		auto core = CoreModel::getInstance()->getCore();
+		auto defaultAccount = core ? core->getDefaultAccount() : nullptr;
+		auto accountDomain = defaultAccount ? defaultAccount->getParams()->getDomain() : std::string();
+		if (!accountDomain.empty()) {
+			for (auto &address : addresses) {
+				if (address->getDomain() == accountDomain) {
+					mIsInternal = true;
+					break;
+				}
+			}
 		}
 		mDefaultAddress = defaultAddress ? Utils::coreStringToAppString(defaultAddress->asStringUriOnly()) : QString();
 		mDefaultFullAddress = defaultAddress ? Utils::coreStringToAppString(defaultAddress->asString()) : QString();
@@ -124,6 +139,7 @@ FriendCore::FriendCore(const FriendCore &friendCore) {
 	mIsLdap = friendCore.mIsLdap;
 	mIsAppFriend = friendCore.mIsAppFriend;
 	mIsCardDAV = friendCore.mIsCardDAV;
+	mIsInternal = friendCore.mIsInternal;
 }
 
 FriendCore::~FriendCore() {
@@ -724,6 +740,10 @@ bool FriendCore::isCardDAV() const {
 
 bool FriendCore::isAppFriend() const {
 	return mIsAppFriend;
+}
+
+bool FriendCore::isExtension() const {
+	return mIsInternal;
 }
 
 bool FriendCore::getReadOnly() const {

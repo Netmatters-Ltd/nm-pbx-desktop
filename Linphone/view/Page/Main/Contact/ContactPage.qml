@@ -11,11 +11,18 @@ import "qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js" as Utils
 
 AbstractMainPage {
     id: mainItem
-    //: "Ajouter un contact"
-    noItemButtonText: qsTr("contacts_add")
+    leftPanelFixed: false
+    fixedPanelWidth: 504
+    // Contacts are read-only within the app: no empty-state create button.
+    noItemButtonText: ""
     //: "Aucun contact pour le moment"
     emptyListText: qsTr("contacts_list_empty")
     newItemIconSource: AppIcons.plusCircle
+
+    // Which slice of the address book this page shows (extensions vs contacts).
+    property int extensionFilter: MagicSearchProxy.ExtensionFilter.All
+    // Header title, defaults to the generic Contacts label.
+    property string pageTitle: qsTr("bottom_navigation_contacts_label")
 
     // disable left panel contact list interaction while a contact is being edited
     property bool leftPanelEnabled: !rightPanelStackView.currentItem
@@ -23,6 +30,7 @@ AbstractMainPage {
                                     != "contactEdition"
     property FriendGui selectedContact
     property string initialFriendToDisplay
+    property bool manualCardDAVRefreshRequested: false
     onInitialFriendToDisplayChanged: {
         if (initialFriendToDisplay != '' && contactList.selectContact(initialFriendToDisplay) != -1)
             initialFriendToDisplay = ""
@@ -61,6 +69,24 @@ AbstractMainPage {
             || rightPanelStackView.currentItem.objectName != "contactEdition") {
             goToContactDetails()
         }
+    }
+
+    Connections {
+        target: SettingsCpp
+        function onCardDAVAddressBookSynchronized() {
+            if (manualCardDAVRefreshRequested) {
+                manualRefreshTimeout.stop()
+                manualCardDAVRefreshRequested = false
+                contactList.forceFullRefresh()
+            }
+        }
+    }
+
+    Timer {
+        id: manualRefreshTimeout
+        interval: 30000
+        repeat: false
+        onTriggered: manualCardDAVRefreshRequested = false
     }
 
     onNoItemButtonPressed: createContact("", "")
@@ -231,28 +257,28 @@ AbstractMainPage {
             Layout.fillHeight: false
             Text {
                 Layout.fillWidth: true
-                //: "Contacts"
-                text: qsTr("bottom_navigation_contacts_label")
+                text: mainItem.pageTitle
                 color: DefaultStyle.main2_700
                 font.pixelSize: Typography.h2.pixelSize
                 font.weight: Typography.h2.weight
             }
             Button {
-                id: createContactButton
+                id: refreshContactsButton
                 visible: !rightPanelStackView.currentItem
                          || rightPanelStackView.currentItem.objectName !== "contactEdition"
                 style: ButtonStyle.noBackground
-                icon.source: AppIcons.plusCircle
+                icon.source: AppIcons.reloadArrow
                 Layout.preferredWidth: Utils.getSizeWithScreenRatio(28)
                 Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)
                 icon.width: Utils.getSizeWithScreenRatio(28)
                 icon.height: Utils.getSizeWithScreenRatio(28)
                 onClicked: {
-                    mainItem.createContact("", "")
+                    manualCardDAVRefreshRequested = true
+                    manualRefreshTimeout.restart()
+                    SettingsCpp.refreshCardDAVAddressBooks()
                 }
                 KeyNavigation.down: searchBar
-                //: Create new contact
-                Accessible.name: qsTr("create_contact_accessible_name")
+                Accessible.name: "Refresh contacts"
             }
         }
 
@@ -272,7 +298,7 @@ AbstractMainPage {
                 Layout.fillWidth: true
                 //: Rechercher un contact
                 placeholderText: qsTr("search_bar_look_for_contact_text")
-                KeyNavigation.up: createContactButton
+                KeyNavigation.up: refreshContactsButton
                 KeyNavigation.down: contactList
             }
             ColumnLayout {
@@ -291,13 +317,14 @@ AbstractMainPage {
                         weight: Typography.h4.weight
                     }
                 }
-                AllContactListView {
+                AllContactGridView {
                     id: contactList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.rightMargin: Utils.getSizeWithScreenRatio(8)
                     searchBarText: searchBar.text
                     hideSuggestions: true
+                    extensionFilter: mainItem.extensionFilter
                     sourceFlags: LinphoneEnums.MagicSearchSource.Friends
                                  | LinphoneEnums.MagicSearchSource.FavoriteFriends
                                  | LinphoneEnums.MagicSearchSource.LdapServers
@@ -387,7 +414,8 @@ AbstractMainPage {
                 button.style: ButtonStyle.noBackground
                 button.icon.source: AppIcons.pencil
                 button.onClicked: mainItem.editContact(mainItem.selectedContact)
-                button.visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                // Contacts are read-only within the app.
+                button.visible: false
                 property string contactAddress: contact ? contact.core.defaultAddress : ""
                 property var computedContactNameObj: UtilsCpp.getDisplayName(contactAddress)
                 property string computedContactName: computedContactNameObj ? computedContactNameObj.value : ""
@@ -435,20 +463,23 @@ AbstractMainPage {
                 }
                 bannerContent: [
                     ColumnLayout {
-                        spacing: 0
+                        spacing: Utils.getSizeWithScreenRatio(2)
+                        Layout.fillWidth: true
                         Text {
                             text: contactDetail.contactName
                             Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
                             maximumLineCount: 1
+                            elide: Text.ElideRight
                             font {
-                                pixelSize: Typography.h2.pixelSize
-                                weight: Typography.h2.weight
+                                pixelSize: Typography.h4.pixelSize
+                                weight: Typography.h4.weight
                                 capitalization: Font.Capitalize
                             }
                         }
                         Text {
                             visible: contactDetail.contact
-                            horizontalAlignment: Text.AlignLeft
+                            horizontalAlignment: Text.AlignHCenter
                             Layout.fillWidth: true
                             text: contactDetail.contact ? contactDetail.contact.core.presenceStatus : ""
                             color: contactDetail.contact ? contactDetail.contact.core.presenceColor : 'transparent'
@@ -456,10 +487,9 @@ AbstractMainPage {
                         }
                     },
                     ActionsButtons {
-                        visible: !contactDetail.useVerticalLayout
+                        Layout.alignment: Qt.AlignHCenter
                     }
                 ]
-                secondLineContent: ActionsButtons {}
                 content: Flickable {
                     contentWidth: parent.width
                     ColumnLayout {
@@ -736,7 +766,8 @@ AbstractMainPage {
                             content: ColumnLayout {
                                 spacing: Utils.getSizeWithScreenRatio(10)
                                 ColumnLayout {
-                                    visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                                    // Contacts are read-only within the app.
+                                    visible: false
                                     IconLabelButton {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
@@ -834,7 +865,8 @@ AbstractMainPage {
                                 // 	color: DefaultStyle.main2_200
                                 // }
                                 ColumnLayout {
-                                    visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                                    // Contacts are read-only within the app.
+                                    visible: false
                                     Rectangle {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(1)

@@ -1769,19 +1769,19 @@ QColor Utils::getPresenceColor(LinphoneEnums::Presence presence) {
 	QColor presenceColor = QColorConstants::Transparent;
 	switch (presence) {
 		case LinphoneEnums::Presence::Online:
-			presenceColor = Utils::getDefaultStyleColor("success_500_main");
+			presenceColor = Utils::getDefaultStyleColor("presence_online");
 			break;
 		case LinphoneEnums::Presence::Away:
-			presenceColor = Utils::getDefaultStyleColor("warning_500_main");
+			presenceColor = Utils::getDefaultStyleColor("presence_away");
 			break;
 		case LinphoneEnums::Presence::Busy:
-			presenceColor = Utils::getDefaultStyleColor("danger_500_main");
+			presenceColor = Utils::getDefaultStyleColor("info_500_main");
 			break;
 		case LinphoneEnums::Presence::DoNotDisturb:
 			presenceColor = Utils::getDefaultStyleColor("danger_500_main");
 			break;
 		case LinphoneEnums::Presence::Offline:
-			presenceColor = Utils::getDefaultStyleColor("main2_600");
+			presenceColor = Utils::getDefaultStyleColor("main2_400");
 			break;
 		case LinphoneEnums::Presence::Undefined:
 			presenceColor = Utils::getDefaultStyleColor("transparent");

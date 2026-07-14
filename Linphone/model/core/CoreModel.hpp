@@ -97,6 +97,7 @@ signals:
 private:
 	QString mConfigPath;
 	QTimer *mIterateTimer = nullptr;
+	QTimer *mCardDAVSyncTimer = nullptr;
 	QMap<QString, OIDCModel *> mOpenIdConnections;
 	std::shared_ptr<MagicSearchModel> mMagicSearch;
 	bool mStarted = false;

@@ -21,6 +21,7 @@ Flickable {
     property bool showMe: true // Wether to display current account address or not (disabled for adding participants)
     property string highlightText: searchText // Bold characters in Display name.
     property var sourceFlags: LinphoneEnums.MagicSearchSource.All
+    property int extensionFilter: MagicSearchProxy.ExtensionFilter.All
 
     property bool displayNameCapitalization: true // Capitalize display name.
 
@@ -297,6 +298,7 @@ Flickable {
                 id: favoritesProxy
                 parentProxy: mainItem.mainModel
                 showMe: mainItem.showMe
+                extensionFilter: mainItem.extensionFilter
                 filterType: MagicSearchProxy.FilteringTypes.Favorites
             }
             model: mainItem.showFavorites
@@ -343,6 +345,7 @@ Flickable {
             model: MagicSearchProxy {
                 id: contactsProxy
                 parentProxy: mainItem.mainModel
+                extensionFilter: mainItem.extensionFilter
                 filterType: MagicSearchProxy.FilteringTypes.App
                             | (mainItem.searchText != '*'
                                && mainItem.searchText != ''
@@ -393,6 +396,7 @@ Flickable {
             model: MagicSearchProxy {
                 id: suggestionsProxy
                 parentProxy: mainItem.mainModel
+                extensionFilter: mainItem.extensionFilter
                 filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
                 initialDisplayItems: contactsProxy.haveMore && contactsList.expanded 
                     ? 0 

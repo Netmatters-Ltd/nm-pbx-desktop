@@ -28,11 +28,11 @@ Item {
     signal accountRemoved
 
     function goToNewCall() {
-        tabbar.currentIndex = 0;
+        tabbar.currentIndex = 2;
         mainItem.openNewCallRequest();
     }
     function goToCallHistory() {
-        tabbar.currentIndex = 0;
+        tabbar.currentIndex = 2;
         mainItem.openCallHistory();
     }
     function displayContactPage(contactAddress) {
@@ -40,11 +40,11 @@ Item {
         mainItem.displayContactRequested(contactAddress);
     }
     function displayChatPage(contactAddress) {
-        tabbar.currentIndex = 2;
+        tabbar.currentIndex = 3;
         mainItem.displayChatRequested(contactAddress);
     }
     function openChat(chat) {
-        tabbar.currentIndex = 2;
+        tabbar.currentIndex = 3;
         mainItem.openChatRequested(chat);
     }
     function createContact(name, address) {
@@ -52,7 +52,7 @@ Item {
         mainItem.createContactRequested(name, address);
     }
     function scheduleMeeting(subject, addresses) {
-        tabbar.currentIndex = 3;
+        tabbar.currentIndex = 4;
         mainItem.scheduleMeetingRequested(subject, addresses);
     }
 
@@ -88,7 +88,7 @@ Item {
     AccountProxy {
         id: accountProxy
         sourceModel: AppCpp.accounts
-        onDefaultAccountChanged: if (tabbar.currentIndex === 0 && defaultAccount)
+        onDefaultAccountChanged: if (tabbar.currentIndex === 2 && defaultAccount)
             defaultAccount.core?.lResetMissedCalls()
     }
 
@@ -124,87 +124,216 @@ Item {
             spacing: 0
             anchors.topMargin: Utils.getSizeWithScreenRatio(25)
 
-            VerticalTabBar {
-                id: tabbar
+            Item {
+                id: leftPanelContainer
                 Layout.fillHeight: true
                 Layout.preferredWidth: Utils.getSizeWithScreenRatio(82)
-                defaultAccount: accountProxy.defaultAccount
-                currentIndex: 0
-                onCountChanged: if (currentIndex >= count) currentIndex = 0
-                Binding on currentIndex {
-                    when: mainItem.contextualMenuOpenedComponent != undefined
-                    value: -1
-                }
-                model: [
-                    {
-                        "icon": AppIcons.phone,
-                        "selectedIcon": AppIcons.phoneSelected,
-                        //: "Appels"
-                        "label": qsTr("bottom_navigation_calls_label"),
-                        //: "Open calls page"
-                        "accessibilityLabel": qsTr("open_calls_page_accessible_name")
-                    },
-                    {
-                        "icon": AppIcons.adressBook,
-                        "selectedIcon": AppIcons.adressBookSelected,
-                        //: "Contacts"
-                        "label": qsTr("bottom_navigation_contacts_label"),
-                        //: "Open contacts page"
-                        "accessibilityLabel": qsTr("open_contacts_page_accessible_name")
-                    },
-                    {
-                        "icon": AppIcons.chatTeardropText,
-                        "selectedIcon": AppIcons.chatTeardropTextSelected,
-                        //: "Conversations"
-                        "label": qsTr("bottom_navigation_conversations_label"),
-                        //: "Open conversations page"
-                        "accessibilityLabel": qsTr("open_conversations_page_accessible_name"),
-                        "visible": !SettingsCpp.disableChatFeature
-                    },
-                    {
-                        "icon": AppIcons.videoconference,
-                        "selectedIcon": AppIcons.videoconferenceSelected,
-                        //: "Réunions"
-                        "label": qsTr("bottom_navigation_meetings_label"),
-                        //: "Open meetings page"
-                        "accessibilityLabel": qsTr("open_contact_page_accessible_name"),
-                        "visible": !SettingsCpp.disableMeetingsFeature
+
+                VerticalTabBar {
+                    id: tabbar
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: navPortalButton.top
+                    defaultAccount: accountProxy.defaultAccount
+                    currentIndex: 0
+                    onCountChanged: if (currentIndex >= count) currentIndex = 0
+                    Binding on currentIndex {
+                        when: mainItem.contextualMenuOpenedComponent != undefined
+                        value: -1
                     }
-                ]
-                onCurrentIndexChanged: {
-                    if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
-                        return;
-                    if (currentIndex === 0 && accountProxy.defaultAccount)
-                        accountProxy.defaultAccount.core?.lResetMissedCalls();
-                    if (mainItem.contextualMenuOpenedComponent) {
-                        closeContextualMenuComponent();
+                    model: [
+                        {
+                            "icon": AppIcons.usersTwo,
+                            "selectedIcon": AppIcons.usersTwoSelected,
+                            //: "Extensions"
+                            "label": qsTr("bottom_navigation_extensions_label"),
+                            //: "Open extensions page"
+                            "accessibilityLabel": qsTr("open_extensions_page_accessible_name")
+                        },
+                        {
+                            "icon": AppIcons.adressBook,
+                            "selectedIcon": AppIcons.adressBookSelected,
+                            //: "Contacts"
+                            "label": qsTr("bottom_navigation_contacts_label"),
+                            //: "Open contacts page"
+                            "accessibilityLabel": qsTr("open_contacts_page_accessible_name")
+                        },
+                        {
+                            "icon": AppIcons.phone,
+                            "selectedIcon": AppIcons.phoneSelected,
+                            //: "Appels"
+                            "label": qsTr("bottom_navigation_calls_label"),
+                            //: "Open calls page"
+                            "accessibilityLabel": qsTr("open_calls_page_accessible_name")
+                        }
+                        // {
+                        //     "icon": AppIcons.chatTeardropText,
+                        //     "selectedIcon": AppIcons.chatTeardropTextSelected,
+                        //     //: "Conversations"
+                        //     "label": qsTr("bottom_navigation_conversations_label"),
+                        //     //: "Open conversations page"
+                        //     "accessibilityLabel": qsTr("open_conversations_page_accessible_name"),
+                        //     "visible": !SettingsCpp.disableChatFeature
+                        // },
+                        // {
+                        //     "icon": AppIcons.videoconference,
+                        //     "selectedIcon": AppIcons.videoconferenceSelected,
+                        //     //: "Réunions"
+                        //     "label": qsTr("bottom_navigation_meetings_label"),
+                        //     //: "Open meetings page"
+                        //     "accessibilityLabel": qsTr("open_contact_page_accessible_name"),
+                        //     "visible": !SettingsCpp.disableMeetingsFeature
+                        // }
+                    ]
+                    onCurrentIndexChanged: {
+                        if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
+                            return;
+                        if (currentIndex === 2 && accountProxy.defaultAccount)
+                            accountProxy.defaultAccount.core?.lResetMissedCalls();
+                        if (mainItem.contextualMenuOpenedComponent) {
+                            closeContextualMenuComponent();
+                        }
                     }
-                }
-                Keys.onPressed: event => {
-                    if (event.key == Qt.Key_Right) {
-                        mainStackView.currentItem.forceActiveFocus();
+                    Keys.onPressed: event => {
+                        if (event.key == Qt.Key_Right) {
+                            mainStackView.currentItem.forceActiveFocus();
+                        }
                     }
-                }
-                Component.onCompleted: {
-                    if (SettingsCpp.shortcutCount > 0) {
-                        var shortcuts = SettingsCpp.shortcuts;
-                        shortcuts.forEach(shortcut => {
-                            model.push({
-                                "icon": shortcut.icon,
-                                "selectedIcon": shortcut.icon,
-                                "label": shortcut.name,
-                                "colored": true,
-                                "link": shortcut.link
+                    headerButton: ({
+                        "icon": AppIcons.dialer,
+                        //: "Dial"
+                        "label": qsTr("Dial")
+                    })
+                    onHeaderButtonClicked: {
+                        mainItem.goToNewCall()
+                        Qt.callLater(function() {
+                            if (magicSearchBar.numericPadPopup)
+                                magicSearchBar.numericPadPopup.open()
+                        })
+                    }
+                    Component.onCompleted: {
+                        if (SettingsCpp.shortcutCount > 0) {
+                            var shortcuts = SettingsCpp.shortcuts;
+                            shortcuts.forEach(shortcut => {
+                                model.push({
+                                    "icon": shortcut.icon,
+                                    "selectedIcon": shortcut.icon,
+                                    "label": shortcut.name,
+                                    "colored": true,
+                                    "link": shortcut.link
+                                });
                             });
-                        });
+                        }
+                        initButtons();
+                        currentIndex = SettingsCpp.getLastActiveTabIndex();
+                        tabbar.updateVisibleCount()
+                        if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
+                            currentIndex = 0;
                     }
-                    initButtons();
-                    currentIndex = SettingsCpp.getLastActiveTabIndex();
-                    tabbar.updateVisibleCount()
-                    if (currentIndex === -1 || currentIndex >= tabbar.visibleCount)
-                        currentIndex = 0;
+                }
+
+                Item {
+                    id: navPortalButton
+                    anchors.bottom: navSettingsButton.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: navPortalButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(48)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: DefaultStyle.main1_700
+                    }
+
+                    ColumnLayout {
+                        id: navPortalButtonContent
+                        anchors.centerIn: parent
+                        spacing: Utils.getSizeWithScreenRatio(4)
+
+                        EffectImage {
+                            imageSource: AppIcons.globe
+                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+                            Layout.alignment: Qt.AlignHCenter
+                            fillMode: Image.PreserveAspectFit
+                            colorizationColor: DefaultStyle.grey_0
+                            useColor: true
+                        }
+
+                        Text {
+                            //: "Portal"
+                            text: qsTr("Portal")
+                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
+                            font.weight: Utils.getSizeWithScreenRatio(400)
+                            color: DefaultStyle.grey_0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            leftPadding: Utils.getSizeWithScreenRatio(3)
+                            rightPadding: Utils.getSizeWithScreenRatio(3)
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.openUrlExternally("https://portal.nmpbx.uk")
+                    }
+                }
+
+                Item {
+                    id: navSettingsButton
+                    visible: !SettingsCpp.hideSettings
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: visible ? navSettingsButtonContent.implicitHeight + Utils.getSizeWithScreenRatio(64) : 0
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: DefaultStyle.main1_700
+                    }
+
+                    ColumnLayout {
+                        id: navSettingsButtonContent
+                        anchors.centerIn: parent
+                        spacing: Utils.getSizeWithScreenRatio(4)
+
+                        EffectImage {
+                            imageSource: AppIcons.settings
+                            Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+                            Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+                            Layout.alignment: Qt.AlignHCenter
+                            fillMode: Image.PreserveAspectFit
+                            colorizationColor: DefaultStyle.grey_0
+                            useColor: true
+                        }
+
+                        Text {
+                            text: qsTr("Settings")
+                            font.pixelSize: Utils.getSizeWithScreenRatio(11)
+                            font.weight: Utils.getSizeWithScreenRatio(400)
+                            color: DefaultStyle.grey_0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            leftPadding: Utils.getSizeWithScreenRatio(3)
+                            rightPadding: Utils.getSizeWithScreenRatio(3)
+                        }
+                    }
+
+                    MouseArea {
+                        id: navSettingsButtonMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var page = settingsPageComponent.createObject(mainItem)
+                            openContextualMenuComponent(page)
+                        }
+                    }
                 }
             }
+
             ColumnLayout {
                 spacing: 0
 
@@ -400,6 +529,7 @@ Item {
                                     height: avatarButton.height
                                     width: avatarButton.width
                                     account: accountProxy.defaultAccount
+                                    showExtension: true
                                 }
                                 Rectangle {
                                     // Black border for keyboard navigation
@@ -449,20 +579,6 @@ Item {
                                     anchors.fill: parent
 
                                     IconLabelButton {
-                                        id: accountButton
-                                        Layout.fillWidth: true
-                                        visible: !SettingsCpp.hideAccountSettings
-                                        icon.width: Utils.getSizeWithScreenRatio(32)
-                                        icon.height: Utils.getSizeWithScreenRatio(32)
-
-                                        //: Mon compte
-                                        text: qsTr("drawer_menu_manage_account")
-                                        icon.source: AppIcons.manageProfile
-                                        onClicked: openAccountSettings(accountProxy.defaultAccount ? accountProxy.defaultAccount : accountProxy.firstAccount())
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(0) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(0) : null
-                                    }
-                                    IconLabelButton {
                                         id: dndButton
                                         Layout.fillWidth: true
                                         icon.width: Utils.getSizeWithScreenRatio(32)
@@ -475,8 +591,8 @@ Item {
                                             settingsMenuButton.popup.close();
                                             SettingsCpp.dnd = !SettingsCpp.dnd;
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(1) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(1) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(0) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(0) : null
                                     }
                                     IconLabelButton {
                                         id: settingsButton
@@ -490,8 +606,8 @@ Item {
                                             var page = settingsPageComponent.createObject(parent);
                                             openContextualMenuComponent(page)
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(2) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(2) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(1) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(1) : null
                                     }
                                     IconLabelButton {
                                         id: recordsButton
@@ -502,23 +618,8 @@ Item {
                                         //: "Enregistrements"
                                         text: qsTr("recordings_title")
                                         icon.source: AppIcons.micro
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(3) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(3) : null
-                                    }
-                                    IconLabelButton {
-                                        id: helpButton
-                                        Layout.fillWidth: true
-                                        icon.width: Utils.getSizeWithScreenRatio(32)
-                                        icon.height: Utils.getSizeWithScreenRatio(32)
-                                        //: "Aide"
-                                        text: qsTr("help_title")
-                                        icon.source: AppIcons.question
-                                        onClicked: {
-                                            var page = helpPageComponent.createObject(parent);
-                                            openContextualMenuComponent(page)
-                                        }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(4) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(4) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(2) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(2) : null
                                     }
                                     IconLabelButton {
                                         id: quitButton
@@ -538,8 +639,8 @@ Item {
                                                 }
                                             });
                                         }
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(5) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(5) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(3) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(3) : null
                                     }
                                     Rectangle {
                                         Layout.fillWidth: true
@@ -557,8 +658,8 @@ Item {
                                         text: qsTr("drawer_menu_add_account")
                                         icon.source: AppIcons.plusCircle
                                         onClicked: mainItem.addAccountRequest()
-                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(7) : null
-                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(7) : null
+                                        KeyNavigation.up: visibleChildren.length != 0 ? settingsMenuButton.getPreviousItem(5) : null
+                                        KeyNavigation.down: visibleChildren.length != 0 ? settingsMenuButton.getNextItem(5) : null
                                     }
                                 }
                             }
@@ -586,6 +687,33 @@ Item {
                         }
                         Loader {
                             active: mainStackLayout.currentIndex === 0
+                            sourceComponent: ContactPage {
+                                id: extensionPage
+                                extensionFilter: MagicSearchProxy.ExtensionFilter.Extensions
+                                //: "Extensions"
+                                pageTitle: qsTr("bottom_navigation_extensions_label")
+                            }
+                        }
+                        Loader {
+                            active: mainStackLayout.currentIndex === 1
+                            sourceComponent: ContactPage {
+                                id: contactPage
+                                extensionFilter: MagicSearchProxy.ExtensionFilter.Contacts
+                                //: "Contacts"
+                                pageTitle: qsTr("bottom_navigation_contacts_label")
+                                Connections {
+                                    target: mainItem
+                                    function onCreateContactRequested(name, address) {
+                                        contactPage.createContact(name, address);
+                                    }
+                                    function onDisplayContactRequested(contactAddress) {
+                                        contactPage.initialFriendToDisplay = contactAddress;
+                                    }
+                                }
+                            }
+                        }
+                        Loader {
+                            active: mainStackLayout.currentIndex === 2
                             sourceComponent: CallPage {
                                 id: callPage
                                 Connections {
@@ -609,31 +737,10 @@ Item {
                                 Component.onCompleted: {
                                     magicSearchBar.numericPadPopup = callPage.numericPadPopup;
                                 }
-                                onGoToCallForwardSettings: {
-                                    var page = settingsPageComponent.createObject(parent, {
-                                        defaultIndex: 1
-                                    });
-                                    openContextualMenuComponent(page);
-                                }
                             }
                         }
                         Loader {
-                            active: mainStackLayout.currentIndex === 1
-                            sourceComponent: ContactPage {
-                                id: contactPage
-                                Connections {
-                                    target: mainItem
-                                    function onCreateContactRequested(name, address) {
-                                        contactPage.createContact(name, address);
-                                    }
-                                    function onDisplayContactRequested(contactAddress) {
-                                        contactPage.initialFriendToDisplay = contactAddress;
-                                    }
-                                }
-                            }
-                        }
-                        Loader {
-                            active: mainStackLayout.currentIndex === 2
+                            active: mainStackLayout.currentIndex === 3
                             sourceComponent: ChatPage {
                                 id: chatPage
                                 Connections {
@@ -652,7 +759,7 @@ Item {
                         }
 
                         Loader {
-                            active: mainStackLayout.currentIndex === 3
+                            active: mainStackLayout.currentIndex === 4
                             sourceComponent: Component {
                                 id: meetingComp
                                 MeetingPage {

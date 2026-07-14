@@ -71,6 +71,7 @@ void MagicSearchProxy::setList(QSharedPointer<MagicSearchList> newList) {
 	auto sortFilterList = new SortFilterList(mList.get(), Qt::AscendingOrder);
 	if (oldModel) {
 		sortFilterList->mFilterType = oldModel->mFilterType;
+		sortFilterList->mExtensionFilter = oldModel->mExtensionFilter;
 		sortFilterList->mHideListProxy = oldModel->mHideListProxy;
 		if (sortFilterList->mHideListProxy) {
 			connect(sortFilterList->mHideListProxy, &MagicSearchProxy::countChanged, sortFilterList,
@@ -187,6 +188,20 @@ void MagicSearchProxy::setHideListProxy(MagicSearchProxy *hideListProxy) {
 	}
 }
 
+int MagicSearchProxy::getExtensionFilter() const {
+	auto list = dynamic_cast<SortFilterList *>(sourceModel());
+	return list ? list->mExtensionFilter : (int)ExtensionFilter::All;
+}
+
+void MagicSearchProxy::setExtensionFilter(int extensionFilter) {
+	auto list = dynamic_cast<SortFilterList *>(sourceModel());
+	if (list && list->mExtensionFilter != extensionFilter) {
+		list->mExtensionFilter = extensionFilter;
+		list->invalidate();
+		emit extensionFilterChanged();
+	}
+}
+
 LinphoneEnums::MagicSearchAggregation MagicSearchProxy::getAggregationFlag() const {
 	return mList->getAggregationFlag();
 }
@@ -217,6 +232,11 @@ bool MagicSearchProxy::SortFilterList::filterAcceptsRow(int sourceRow, const QMo
 		}
 		if (!toShow && (mFilterType & (int)FilteringTypes::Other) > 0) {
 			toShow = !friendCore->getIsStored() && !friendCore->isLdap();
+		}
+
+		if (toShow && mExtensionFilter != (int)ExtensionFilter::All) {
+			bool internal = friendCore->isExtension();
+			toShow = (mExtensionFilter == (int)ExtensionFilter::Extensions) ? internal : !internal;
 		}
 
 		if (toShow && mHideListProxy) {

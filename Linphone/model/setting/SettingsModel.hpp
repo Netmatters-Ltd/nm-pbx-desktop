@@ -171,6 +171,11 @@ public:
 	static const std::shared_ptr<linphone::FriendList> getCardDAVListForNewFriends();
 	static void setCardDAVListForNewFriends(std::string listName);
 
+	// Reads the [carddav_provision] section from the active config and creates or
+	// updates the provisioned CardDAV friend list accordingly.  Safe to call more
+	// than once — idempotent when the server URL has not changed.
+	static void applyCardDAVProvisioning();
+
 	static QString getDeviceName(const std::shared_ptr<linphone::Config> &config);
 
 	static bool clearLocalLdapFriendsUponStartup(const std::shared_ptr<linphone::Config> &config);

@@ -10,7 +10,8 @@ import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
 Control.TabBar {
 	id: mainItem
     //spacing: Utils.getSizeWithScreenRatio(32)
-    topPadding: Utils.getSizeWithScreenRatio(36)
+	topPadding: Utils.getSizeWithScreenRatio(20)
+	readonly property int itemVerticalInset: Utils.getSizeWithScreenRatio(32)
 
 	property var model
 	readonly property alias cornerRadius: bottomLeftCorner.radius
@@ -18,6 +19,12 @@ Control.TabBar {
 	property AccountGui defaultAccount
 
 	property int visibleCount: 0
+
+	// Optional header action button - rendered at the top of the list, above the tab buttons.
+	// Does not trigger tab navigation. Expected shape: { icon, label }
+	// Connect onHeaderButtonClicked to handle the click.
+	property var headerButton: null
+	signal headerButtonClicked()
 
 	// Call it after model is ready. If done before, Repeater will not be updated
 	function initButtons(){
@@ -58,6 +65,8 @@ Control.TabBar {
         // highlightRangeMode: ListView.ApplyRange
         // preferredHighlightBegin: 40
         // preferredHighlightEnd: width - 40
+
+        header: headerButtonComponent
     }
 
 	background: Item {
@@ -90,21 +99,20 @@ Control.TabBar {
 			id: tabButton
 			width: mainItem.width
 			height: visible && buttonIcon.isImageReady ? undefined : 0
-            bottomInset:  Utils.getSizeWithScreenRatio(32)
-            topInset:  Utils.getSizeWithScreenRatio(32)
+            bottomInset: mainItem.itemVerticalInset
+            topInset: mainItem.itemVerticalInset
 			hoverEnabled: true
 			visible: modelData?.visible != undefined ? modelData.visible : true
 			onVisibleChanged: mainItem.updateVisibleCount()
 			text: modelData.accessibilityLabel
 			property bool keyboardFocus: FocusHelper.keyboardFocus
 			UnreadNotification {
+				// Tab order: 0 = Extensions, 1 = Contacts, 2 = Calls.
 				unread: !defaultAccount
 				? -1
-				: index === 0
+				: index === 2
 					? defaultAccount.core?.unreadCallNotifications || -1
-					: index === 2
-						? defaultAccount.core?.unreadMessageNotifications || -1
-						: 0
+					: 0
 				anchors.right: parent.right
                 anchors.rightMargin: Utils.getSizeWithScreenRatio(15)
 				anchors.top: parent.top
@@ -140,11 +148,7 @@ Control.TabBar {
 					visible: buttonIcon.isImageReady
 					text: modelData.label
 					font {
-						weight: mainItem.currentIndex === index
-							? Utils.getSizeWithScreenRatio(800)
-							: tabButton.hovered
-								? Utils.getSizeWithScreenRatio(600)
-								: Utils.getSizeWithScreenRatio(400)
+						weight: Utils.getSizeWithScreenRatio(400)
 						pixelSize: Utils.getSizeWithScreenRatio(11)
 					}
 					color: DefaultStyle.grey_0
@@ -167,6 +171,56 @@ Control.TabBar {
 			}
 			onClicked: {
 				mainItem.setCurrentIndex(TabBar.index)
+			}
+		}
+	}
+
+	Component {
+		id: headerButtonComponent
+		Item {
+			readonly property int headerTopPadding: Utils.getSizeWithScreenRatio(12)
+			readonly property int headerBottomPadding: Math.max(0, mainItem.itemVerticalInset - Utils.getSizeWithScreenRatio(12))
+
+			width: ListView.view ? ListView.view.width : 0
+			height: mainItem.headerButton !== null
+				? headerButtonContent.implicitHeight + headerTopPadding + headerBottomPadding
+				: 0
+
+			ColumnLayout {
+				id: headerButtonContent
+				anchors.top: parent.top
+				anchors.topMargin: parent.headerTopPadding
+				anchors.horizontalCenter: parent.horizontalCenter
+				spacing: Utils.getSizeWithScreenRatio(4)
+
+				EffectImage {
+					imageSource: mainItem.headerButton?.icon ?? ""
+					Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
+					Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
+					Layout.alignment: Qt.AlignHCenter
+					fillMode: Image.PreserveAspectFit
+					colorizationColor: DefaultStyle.grey_0
+					useColor: true
+				}
+
+				Text {
+					text: mainItem.headerButton?.label ?? ""
+					font.pixelSize: Utils.getSizeWithScreenRatio(11)
+					font.weight: Utils.getSizeWithScreenRatio(400)
+					color: DefaultStyle.grey_0
+					Layout.fillWidth: true
+					horizontalAlignment: Text.AlignHCenter
+					leftPadding: Utils.getSizeWithScreenRatio(3)
+					rightPadding: Utils.getSizeWithScreenRatio(3)
+				}
+			}
+
+			MouseArea {
+				id: headerButtonMouse
+				anchors.fill: parent
+				hoverEnabled: true
+				cursorShape: Qt.PointingHandCursor
+				onClicked: mainItem.headerButtonClicked()
 			}
 		}
 	}

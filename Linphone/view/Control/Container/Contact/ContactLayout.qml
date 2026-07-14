@@ -1,7 +1,5 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
-import QtQuick.Controls.Basic as Control
 import Linphone
 import UtilsCpp
 import SettingsCpp
@@ -21,61 +19,35 @@ ColumnLayout {
     property real minimumWidthForSwitchintToRowLayout: Utils.getSizeWithScreenRatio(756)
     property var useVerticalLayout: width < minimumWidthForSwitchintToRowLayout
 
-	GridLayout {
-        Layout.leftMargin: Utils.getSizeWithScreenRatio(64)
-        Layout.rightMargin: Utils.getSizeWithScreenRatio(64)
-        Layout.topMargin: Utils.getSizeWithScreenRatio(56)
+	ColumnLayout {
+		Layout.leftMargin: Utils.getSizeWithScreenRatio(64)
+		Layout.rightMargin: Utils.getSizeWithScreenRatio(64)
+		Layout.topMargin: Utils.getSizeWithScreenRatio(32)
 		Layout.fillWidth: true
-		columns: mainItem.useVerticalLayout ? 1 : children.length
-		rows: 1
-        columnSpacing: Utils.getSizeWithScreenRatio(49)
-        rowSpacing: Utils.getSizeWithScreenRatio(27)
+		spacing: Utils.getSizeWithScreenRatio(12)
+
+		Avatar {
+			id: avatar
+			contact: mainItem.contact
+			Layout.preferredWidth: Utils.getSizeWithScreenRatio(80)
+			Layout.preferredHeight: Utils.getSizeWithScreenRatio(80)
+			Layout.alignment: Qt.AlignHCenter
+		}
 
 		ColumnLayout {
-			spacing: Utils.getSizeWithScreenRatio(16)
-			Layout.preferredWidth: Utils.getSizeWithScreenRatio(341)
-			RowLayout {
-				Layout.preferredWidth: Utils.getSizeWithScreenRatio(341)
-				Control.Control {
-					// Layout.preferredWidth: Utils.getSizeWithScreenRatio(734)
-					Layout.fillWidth: true
-					width: Utils.getSizeWithScreenRatio(734)
-					height: Utils.getSizeWithScreenRatio(100)
-					rightPadding: Utils.getSizeWithScreenRatio(21)
-					background: GradientRectangle {
-						anchors.fill: parent
-						anchors.leftMargin: avatar.width / 2
-						radius: Utils.getSizeWithScreenRatio(15)
-						borderGradient: Gradient {
-							orientation: Gradient.Horizontal
-							GradientStop { position: 0.0; color: DefaultStyle.grey_100 }
-							GradientStop { position: 1.0; color: DefaultStyle.main2_200 }
-						}
-						gradient: Gradient {
-							orientation: Gradient.Horizontal
-							GradientStop { position: 0.0; color: DefaultStyle.grey_0 }
-							GradientStop { position: 1.0; color: DefaultStyle.grey_100 }
-						}
-					}
-					contentItem: RowLayout {
-						id: bannerLayout
-						spacing: Utils.getSizeWithScreenRatio(32)
-						Avatar {
-							id: avatar
-							contact: mainItem.contact
-							Layout.preferredWidth: Utils.getSizeWithScreenRatio(100)
-							Layout.preferredHeight: Utils.getSizeWithScreenRatio(100)
-						}
-					}
-				}
-			}
-			PresenceNoteLayout {
-				visible: contact?.core.presenceNote.length > 0 && mainItem.useVerticalLayout
-				friendGui: contact
-				Layout.preferredWidth: Utils.getSizeWithScreenRatio(412)
-				Layout.preferredHeight: Utils.getSizeWithScreenRatio(85)
-			}
+			id: bannerLayout
+			Layout.fillWidth: true
+			spacing: Utils.getSizeWithScreenRatio(4)
 		}
+
+		PresenceNoteLayout {
+			visible: contact?.core.presenceNote.length > 0
+			friendGui: contact
+			Layout.preferredWidth: Utils.getSizeWithScreenRatio(412)
+			Layout.preferredHeight: Utils.getSizeWithScreenRatio(85)
+			Layout.alignment: Qt.AlignHCenter
+		}
+
 		Item {
 			id: verticalLayoutSecondLine
 			visible: mainItem.useVerticalLayout
@@ -83,22 +55,11 @@ ColumnLayout {
 			Layout.preferredWidth: childrenRect.width
 			Layout.preferredHeight: childrenRect.height
 		}
+
 		MediumButton {
 			id: rightButton
 			Layout.alignment: Qt.AlignHCenter
 			style: ButtonStyle.main
-		}
-	}
-	Rectangle {
-		Layout.fillWidth:true
-		Layout.preferredHeight: Utils.getSizeWithScreenRatio(79)
-		color: 'transparent'
-		visible: contact && contact.core.presenceNote.length > 0 && !mainItem.useVerticalLayout
-		PresenceNoteLayout {
-			anchors.centerIn: parent
-			friendGui: contact
-			width: Utils.getSizeWithScreenRatio(412)
-			height: Utils.getSizeWithScreenRatio(85)
 		}
 	}
 	StackLayout {

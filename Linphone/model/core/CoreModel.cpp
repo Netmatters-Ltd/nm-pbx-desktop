@@ -31,6 +31,7 @@
 #include "core/App.hpp"
 #include "core/notifier/Notifier.hpp"
 #include "core/path/Paths.hpp"
+#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
@@ -104,8 +105,30 @@ void CoreModel::start() {
 	mIterateTimer = new QTimer(this);
 	mIterateTimer->setInterval(20);
 	connect(mIterateTimer, &QTimer::timeout, [this]() { mCore->iterate(); });
-
 	mIterateTimer->start();
+
+	// Sync all CardDAV address books on startup and then every 15 minutes so that
+	// new, modified, and deleted contacts on the server are picked up automatically.
+	auto syncCardDAVLists = [this]() {
+		for (auto &friendList : mCore->getFriendsLists()) {
+			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
+				auto agent = std::make_shared<CardDAVSyncAgent>();
+				agent->start(friendList, []() {
+					QMetaObject::invokeMethod(
+					    App::getInstance()->getSettings().get(),
+					    []() {
+						    emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized();
+					    },
+					    Qt::QueuedConnection);
+				});
+			}
+		}
+	};
+	syncCardDAVLists();
+	mCardDAVSyncTimer = new QTimer(this);
+	mCardDAVSyncTimer->setInterval(15 * 60 * 1000);
+	connect(mCardDAVSyncTimer, &QTimer::timeout, syncCardDAVLists);
+	mCardDAVSyncTimer->start();
 
 	auto linphoneSearch = mCore->createMagicSearch();
 	linphoneSearch->setLimitedSearch(true);

@@ -79,8 +79,11 @@ list(APPEND _LINPHONEAPP_QML_FILES
 	view/Control/Display/Contact/PresenceStatusItem.qml
 	view/Control/Display/Contact/PresenceSetCustomStatus.qml
 	view/Control/Display/Contact/ContactListItem.qml
+	view/Control/Display/Contact/ContactGridItem.qml
+	view/Control/Display/Contact/ContactGridSection.qml
 	view/Control/Display/Contact/ContactListView.qml
 	view/Control/Display/Contact/AllContactListView.qml
+	view/Control/Display/Contact/AllContactGridView.qml
 	view/Control/Display/Contact/Voicemail.qml
 	view/Control/Display/Meeting/MeetingListView.qml
 	view/Control/Display/Participant/ParticipantDeviceListView.qml
@@ -150,7 +153,6 @@ list(APPEND _LINPHONEAPP_QML_FILES
 	view/Page/Layout/Settings/AccountSettingsGeneralLayout.qml
 	view/Page/Layout/Settings/AccountSettingsParametersLayout.qml
 	view/Page/Layout/Settings/CallSettingsLayout.qml
-	view/Page/Layout/Settings/CallForwardSettingsLayout.qml
 	view/Page/Layout/Settings/ContactsSettingsLayout.qml
 	view/Page/Layout/Settings/MeetingsSettingsLayout.qml
 	view/Page/Layout/Settings/ContactsSettingsProviderLayout.qml
@@ -170,7 +172,7 @@ list(APPEND _LINPHONEAPP_QML_FILES
 	view/Page/Layout/Chat/GroupChatInfoParticipants.qml
 	view/Page/Layout/Chat/ManageParticipants.qml
 	view/Page/Layout/Chat/EphemeralSettings.qml
-	
+
 
 	view/Page/Main/AbstractMainPage.qml
 	view/Page/Main/Account/AccountListView.qml
