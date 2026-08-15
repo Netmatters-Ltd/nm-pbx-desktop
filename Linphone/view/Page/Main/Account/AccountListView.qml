@@ -1,12 +1,10 @@
 import QtCore
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls.Basic as Control
 import QtQuick.Dialogs
 
 import Linphone
 import UtilsCpp
-import SettingsCpp
 import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
 import 'qrc:/qt/qml/Linphone/view/Style/buttonStyle.js' as ButtonStyle
 
@@ -70,29 +68,6 @@ ColumnLayout{
 			sourceModel: AppCpp.accounts
 		}
 		delegate: contactDelegate
-	}
-	HorizontalBar{
-		Layout.topMargin: mainItem.spacing
-		Layout.bottomMargin: mainItem.spacing
-		visible: addAccountButton.visible
-		color: DefaultStyle.main2_300
-	}
-	IconLabelButton{
-		id: addAccountButton
-		Layout.fillWidth: true
-		visible: SettingsCpp.maxAccount == 0 || SettingsCpp.maxAccount > accountProxy.count
-		onClicked: mainItem.addAccountRequest()
-		icon.source: AppIcons.plusCircle
-		icon.width: Utils.getSizeWithScreenRatio(32)
-		icon.height: Utils.getSizeWithScreenRatio(32)
-		//: Add an account
-		text: qsTr("add_an_account")
-		KeyNavigation.up: visibleChildren.length
-							!= 0 ? getPreviousItem(
-										AppCpp.accounts.getCount()) : null
-		KeyNavigation.down: visibleChildren.length
-							!= 0 ? getNextItem(
-										AppCpp.accounts.getCount()) : null
 	}
 }
 

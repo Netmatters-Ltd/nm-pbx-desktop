@@ -18,7 +18,6 @@ FocusScope {
 	property string presenceNote: searchResultItem ? searchResultItem.core.presenceNote : ""
 
 	signal clicked(var mouse)
-	signal contactDeletionRequested(FriendGui contact)
 
 	implicitWidth: Utils.getSizeWithScreenRatio(180)
 	implicitHeight: Utils.getSizeWithScreenRatio(130)
@@ -38,7 +37,7 @@ FocusScope {
 			color: mainItem.isSelected ? DefaultStyle.main2_200
 				: contactArea.containsMouse ? DefaultStyle.main2_100
 				: "transparent"
-			visible: mainItem.isSelected || contactArea.containsMouse || friendPopup.hovered
+			visible: mainItem.isSelected || contactArea.containsMouse
 		}
 
 		Keys.onPressed: event => {
@@ -52,11 +51,7 @@ FocusScope {
 
 		onClicked: mouse => {
 			mainItem.forceActiveFocus()
-			if (mouse && mouse.button == Qt.RightButton) {
-				if (friendPopup) friendPopup.open()
-			} else {
-				mainItem.clicked(mouse)
-			}
+			mainItem.clicked(mouse)
 		}
 
 		ColumnLayout {
@@ -106,51 +101,6 @@ FocusScope {
 			}
 
 			Item { Layout.fillHeight: true }
-		}
-
-		PopupButton {
-			id: friendPopup
-			z: contactArea.z + 1
-			visible: false
-			popup.x: 0
-			popup.padding: Utils.getSizeWithScreenRatio(10)
-
-			popup.contentItem: ColumnLayout {
-				IconLabelButton {
-					Layout.fillWidth: true
-					visible: mainItem.searchResultItem && mainItem.searchResultItem.core.isStored
-								&& !mainItem.searchResultItem.core.readOnly
-					text: mainItem.searchResultItem && mainItem.searchResultItem.core.starred
-						//: "Enlever des favoris"
-						? qsTr("contact_details_remove_from_favourites")
-						//: "Ajouter aux favoris"
-						: qsTr("contact_details_add_to_favourites")
-					icon.source: mainItem.searchResultItem && mainItem.searchResultItem.core.starred ? AppIcons.heartFill : AppIcons.heart
-					spacing: Utils.getSizeWithScreenRatio(10)
-					textColor: DefaultStyle.main2_500_main
-					hoveredImageColor: mainItem.searchResultItem && mainItem.searchResultItem.core.starred ? DefaultStyle.main1_700 : DefaultStyle.danger_700
-					contentImageColor: mainItem.searchResultItem && mainItem.searchResultItem.core.starred ? DefaultStyle.danger_500_main : DefaultStyle.main2_600
-					onClicked: {
-						mainItem.searchResultItem.core.lSetStarred(
-									!mainItem.searchResultItem.core.starred)
-						friendPopup.close()
-					}
-					style: ButtonStyle.noBackground
-				}
-				IconLabelButton {
-					//: "Supprimer"
-					text: qsTr("contact_details_delete")
-					icon.source: AppIcons.trashCan
-					spacing: Utils.getSizeWithScreenRatio(10)
-					visible: mainItem.searchResultItem && mainItem.searchResultItem.core.isStored && !mainItem.searchResultItem.core.readOnly
-					Layout.fillWidth: true
-					onClicked: {
-						mainItem.contactDeletionRequested(mainItem.searchResultItem)
-						friendPopup.close()
-					}
-					style: ButtonStyle.noBackgroundRed
-				}
-			}
 		}
 	}
 }

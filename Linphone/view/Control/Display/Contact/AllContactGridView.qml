@@ -38,7 +38,6 @@ Flickable {
 
     contentHeight: contentsLayout.implicitHeight
 
-    signal contactDeletionRequested(FriendGui contact)
     signal contactSelected(FriendGui contact)
 
     function selectContact(address) {
@@ -185,9 +184,6 @@ Flickable {
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
             }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
-            }
         }
 
         ContactGridSection {
@@ -205,9 +201,6 @@ Flickable {
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
             }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
-            }
         }
 
         ContactGridSection {
@@ -224,9 +217,6 @@ Flickable {
             }
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
-            }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
             }
         }
     }
