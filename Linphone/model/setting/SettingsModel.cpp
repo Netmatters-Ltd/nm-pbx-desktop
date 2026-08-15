@@ -937,9 +937,13 @@ void SettingsModel::applyCardDAVProvisioning() {
 
 // CardDAV min characters for research
 
+// A value above 0 keeps the remote CardDAV source out of the wildcard "browse" search and
+// out of short searches, so those are served from the locally synced friend list instead of
+// a request to the server. Default to 3 rather than the SDK's 0: with 0 every contact list
+// refresh, including one caused by simply navigating back to a tab, waits on the network.
 int SettingsModel::getCardDAVMinCharResearch() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
-	return mConfig->getInt(SettingsModel::CardDAVSection, "min_characters", 0);
+	return mConfig->getInt(SettingsModel::CardDAVSection, "min_characters", 3);
 }
 
 void SettingsModel::setCardDAVMinCharResearch(int min) {

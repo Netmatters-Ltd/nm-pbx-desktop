@@ -7,10 +7,8 @@ import QtQuick.Controls.Basic as Control
 
 import Linphone
 import UtilsCpp
-import SettingsCpp
 import CustomControls 1.0
 import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
-import 'qrc:/qt/qml/Linphone/view/Style/buttonStyle.js' as ButtonStyle
 
 Control.Control{
 	id: mainItem
@@ -167,20 +165,5 @@ Control.Control{
 			}
 		}
 		Item{Layout.fillWidth: true}
-		Button {
-			id: manageAccount
-			style: ButtonStyle.noBackground
-			icon.source: AppIcons.manageProfile
-            Layout.preferredWidth: Utils.getSizeWithScreenRatio(30)
-            Layout.preferredHeight: Utils.getSizeWithScreenRatio(30)
-            icon.width: Utils.getSizeWithScreenRatio(24)
-            icon.height: Utils.getSizeWithScreenRatio(24)
-			visible: !SettingsCpp.hideAccountSettings
-			//: Account settings of %1
-			Accessible.name: qsTr("account_settings_name_accessible_name")
-			onClicked: {
-				mainItem.edit()
-			}
-		}
 	}
 }
