@@ -185,6 +185,41 @@ Make two edits to prevent the build system from searching for and linking the ma
    endif()
    ```
 
+### Known Issue: gclient reports "You have uncommitted changes"
+
+The configure step can fail with something like this, naming a directory you've never touched:
+
+```
+CMake Error at external/google/CMakeLists.txt:34 (message):
+  Failed syncing with gclient: 1 Updating depot_tools...
+  crashpad/third_party/lss/lss (ERROR)
+  Error: 5>
+  5> ____ crashpad\third_party\lss\lss at 9719c1e1e676814c456b55f5f070eabad6709d31
+  5>    You have uncommitted changes.
+```
+
+This is a line endings problem, not a problem with your code.
+
+Git for Windows ships with `core.autocrlf=true` in its system config, so these third party checkouts get CRLF line endings written to disk, while what's committed upstream uses LF. The checkouts under `external\google` are fetched by Google's `gclient` tool, which uses its own copy of git that doesn't read that setting. It compares the raw bytes, sees every file as modified, and refuses to sync a tree it thinks you've edited.
+
+Confusingly, if you run `git status` in the directory it names, it'll come back clean, because your copy of git applies the CRLF conversion and `gclient`'s doesn't.
+
+You'll only hit this when the crash handler is enabled, which is why it tends to show up first on the packaging build described under "Handling installer" below.
+
+To fix it, run:
+
+```pwsh
+powershell -ExecutionPolicy Bypass -File C:\Users\sam.driver\Code\linphone-desktop\nm-pbx-docs\fix-gclient-eol.ps1
+```
+
+That sets `core.autocrlf false` on each checkout under `external\google` and forces a fresh checkout so the files land as LF. It finds the checkouts itself rather than working from a fixed list, so it'll still work if a later `gclient sync` pulls in new dependencies. It won't touch the `linphone-desktop` repository, so your own branch work is unaffected.
+
+There's a safety check at the start. If a checkout has genuine content changes, as opposed to differences that are only line endings, the script stops and lists them instead of resetting anything. Line ending differences on their own are expected here and are what it's there to fix.
+
+Once it reports everything clean, re-run the configure step.
+
+Don't fix this by running `git config --global core.autocrlf false`, even though `depot_tools` suggests it in the warning above the error. Our `linphone-desktop` working tree is also CRLF on disk with LF committed, and has no `.gitattributes` to protect it, so turning the setting off globally will make every file in the project show as modified.
+
 ### Environment
 
 Run "x64 Native Tools Command Prompt for VS 2022" from the Windows start menu. Run the following within that command prompt (it matters that you run it in that specific command prompt instance.)
@@ -208,6 +243,11 @@ cd build
 ```
 
 ### All in one
+
+First:
+```cmd
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%"
+```
 
 If you have the build working and just need to re-run the whole thing:
 ```cmd
@@ -260,3 +300,56 @@ windeployqt6.exe OUTPUT\bin\nmpbx.exe --release --qmldir C:\Users\sam.driver\Cod
 ```
 
 The final executable to actually run should be: `build\OUTPUT\bin\nmpbx.exe`
+
+## Handling installer
+
+Run "x64 Native Tools Command Prompt for VS 2022" from the Windows start menu. Run the following within that command prompt (it matters that you run it in that specific command prompt instance.)
+
+```cmd
+C:\Qt\6.10.1\msvc2022_64\bin\qtenv2.bat
+```
+
+This sets environment variables for Qt, and needs to be done **each time** you start a command prompt session to build the project. Don't worry about the "Remember to call vcvarsall.bat" that has effectively been done by using "x64 Native Tools Command Prompt for VS 2022" instead of a normal command prompt.
+
+In the same command prompt, navigate to where you cloned the repository:
+```cmd
+cd C:\Users\sam.driver\Code\linphone-desktop
+```
+
+```cmd
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%"
+```
+
+We'll sign the app in the build tree, after building but before installing, leave the project's built-in signing off, and sign the installer as a separate final step. All signing is interactive with the eToken.
+
+Configure with packaging on (signing vars left unset on purpose)
+```cmd
+cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON -DENABLE_UPDATE_CHECK=OFF -DENABLE_APP_PACKAGING=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo
+```
+
+Build
+```cmd
+cmake --build . --config RelWithDebInfo --parallel 10
+```
+
+Sign the app in the build tree (this is the copy that'll get packaged into the installer.)
+```cmd
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" bin\RelWithDebInfo\NMPBX.exe
+```
+
+Install + package (do NOT rebuild after the previous step without re-resigning). Produces the installer wrapping the signed app.
+```cmd
+cmake --install . --config RelWithDebInfo
+```
+
+Sign the installer. You will need to check `C:\Users\sam.driver\Code\linphone-desktop\build\OUTPUT\Packages` to see what exactly the .exe is named, and use that here.
+```cmd
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" OUTPUT\Packages\NMPBX-6.1.0-024.exe
+```
+
+Then verify both:
+
+```cmd
+signtool verify /pa /v bin\RelWithDebInfo\NMPBX.exe
+signtool verify /pa /v OUTPUT\Packages\NMPBX-6.1.0-beta-176-gf7c5a5dbc-win64.exe
+```
