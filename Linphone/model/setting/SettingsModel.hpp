@@ -116,6 +116,7 @@ public:
 
 	int getCardDAVMinCharResearch() const;
 	void setCardDAVMinCharResearch(int min);
+	int getCardDAVSyncIntervalSeconds() const;
 
 	QVariantMap getRingerDevice() const;
 	void setRingerDevice(QVariantMap device);

@@ -927,7 +927,8 @@ void SettingsModel::applyCardDAVProvisioning() {
 
 	// Kick off an immediate sync so contacts are available straight away.
 	auto agent = std::make_shared<CardDAVSyncAgent>();
-	agent->start(friendList, []() {
+	agent->start(friendList, [](bool succeeded) {
+		if (!succeeded) return;
 		QMetaObject::invokeMethod(
 		    App::getInstance()->getSettings().get(),
 		    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
@@ -950,6 +951,13 @@ void SettingsModel::setCardDAVMinCharResearch(int min) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
 	mConfig->setInt(SettingsModel::CardDAVSection, "min_characters", min);
 	emit cardDAVMinCharResearchChanged(min);
+}
+
+// How often the address book is re-synced in the background. 0 or below disables the periodic sync
+// and leaves the manual refresh button as the only way to pick up server-side changes.
+int SettingsModel::getCardDAVSyncIntervalSeconds() const {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return mConfig->getInt(SettingsModel::CardDAVSection, "sync_interval_seconds", 900);
 }
 
 // =============================================================================

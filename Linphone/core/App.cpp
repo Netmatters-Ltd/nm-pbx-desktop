@@ -59,6 +59,7 @@
 #include "core/chat/message/EventLogList.hpp"
 #include "core/chat/message/EventLogProxy.hpp"
 #include "core/chat/message/content/ChatMessageContentGui.hpp"
+#include "core/contacts/ContactsCore.hpp"
 #include "core/chat/message/content/ChatMessageContentProxy.hpp"
 #include "core/chat/message/imdn/ImdnStatusProxy.hpp"
 #include "core/conference/ConferenceGui.hpp"
@@ -823,6 +824,13 @@ void App::initCppInterfaces() {
 	qmlRegisterSingletonType<SettingsCore>(
 	    "SettingsCpp", 1, 0, "SettingsCpp",
 	    [this](QQmlEngine *engine, QJSEngine *) -> QObject * { return mSettings.get(); });
+
+	qmlRegisterSingletonType<ContactsCore>(
+	    "ContactsCpp", 1, 0, "ContactsCpp", [](QQmlEngine *engine, QJSEngine *) -> QObject * {
+		    auto contacts = ContactsCore::getInstance();
+		    App::getInstance()->mEngine->setObjectOwnership(contacts, QQmlEngine::CppOwnership);
+		    return contacts;
+	    });
 
 	qmlRegisterSingletonType<AccessibilityHelper>(
 	    "AccessibilityHelperCpp", 1, 0, "AccessibilityHelperCpp",

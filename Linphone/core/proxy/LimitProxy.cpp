@@ -170,9 +170,12 @@ void LimitProxy::displayMore() {
 	}
 }
 
-void LimitProxy::onAdded() {
+void LimitProxy::onAdded(const QModelIndex &parent, int first, int last) {
 	int count = sourceModel()->rowCount();
-	if (mMaxDisplayItems > 0 && mMaxDisplayItems <= count) setMaxDisplayItems(mMaxDisplayItems + 1);
+	// Grow by however many rows actually arrived. Growing by one per signal meant a batched insert
+	// of several contacts only ever revealed the first of them.
+	int added = qMax(1, last - first + 1);
+	if (mMaxDisplayItems > 0 && mMaxDisplayItems <= count) setMaxDisplayItems(mMaxDisplayItems + added);
 }
 
 void LimitProxy::onRemoved() {

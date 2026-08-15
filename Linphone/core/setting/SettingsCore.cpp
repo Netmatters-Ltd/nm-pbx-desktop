@@ -20,8 +20,8 @@
 
 #include "SettingsCore.hpp"
 #include "core/App.hpp"
+#include "core/contacts/ContactsCore.hpp"
 #include "core/path/Paths.hpp"
-#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
@@ -1058,23 +1058,10 @@ void SettingsCore::sendLogs() const {
 	mSettingsModelConnection->invokeToModel([this]() { SettingsModel::getInstance()->sendLogs(); });
 }
 
+// Kept for the QML that already calls this. ContactsCore owns the sync so that the periodic and
+// manual paths share one implementation, one in-progress flag and one watchdog.
 void SettingsCore::refreshCardDAVAddressBooks() {
-	mSettingsModelConnection->invokeToModel([this]() {
-		auto core = CoreModel::getInstance()->getCore();
-		if (!core) return;
-
-		for (auto &friendList : core->getFriendsLists()) {
-			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
-				auto agent = std::make_shared<CardDAVSyncAgent>();
-				agent->start(friendList, []() {
-					QMetaObject::invokeMethod(
-					    App::getInstance()->getSettings().get(),
-					    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
-					    Qt::QueuedConnection);
-				});
-			}
-		}
-	});
+	ContactsCore::getInstance()->refresh();
 }
 
 QString SettingsCore::getLogsEmail() const {

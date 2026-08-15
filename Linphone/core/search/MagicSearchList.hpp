@@ -27,6 +27,7 @@
 #include "tool/AbstractObject.hpp"
 #include "tool/thread/SafeConnection.hpp"
 #include <QLocale>
+#include <optional>
 
 class FriendCore;
 class CoreModel;
@@ -43,6 +44,8 @@ public:
 	void setSelf(QSharedPointer<MagicSearchList> me);
 	void connectContact(FriendCore *data);
 	void setSearch(const QString &search);
+	// Merges into the existing list, leaving untouched rows alone, so a background refresh does not
+	// disturb the user's selection or scroll position.
 	void setResults(const QList<QSharedPointer<FriendCore>> &contacts);
 	void add(QSharedPointer<FriendCore> contact);
 
@@ -81,11 +84,20 @@ signals:
 	void initialized();
 
 private:
+	// Identity of a contact across refreshes, and of its displayed content, used by setResults().
+	static QString contactKey(const QSharedPointer<FriendCore> &contact);
+	static QString contactSignature(const QSharedPointer<FriendCore> &contact);
+	static size_t hashSearchResults(const std::list<std::shared_ptr<linphone::SearchResult>> &results);
+
 	int mSourceFlags;
 	LinphoneEnums::MagicSearchAggregation mAggregationFlag;
 	QString mSearchFilter;
 	int mMaxResults = -1;
 	bool mShowMe = false;
+
+	// Hash of the last result set we built FriendCores from, so an unchanged periodic sync costs
+	// nothing. Only ever touched on the linphone thread.
+	std::optional<size_t> mLastResultsHash;
 
 	std::shared_ptr<MagicSearchModel> mMagicSearch;
 	QSharedPointer<SafeConnection<MagicSearchList, MagicSearchModel>> mModelConnection;

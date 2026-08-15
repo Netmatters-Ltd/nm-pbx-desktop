@@ -6,6 +6,7 @@ import Linphone
 import UtilsCpp
 import EnumsToStringCpp
 import SettingsCpp
+import ContactsCpp
 import "qrc:/qt/qml/Linphone/view/Style/buttonStyle.js" as ButtonStyle
 import "qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js" as Utils
 
@@ -30,7 +31,6 @@ AbstractMainPage {
                                     != "contactEdition"
     property FriendGui selectedContact
     property string initialFriendToDisplay
-    property bool manualCardDAVRefreshRequested: false
     onInitialFriendToDisplayChanged: {
         if (initialFriendToDisplay != '' && contactList.selectContact(initialFriendToDisplay) != -1)
             initialFriendToDisplay = ""
@@ -69,24 +69,6 @@ AbstractMainPage {
             || rightPanelStackView.currentItem.objectName != "contactEdition") {
             goToContactDetails()
         }
-    }
-
-    Connections {
-        target: SettingsCpp
-        function onCardDAVAddressBookSynchronized() {
-            if (manualCardDAVRefreshRequested) {
-                manualRefreshTimeout.stop()
-                manualCardDAVRefreshRequested = false
-                contactList.forceFullRefresh()
-            }
-        }
-    }
-
-    Timer {
-        id: manualRefreshTimeout
-        interval: 30000
-        repeat: false
-        onTriggered: manualCardDAVRefreshRequested = false
     }
 
     onNoItemButtonPressed: createContact("", "")
@@ -272,11 +254,11 @@ AbstractMainPage {
                 Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)
                 icon.width: Utils.getSizeWithScreenRatio(28)
                 icon.height: Utils.getSizeWithScreenRatio(28)
-                onClicked: {
-                    manualCardDAVRefreshRequested = true
-                    manualRefreshTimeout.restart()
-                    SettingsCpp.refreshCardDAVAddressBooks()
-                }
+                // A sync leaves the list on screen throughout and merges any changes in, so the
+                // only feedback needed is on the button itself.
+                enabled: !ContactsCpp.syncing
+                opacity: ContactsCpp.syncing ? 0.4 : 1.0
+                onClicked: ContactsCpp.refresh()
                 KeyNavigation.down: searchBar
                 Accessible.name: "Refresh contacts"
             }
@@ -325,10 +307,6 @@ AbstractMainPage {
                     searchBarText: searchBar.text
                     hideSuggestions: true
                     extensionFilter: mainItem.extensionFilter
-                    sourceFlags: LinphoneEnums.MagicSearchSource.Friends
-                                 | LinphoneEnums.MagicSearchSource.FavoriteFriends
-                                 | LinphoneEnums.MagicSearchSource.LdapServers
-                                 | LinphoneEnums.MagicSearchSource.RemoteCardDAV
                     onHighlightedContactChanged: mainItem.selectedContact = highlightedContact
                     onLoadingChanged: {
                         if (!loading && initialFriendToDisplay.length !== 0) {
