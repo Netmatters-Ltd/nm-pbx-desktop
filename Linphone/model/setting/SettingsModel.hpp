@@ -27,6 +27,7 @@
 #include <QObject>
 #include <QVariantMap>
 #include <linphone++/linphone.hh>
+#include <optional>
 
 #include "tool/AbstractObject.hpp"
 
@@ -171,9 +172,11 @@ public:
 	static const std::shared_ptr<linphone::FriendList> getCardDAVListForNewFriends();
 	static void setCardDAVListForNewFriends(std::string listName);
 
-	// Reads the [carddav_provision] section from the active config and creates or
-	// updates the provisioned CardDAV friend list accordingly.  Safe to call more
-	// than once — idempotent when the server URL has not changed.
+	// Reconciles the provisioned CardDAV friend list against the [carddav_provision]
+	// section of the active config: retires the address book belonging to the instance
+	// we have just left, then creates or updates the one for the current instance.
+	// Does nothing while the provisioned details are unchanged, so it is safe to call
+	// from every config-ready notification.
 	static void applyCardDAVProvisioning();
 
 	static QString getDeviceName(const std::shared_ptr<linphone::Config> &config);
@@ -297,6 +300,21 @@ private:
 	void notifyConfigReady();
 	MediastreamerUtils::SimpleCaptureGraph *mSimpleCaptureGraph = nullptr;
 	int mCaptureGraphListenerCount = 0;
+
+	// Removes the CardDAV friend list left behind by the instance we were previously
+	// provisioned against, so that its contacts go away with it and its name is freed.
+	// Address books the user added by hand are left untouched.
+	static void retireStaleProvisionedCardDAVLists(const std::shared_ptr<linphone::Core> &core,
+	                                               const std::string &currentServerUrl,
+	                                               const std::string &currentDisplayName);
+	// Returns a display name that no other friend list is using, so that we never issue
+	// a rename that would break the UNIQUE constraint on friends_list.name.
+	static std::string getAvailableCardDAVDisplayName(const std::shared_ptr<linphone::Core> &core,
+	                                                  const std::string &wantedName,
+	                                                  const std::string &currentServerUrl);
+	// Details of the last [carddav_provision] section applied in this process, unset until
+	// the first apply. Used to skip the redundant second call per launch.
+	static std::optional<std::string> sAppliedCardDAVProvisioning;
 
 #ifdef ENABLE_QT_KEYCHAIN
 	VfsUtils mVfsUtils;

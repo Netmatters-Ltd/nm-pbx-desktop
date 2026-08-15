@@ -40,6 +40,7 @@ const std::string SettingsModel::UiSection("ui");
 const std::string SettingsModel::AppSection("app");
 const std::string SettingsModel::CardDAVSection("carddav_0");
 std::shared_ptr<SettingsModel> SettingsModel::gSettingsModel;
+std::optional<std::string> SettingsModel::sAppliedCardDAVProvisioning;
 
 SettingsModel::SettingsModel() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
@@ -772,6 +773,75 @@ void SettingsModel::setCardDAVListForNewFriends(std::string name) {
 // CardDAV provisioning
 // =============================================================================
 
+// Pulls the hostname out of an http(s) URL. Returns an empty string if there isn't one.
+static std::string cardDAVServerHost(const std::string &url) {
+	auto schemePos = url.find("://");
+	if (schemePos == std::string::npos) return std::string();
+	auto hostStart = schemePos + 3;
+	auto hostEnd = url.find_first_of(":/", hostStart);
+	if (hostEnd == std::string::npos) hostEnd = url.length();
+	return url.substr(hostStart, hostEnd - hostStart);
+}
+
+void SettingsModel::retireStaleProvisionedCardDAVLists(const std::shared_ptr<linphone::Core> &core,
+                                                       const std::string &currentServerUrl,
+                                                       const std::string &currentDisplayName) {
+	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
+	auto config = core->getConfig();
+	auto lastAppliedUrl = config->getString(UiSection, "carddav_provision_applied_url", "");
+	auto listForNewFriends = getCardDAVListForNewFriends();
+	auto nameForNewFriends = listForNewFriends ? listForNewFriends->getDisplayName() : std::string();
+
+	// getFriendsLists() hands back a copy of the list, so removing as we go is safe.
+	for (auto &fl : core->getFriendsLists()) {
+		if (fl->getType() != linphone::FriendList::Type::CardDAV) continue;
+		if (!currentServerUrl.empty() && fl->getUri() == currentServerUrl) continue; // The one we are about to apply.
+
+		// Only retire the book we provisioned ourselves. A book on the same host holding the
+		// name we need counts too: that is the previous instance on the first run after this
+		// fix, when there is no applied URL recorded yet. Anything else was added by hand.
+		bool wasProvisioned = !lastAppliedUrl.empty() && fl->getUri() == lastAppliedUrl;
+		bool clashesOnName = !currentDisplayName.empty() && fl->getDisplayName() == currentDisplayName &&
+		                     cardDAVServerHost(fl->getUri()) == cardDAVServerHost(currentServerUrl);
+		if (!wasProvisioned && !clashesOnName) continue;
+
+		if (!nameForNewFriends.empty() && fl->getDisplayName() == nameForNewFriends) setCardDAVListForNewFriends("");
+
+		// A sync started by CoreModel::start() may still be in flight against this book.
+		// Removing it from the DB resets its storage id, and a late write would then insert
+		// it again under the same name and break the UNIQUE constraint on friends_list.name.
+		// Friend::saveInDb() bails out when database storage is off, which closes that window.
+		fl->enableDatabaseStorage(false);
+		lInfo() << sLog().arg("CardDAV provisioning: retiring address book") << fl->getUri()
+		        << "left over from the previous instance";
+		core->removeFriendList(fl);
+	}
+}
+
+std::string SettingsModel::getAvailableCardDAVDisplayName(const std::shared_ptr<linphone::Core> &core,
+                                                          const std::string &wantedName,
+                                                          const std::string &currentServerUrl) {
+	auto isFree = [&core, &currentServerUrl](const std::string &name) {
+		auto owner = core->getFriendListByName(name);
+		return !owner || owner->getUri() == currentServerUrl;
+	};
+	if (isFree(wantedName)) return wantedName;
+
+	// Somebody else owns the name, most likely an address book the user added by hand.
+	// Setting it anyway would throw inside the SDK and take the whole app down with it, so
+	// find a free variant instead. The URL is the last resort: it is unique per address book.
+	std::string candidate;
+	for (int suffix = 2; suffix < 100; ++suffix) {
+		candidate = wantedName + " (" + std::to_string(suffix) + ")";
+		if (isFree(candidate)) break;
+		candidate.clear();
+	}
+	if (candidate.empty()) candidate = wantedName + " " + currentServerUrl;
+	lWarning() << sLog().arg("CardDAV provisioning: display name") << wantedName << "is already in use, using"
+	           << candidate << "instead";
+	return candidate;
+}
+
 void SettingsModel::applyCardDAVProvisioning() {
 	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
 	auto core = CoreModel::getInstance()->getCore();
@@ -780,35 +850,38 @@ void SettingsModel::applyCardDAVProvisioning() {
 	auto config = core->getConfig();
 	const std::string provSection("carddav_provision");
 	auto serverUrl = config->getString(provSection, "server_url", "");
-	if (serverUrl.empty()) return;
-
 	auto username = config->getString(provSection, "username", "");
 	auto password = config->getString(provSection, "password", "");
 	auto displayName = config->getString(provSection, "display_name", "");
 
+	// We are notified that the config is ready more than once per launch. There is nothing to
+	// redo while the provisioned details are unchanged, and repeating it would fire a second
+	// pointless sync.
+	auto signature = serverUrl + '\n' + username + '\n' + password + '\n' + displayName;
+	if (sAppliedCardDAVProvisioning && *sAppliedCardDAVProvisioning == signature) return;
+
 	// Derive a display name from the server hostname if one isn't provided.
-	if (displayName.empty()) {
-		auto schemePos = serverUrl.find("://");
-		if (schemePos != std::string::npos) {
-			auto hostStart = schemePos + 3;
-			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
-			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
-			displayName = serverUrl.substr(hostStart, hostEnd - hostStart);
-		}
+	if (displayName.empty() && !serverUrl.empty()) {
+		displayName = cardDAVServerHost(serverUrl);
 		if (displayName.empty()) displayName = "Contacts";
 	}
 
-	// Extract the server hostname so auth info can be matched by domain.
-	std::string serverHost;
-	{
-		auto schemePos = serverUrl.find("://");
-		if (schemePos != std::string::npos) {
-			auto hostStart = schemePos + 3;
-			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
-			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
-			serverHost = serverUrl.substr(hostStart, hostEnd - hostStart);
-		}
+	// Drop the address book belonging to the instance we have just left, along with its
+	// contacts, before touching anything else. This also frees up its name, which we are
+	// about to reuse whenever both instances are provisioned from the same host.
+	retireStaleProvisionedCardDAVLists(core, serverUrl, displayName);
+
+	// No CardDAV on this instance. The previous instance's book has gone, so there is
+	// nothing left to provision.
+	if (serverUrl.empty()) {
+		config->setString(UiSection, "carddav_provision_applied_url", "");
+		config->sync();
+		sAppliedCardDAVProvisioning = signature;
+		return;
 	}
+
+	// Extract the server hostname so auth info can be matched by domain.
+	auto serverHost = cardDAVServerHost(serverUrl);
 
 	// Store auth info if credentials are provided.  We store with an empty
 	// realm so the SDK matches on domain alone, which is correct for HTTP
@@ -842,7 +915,15 @@ void SettingsModel::applyCardDAVProvisioning() {
 		lInfo() << sLog().arg("CardDAV provisioning: created friend list for") << serverUrl;
 	}
 
-	friendList->setDisplayName(displayName);
+	auto availableName = getAvailableCardDAVDisplayName(core, displayName, serverUrl);
+	if (!availableName.empty() && friendList->getDisplayName() != availableName)
+		friendList->setDisplayName(availableName);
+
+	// Remember what we applied so the next launch can tell this book apart from any the
+	// user added themselves.
+	config->setString(UiSection, "carddav_provision_applied_url", serverUrl);
+	config->sync();
+	sAppliedCardDAVProvisioning = signature;
 
 	// Kick off an immediate sync so contacts are available straight away.
 	auto agent = std::make_shared<CardDAVSyncAgent>();
