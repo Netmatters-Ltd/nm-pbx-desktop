@@ -311,9 +311,9 @@ C:\Qt\6.10.1\msvc2022_64\bin\qtenv2.bat
 
 This sets environment variables for Qt, and needs to be done **each time** you start a command prompt session to build the project. Don't worry about the "Remember to call vcvarsall.bat" that has effectively been done by using "x64 Native Tools Command Prompt for VS 2022" instead of a normal command prompt.
 
-In the same command prompt, navigate to where you cloned the repository:
+In the same command prompt, navigate to the repository's build directory:
 ```cmd
-cd C:\Users\sam.driver\Code\linphone-desktop
+cd C:\Users\sam.driver\Code\linphone-desktop\build
 ```
 
 ```cmd
@@ -337,19 +337,19 @@ Sign the app in the build tree (this is the copy that'll get packaged into the i
 "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" bin\RelWithDebInfo\NMPBX.exe
 ```
 
-Install + package (do NOT rebuild after the previous step without re-resigning). Produces the installer wrapping the signed app.
+Install + package (do NOT rebuild after the previous step without re-signing). Produces the installer wrapping the signed app.
 ```cmd
 cmake --install . --config RelWithDebInfo
 ```
 
 Sign the installer. You will need to check `C:\Users\sam.driver\Code\linphone-desktop\build\OUTPUT\Packages` to see what exactly the .exe is named, and use that here.
 ```cmd
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" OUTPUT\Packages\NMPBX-6.1.0-024.exe
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" OUTPUT\Packages\NMPBX-6.2.0-028.exe
 ```
 
 Then verify both:
 
 ```cmd
 signtool verify /pa /v bin\RelWithDebInfo\NMPBX.exe
-signtool verify /pa /v OUTPUT\Packages\NMPBX-6.1.0-beta-176-gf7c5a5dbc-win64.exe
+signtool verify /pa /v OUTPUT\Packages\NNMPBX-6.2.0-028.exe
 ```
