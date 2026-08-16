@@ -645,6 +645,8 @@ AbstractMainPage {
                             }
                         }
                         ContactDetailLayout {
+                            // Device trust is not exposed in this version of the app.
+                            visible: false
                             Layout.fillWidth: true
                             //: "Confiance"
                             label: qsTr("contact_details_trust_title")
@@ -735,6 +737,8 @@ AbstractMainPage {
                             }
                         }
                         ContactDetailLayout {
+                            // Other actions are not exposed in this version of the app.
+                            visible: false
                             Layout.fillWidth: true
                             //: "Autres actions"
                             label: qsTr("contact_details_actions_title")

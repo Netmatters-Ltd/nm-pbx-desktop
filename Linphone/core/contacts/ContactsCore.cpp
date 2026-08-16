@@ -53,10 +53,11 @@ ContactsCore::ContactsCore(QObject *parent) : QObject(parent) {
 	// before asking it for anything. "*" means the whole address book; individual views narrow it
 	// down with their own filterText.
 	connect(mRootProxy, &MagicSearchProxy::initialized, this, [this] {
-		mInitialLoadWatchdog.start();
+		lInfo() << log().arg("Search model ready, loading the address book");
 		mRootProxy->setSearchText("*");
 	});
 	connect(mRootProxy, &MagicSearchProxy::resultsProcessed, this, [this] {
+		lInfo() << log().arg("Address book loaded");
 		mInitialLoadWatchdog.stop();
 		setInitialLoadComplete(true);
 	});
@@ -77,6 +78,10 @@ ContactsCore::ContactsCore(QObject *parent) : QObject(parent) {
 		lWarning() << log().arg("No contacts after %1s, showing the empty state").arg(InitialLoadWatchdogMs / 1000);
 		setInitialLoadComplete(true);
 	});
+	// Armed here rather than when the search model reports itself ready. Arming it from that signal
+	// meant the one failure it exists to cover, the signal never arriving, was also the one case
+	// where it never got started, leaving the busy indicator up for the rest of the session.
+	mInitialLoadWatchdog.start();
 
 	connect(&mPeriodicTimer, &QTimer::timeout, this, [this] { refresh(); });
 

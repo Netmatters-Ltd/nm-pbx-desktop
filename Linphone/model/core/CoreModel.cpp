@@ -113,7 +113,10 @@ void CoreModel::start() {
 		for (auto &friendList : mCore->getFriendsLists()) {
 			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
 				auto agent = std::make_shared<CardDAVSyncAgent>();
-				agent->start(friendList, []() {
+				agent->start(friendList, [](bool succeeded) {
+					// A failed sync leaves the local list as it was, so there is nothing new to
+					// announce. The agent has already logged the reason.
+					if (!succeeded) return;
 					QMetaObject::invokeMethod(
 					    App::getInstance()->getSettings().get(),
 					    []() {
