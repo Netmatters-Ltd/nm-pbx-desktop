@@ -218,16 +218,24 @@ error : Build directory has been generated with Meson version 1.11.1, which is
 incompatible with the current version 1.12.0.
 ```
 
-The dav1d build tree is stale. Clear its contents and the two stamps that mark it as done, then
-build again. Keep the directory itself, empty: Meson is invoked with a source path written relative
-to it, so removing it makes the configure step fail with `Neither source directory ... nor build
-directory None contain a build file meson.build`.
+The dav1d build tree is stale. Clear it and remove the stamps that mark configure and build as
+already done, then build again:
 
 ```pwsh
+$dav1d = "build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\RelWithDebInfo"
 Remove-Item -Recurse -Force build\external\linphone-sdk\external\dav1d\*
-Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-configure*
-Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-build*
+Remove-Item -Force "$dav1d\dav1d-configure", "$dav1d\dav1d-build", "$dav1d\dav1d-done"
 ```
+
+Two traps here, both of which produce a worse failure than the one you started with:
+
+- **Keep the `external\dav1d` directory itself, empty.** Meson is invoked with a source path written
+  relative to it, so deleting it makes configure fail with `Neither source directory ... nor build
+  directory None contain a build file meson.build`.
+- **Only delete stamps from the per-configuration subdirectory** (`RelWithDebInfo` here). The files
+  directly in `dav1d-stamp`, such as `dav1d-build-RelWithDebInfo.cmake`, are generated scripts that
+  perform the steps, not stamps. Deleting those gives `CMake error : Not a file: ...
+  dav1d-build-RelWithDebInfo.cmake`, and you have to re-run the configure step to regenerate them.
 
 ### Known Issue: mismatched SDK components after changing the SDK version
 
