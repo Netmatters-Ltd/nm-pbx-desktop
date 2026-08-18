@@ -801,7 +801,7 @@ AbstractWindow {
                             rightPanel.visible = false
                             event.accepted = true
                         }
-                        groupCallVisible: false
+                        startGroupButtonVisible: false
                         displayCurrentCalls: true
                         searchBarColor: DefaultStyle.grey_0
                         searchBarBorderColor: DefaultStyle.grey_200
@@ -857,7 +857,7 @@ AbstractWindow {
                         id: newCallForm
                         width: parent.width
                         height: rightPanel.contentItemHeight
-                        groupCallVisible: false
+                        startGroupButtonVisible: false
                         searchBarColor: DefaultStyle.grey_0
                         searchBarBorderColor: DefaultStyle.grey_200
                         numPadPopup: numericPad
