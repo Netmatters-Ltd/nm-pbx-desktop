@@ -1,0 +1,2 @@
+# Patch files must keep LF endings or git apply will reject them on Windows.
+*.patch -text
