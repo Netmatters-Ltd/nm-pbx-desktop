@@ -237,6 +237,44 @@ Two traps here, both of which produce a worse failure than the one you started w
   perform the steps, not stamps. Deleting those gives `CMake error : Not a file: ...
   dav1d-build-RelWithDebInfo.cmake`, and you have to re-run the configure step to regenerate them.
 
+### Known Issue: enum type redefinition in the generated C++ wrapper
+
+After changing the SDK version in an existing build tree, `liblinphone++` can fail with dozens of:
+
+```
+enums.hh(75,13): error C2011: 'linphone::AuthMethod': 'enum' type redefinition
+```
+
+The C++ wrapper is generated from Doxygen's XML output. Doxygen writes new files but never deletes
+files for groups that have been renamed or removed, and liblinphone renames its Doxygen groups
+between versions, for example `group__initializing` becoming `group__group__initializing`. The
+generator then reads both the old and the new description and emits each enum twice.
+
+Delete the stale XML, the generated wrapper and its stamp, then build again:
+
+```pwsh
+$xml = "build\external\linphone-sdk\liblinphone\coreapi\help\doc\doxygen\xml"
+$wrap = "build\external\linphone-sdk\liblinphone\wrappers\cpp"
+
+# Anything older than today's regeneration is stale. Check the dates first.
+Get-ChildItem "$xml\*.xml" | Sort-Object LastWriteTime | Select-Object -First 5 Name, LastWriteTime
+Get-ChildItem "$xml\*.xml" | Where-Object { $_.LastWriteTime -lt (Get-Date).Date } | Remove-Item -Force
+
+Remove-Item -Force "$wrap\include\linphone++\*.hh", "$wrap\src\linphone++.cc"
+Remove-Item -Force "$wrap\CMakeFiles\generate.stamp"
+Remove-Item -Recurse -Force build\OUTPUT\include\linphone++
+```
+
+To confirm the inputs are clean before rebuilding, check that no enum is described in more than one
+group file:
+
+```pwsh
+(Select-String -Path "$xml\group__*.xml" -Pattern '<name>LinphoneAuthMethod</name>').Count
+```
+
+That should be 1. Note that some `group__X.xml` and `group__group__X.xml` pairs are legitimate nested
+groups rather than stale leftovers; judge by the file dates, not the names.
+
 ### Known Issue: mismatched SDK components after changing the SDK version
 
 The SDK has its own nested submodules (`bctoolbox`, `belle-sip`, `belr`, `liblinphone`,
