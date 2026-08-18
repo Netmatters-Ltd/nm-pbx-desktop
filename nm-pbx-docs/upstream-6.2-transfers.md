@@ -156,3 +156,86 @@ us all the way there:
   user visibility.
 
 These would be our own additions rather than a port, so they need estimating separately.
+
+## 7. What was actually done on this branch
+
+Decisions taken: stay on the SDK 5.4 line, take the transfer work plus the multi-call fixes, and fix
+the `transferState` binding. The consult-then-complete flow was left out for now.
+
+| Commit | Change |
+|---|---|
+| `ada7a42ed` | Capture the local SDK patches as files under `nm-pbx-docs/sdk-patches` before touching the submodule |
+| `089624d9d` | `.gitattributes` marking `*.patch` as binary so `core.autocrlf` cannot corrupt them |
+| `5f4f7ea74` | SDK bumped from 5.4.73 to **5.4.114**, carrying liblinphone `f49e4540a` |
+| `bbc57d0cd` | Upstream `37fb24ed6` — pause or leave the conference, not both |
+| `af7887578` | Upstream `6970a8cc1` — force model teardown in the `CallCore` destructor |
+| `cbfa459a4` | Upstream `2d3d1bd79` — sync mic and speaker mute on `Connected` |
+| `7f4ef94e0` | Upstream `58297e22c` — new call becomes current at `OutgoingProgress` |
+| `b0b8e1bf4` | Upstream `a4b84891a` — hide the transfer button for calls not yet connected |
+| `7cb1d5482` | Upstream `b54359285` — hide pause in the transfer picker |
+| `0377cf4e6` | Upstream `76f4f5525` — close the right panel when a conference starts |
+| `30244a1cb` | Drop the dead `groupCallVisible` property, matching upstream |
+| `419f92489` | Track the transferred call rather than the current one |
+
+### The SDK patch trap
+
+`external/linphone-sdk` carried three uncommitted edits in its nested submodule working trees:
+a CardDAV auth fix in `liblinphone` and the MSVC `libm` fix in `mediastreamer2`. Nothing tracked
+them, so a fresh clone, a `git submodule update --force` or any SDK bump would have destroyed them
+silently. The CardDAV one was not documented anywhere.
+
+They are now saved as patch files with a README under `nm-pbx-docs/sdk-patches`. Both reapplied
+cleanly to 5.4.114. **Check that directory whenever the SDK moves.**
+
+The pre-bump state is also still sitting in a git stash inside each nested submodule
+(`git -C external/linphone-sdk/liblinphone stash list`) as a belt-and-braces backup. Safe to drop
+once a build has been verified.
+
+### transferState rework
+
+`CallsWindow.qml` bound `property var transferState: call && call.core.transferState`, which follows
+whichever call is current. A transfer ends the call being transferred, so the current call moves on
+mid-transfer and the binding lands on a different call reporting `Idle`.
+
+Replaced with a latch in `AbstractWindow.qml`: `transferringCall` plus `transferInProgress`, set by
+`beginTransfer(call)` at each initiation point and cleared by `endTransferTracking()`. The latch is
+set before the flag deliberately, so the binding settles before we start reporting, otherwise the
+stale state left on a call by a previous failed transfer reads as a fresh failure.
+
+Three further defects fixed at the same time:
+
+- Transfers we did not start no longer raise a popup. `Notifier.cpp` transfers a declined call to
+  voicemail in C++, which used to trigger the "transfer in progress" popup and its toasts.
+- If the transferred call disappears before reporting a result, the progress popup is now closed
+  rather than left on screen.
+- The terminal state is snapshotted and tracking stopped before any popup is shown, so the handler
+  cannot re-enter for the same transfer.
+
+### Build note
+
+`clang-format` is not on `PATH` on this machine, and the repo's `pre-commit` hook refuses to run
+without it. It ships with Qt Creator:
+
+```
+export PATH="/c/Qt/Tools/QtCreator/bin/clang/bin:$PATH"
+```
+
+`cmake` is likewise not on `PATH`; it is at `C:\Qt\Tools\CMake_64\bin`.
+
+## 8. Still to test by hand
+
+The code changes are done and the tree builds, but transfers cannot be verified without a PBX and
+two endpoints. Worth walking through:
+
+1. **Blind transfer** to a contact with one address, and to a contact with several (the address
+   chooser path).
+2. **Attended transfer** — answer a call, dial a consultation call from the New call panel, confirm
+   the consultation call becomes the current call, talk, then transfer the first call to it from the
+   Transfer panel.
+3. **Transfer while a leg is mid-hold.** This is the case the SDK fix addresses, so it is the most
+   valuable test. Put a call on hold and transfer immediately, before the re-INVITE settles.
+4. **Failure path** — transfer to an address that rejects, and confirm the progress popup closes and
+   the failure message appears exactly once.
+5. **Transfer picker contents** — confirm the current call is hidden, ringing and early-media calls
+   show no transfer button, and no pause button appears in the picker.
+6. **Decline to voicemail** — confirm no transfer popup appears now.
