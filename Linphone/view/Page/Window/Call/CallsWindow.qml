@@ -32,7 +32,12 @@ AbstractWindow {
 
     property bool callTerminatedByUser: false
     property var callState: call ? call.core.state : LinphoneEnums.CallState.Idle
-    property var transferState: call && call.core.transferState
+    // Follow the call we are transferring, not whichever call happens to be
+    // current. A successful transfer ends the transferred call, which moves the
+    // current call on and used to take the transfer result with it.
+    property var transferState: transferringCall
+        ? transferringCall.core.transferState
+        : LinphoneEnums.CallState.Idle
     property bool startingCall: mainWindow.callState == LinphoneEnums.CallState.OutgoingInit
         || mainWindow.callState
         == LinphoneEnums.CallState.OutgoingProgress
@@ -66,7 +71,18 @@ AbstractWindow {
     }
 
     onTransferStateChanged: {
+        // Only report on a transfer we started. Latching a call carries over the
+        // transfer state left behind by an earlier attempt.
+        if (!mainWindow.transferInProgress)
+            return
         console.log("Transfer state:", transferState)
+        if (!mainWindow.transferringCall) {
+            // The transferred call went away before reporting a result. Nothing
+            // useful to tell the user, but the loading popup must not be left up.
+            UtilsCpp.getOrCreateCallsWindow().closeLoadingPopup()
+            mainWindow.endTransferTracking()
+            return
+        }
         if (mainWindow.transferState === LinphoneEnums.CallState.OutgoingInit) {
             var callsWin = UtilsCpp.getOrCreateCallsWindow()
             if (!callsWin)
@@ -77,15 +93,19 @@ AbstractWindow {
                    || mainWindow.transferState === LinphoneEnums.CallState.End
                    || mainWindow.transferState === LinphoneEnums.CallState.Released
                    || mainWindow.transferState === LinphoneEnums.CallState.Connected) {
+            var terminalState = mainWindow.transferState
             var callsWin = UtilsCpp.getOrCreateCallsWindow()
             callsWin.closeLoadingPopup()
-            if (transferState === LinphoneEnums.CallState.Error)
+            // Stop tracking before acting, so the popups below cannot re-enter
+            // this handler through a further state change on the same transfer.
+            mainWindow.endTransferTracking()
+            if (terminalState === LinphoneEnums.CallState.Error)
                 UtilsCpp.showInformationPopup(
                             qsTr("information_popup_error_title"),
                             //: "Le transfert d'appel a échoué"
                             qsTr("call_transfer_failed_toast"), false,
                             mainWindow)
-            else if (transferState === LinphoneEnums.CallState.Connected) {
+            else if (terminalState === LinphoneEnums.CallState.Connected) {
                 var mainWin = UtilsCpp.getMainWindow()
                 UtilsCpp.smartShowWindow(mainWin)
                 mainWin.transferCallSucceed()
@@ -826,6 +846,7 @@ AbstractWindow {
                                                                 qsTr("call_transfer_confirm_dialog_message").arg(mainWindow.call.core.remoteName).arg(dest.core.remoteName),"",
                                 function (confirmed) {
                                 if (confirmed) {
+                                    mainWindow.beginTransfer(mainWindow.call)
                                     mainWindow.call.core.lTransferCallToAnother(dest.core.remoteAddress)
                                 }
                             })

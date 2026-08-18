@@ -194,6 +194,26 @@ ApplicationWindow {
         }
     }
 
+    // The call currently being transferred. Latched when a transfer is requested,
+    // because the current call changes as a direct result of the transfer, so
+    // watching the current call loses track of how the transfer ended.
+    property CallGui transferringCall: null
+    property bool transferInProgress: false
+
+    // Order matters. Latch the call first, so any transferState binding settles
+    // while transferInProgress is still false. A call that failed a previous
+    // transfer keeps that stale state, and reporting it would look like a fresh
+    // failure.
+    function beginTransfer(call) {
+        transferringCall = call
+        transferInProgress = true
+    }
+
+    function endTransferTracking() {
+        transferInProgress = false
+        transferringCall = null
+    }
+
     function transferCallToContact(call, contact, parentItem) {
         if (!call || !contact) return
         if (parentItem == undefined) parentItem = mainWindow.contentItem
@@ -204,6 +224,7 @@ ApplicationWindow {
                 addressPopup.parent = parentItem
                 addressPopup.contact = contact
                 addressPopup.addressChosen.connect(function(address) {
+                    mainWindow.beginTransfer(call)
                     call.core.lTransferCall(address)
                     addressPopup.close()
                 })
@@ -215,7 +236,10 @@ ApplicationWindow {
                         ? ""
                         : contact.core.phoneNumbers[0].address
                     : contact.core.defaultAddress
-                if (addressToCall.length != 0) call.core.lTransferCall(addressToCall)
+                if (addressToCall.length != 0) {
+                    mainWindow.beginTransfer(call)
+                    call.core.lTransferCall(addressToCall)
+                }
             }
         }
     }
