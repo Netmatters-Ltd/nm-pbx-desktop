@@ -1,0 +1,41 @@
+diff --git a/src/vcard/carddav-context.cpp b/src/vcard/carddav-context.cpp
+index f0d2b53c7..7b7a422da 100644
+--- a/src/vcard/carddav-context.cpp
++++ b/src/vcard/carddav-context.cpp
+@@ -346,6 +346,36 @@ void CardDAVContext::sendQuery(const shared_ptr<CardDAVQuery> &query, bool cance
+ 		return;
+ 	}
+ 
++	// Set authentication credentials on the HTTP request so that the auth
++	// callback can find the correct auth info by username when the server
++	// challenges with a 401 response. Without this, the auth event has no
++	// username hint, causing ambiguous lookups when multiple auth infos
++	// share the same realm (e.g. SIP and CardDAV on the same deployment).
++	{
++		string requestHost;
++		auto schemePos = url.find("://");
++		if (schemePos != string::npos) {
++			auto hostStart = schemePos + 3;
++			auto hostEnd = url.find_first_of(":/", hostStart);
++			if (hostEnd == string::npos) hostEnd = url.length();
++			requestHost = url.substr(hostStart, hostEnd - hostStart);
++		}
++		if (!requestHost.empty()) {
++			const bctbx_list_t *authInfoList = linphone_core_get_auth_info_list(getCore()->getCCore());
++			for (const bctbx_list_t *it = authInfoList; it != nullptr; it = it->next) {
++				const LinphoneAuthInfo *ai = (const LinphoneAuthInfo *)it->data;
++				const char *aiDomain = linphone_auth_info_get_domain(ai);
++				if (aiDomain && strcmp(aiDomain, requestHost.c_str()) == 0) {
++					const char *aiUsername = linphone_auth_info_get_username(ai);
++					if (aiUsername) {
++						mHttpRequest->setAuthInfo(aiUsername, requestHost);
++						break;
++					}
++				}
++			}
++		}
++	}
++
+ 	if (!query->mDepth.empty()) {
+ 		mHttpRequest->addHeader("Depth", query->mDepth);
+ 	} else if (!query->mIfmatch.empty()) {
