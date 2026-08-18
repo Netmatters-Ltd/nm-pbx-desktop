@@ -185,6 +185,47 @@ Make two edits to prevent the build system from searching for and linking the ma
    endif()
    ```
 
+### Known Issue: `m.lib` and other SDK patches are lost after a submodule update
+
+The `libm` fix above, and a CardDAV authentication fix in liblinphone, live only in the working trees
+of the SDK's nested submodules. Nothing tracks them, so a fresh clone, a
+`git submodule update --force`, or any SDK version bump wipes them.
+
+Both are saved as patch files. See `nm-pbx-docs/sdk-patches/README.md` for how to reapply and how to
+check what is currently applied. Do that before reporting a build failure that looks like one of the
+known issues here.
+
+### Known Issue: `make: command not found` building openh264, vpx or libaom
+
+These SDK components build through shell scripts that need MSYS2's `sh` and `make`. If MSYS2 is not
+on `Path`, or a different `sh` (Git for Windows ships one) is found first, the scripts run but cannot
+find `make`:
+
+```
+EP_openh264_build.sh: line 30: make: command not found
+```
+
+Add the three MSYS2 directories to `Path` as described above, keeping them last, and make sure the
+shell you build from actually has them. Note that Git Bash puts its own `sh` ahead of MSYS2's, so
+build from a Command Prompt or PowerShell rather than Git Bash.
+
+### Known Issue: dav1d fails with a Meson version mismatch
+
+If Meson has been upgraded since the build tree was created, dav1d refuses to build:
+
+```
+error : Build directory has been generated with Meson version 1.11.1, which is
+incompatible with the current version 1.12.0.
+```
+
+The dav1d build tree is stale. Delete it and the two stamps that mark it as done, then build again:
+
+```pwsh
+Remove-Item -Recurse -Force build\external\linphone-sdk\external\dav1d
+Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-configure*
+Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-build*
+```
+
 ### Known Issue: gclient reports "You have uncommitted changes"
 
 The configure step can fail with something like this, naming a directory you've never touched:
