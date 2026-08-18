@@ -224,7 +224,11 @@ export PATH="/c/Qt/Tools/QtCreator/bin/clang/bin:$PATH"
 
 ## 8. Still to test by hand
 
-The code changes are done and the tree builds, but transfers cannot be verified without a PBX and
+Verified on 18 August 2026: a full `RelWithDebInfo` build and install of the whole SDK and the
+application succeeded with no errors against SDK 5.4.114, producing `NMPBX.exe` and an installer.
+All SDK libraries were rebuilt in the same run, so nothing is left over from 5.4.73.
+
+That proves it compiles and links. It does not prove any transfer behaviour, which needs a PBX and
 two endpoints. Worth walking through:
 
 1. **Blind transfer** to a contact with one address, and to a contact with several (the address
