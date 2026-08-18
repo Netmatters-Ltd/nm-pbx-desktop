@@ -218,13 +218,36 @@ error : Build directory has been generated with Meson version 1.11.1, which is
 incompatible with the current version 1.12.0.
 ```
 
-The dav1d build tree is stale. Delete it and the two stamps that mark it as done, then build again:
+The dav1d build tree is stale. Clear its contents and the two stamps that mark it as done, then
+build again. Keep the directory itself, empty: Meson is invoked with a source path written relative
+to it, so removing it makes the configure step fail with `Neither source directory ... nor build
+directory None contain a build file meson.build`.
 
 ```pwsh
-Remove-Item -Recurse -Force build\external\linphone-sdk\external\dav1d
+Remove-Item -Recurse -Force build\external\linphone-sdk\external\dav1d\*
 Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-configure*
 Remove-Item -Force build\external\linphone-sdk\dav1d-prefix\src\dav1d-stamp\dav1d-build*
 ```
+
+### Known Issue: mismatched SDK components after changing the SDK version
+
+The SDK has its own nested submodules (`bctoolbox`, `belle-sip`, `belr`, `liblinphone`,
+`mediastreamer2`, `external/dav1d` and more). Checking the SDK out at a new version only moves the
+recorded pointers; the nested working trees stay where they were. Building then links a new
+liblinphone against old bctoolbox and belle-sip sources, which either fails confusingly or produces
+a binary nobody can reason about.
+
+After any SDK version change, update all of them and check nothing is left behind:
+
+```pwsh
+git -C external\linphone-sdk submodule update --init --recursive
+git -C external\linphone-sdk submodule status --recursive | Select-String '^[-+]'
+```
+
+The second command should print nothing. A leading `+` means the checked-out commit does not match
+what the SDK records, and `-` means the submodule is not initialised at all.
+
+Then reapply the SDK patches, see `nm-pbx-docs/sdk-patches/README.md`.
 
 ### Known Issue: gclient reports "You have uncommitted changes"
 
