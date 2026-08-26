@@ -106,6 +106,7 @@ private:
 	void setPathBeforeCreation();
 	void setPathsAfterCreation();
 	void setPathAfterStart();
+	void setCustomTones();
 
 	static std::shared_ptr<CoreModel> gCoreModel;
 

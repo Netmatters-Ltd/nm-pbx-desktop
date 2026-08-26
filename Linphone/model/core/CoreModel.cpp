@@ -92,6 +92,7 @@ void CoreModel::start() {
 	mCore->start();
 	migrate();
 	setPathAfterStart();
+	setCustomTones();
 	if (SettingsModel::clearLocalLdapFriendsUponStartup(config)) {
 		// Remove ldap friends cache list. If not, old stored friends will take priority on merge and will not be
 		// updated from new LDAP requests..
@@ -215,6 +216,35 @@ void CoreModel::setPathAfterStart() {
 	if (mCore->getRootCa().empty() || !Paths::filePathExists(Utils::coreStringToAppString(mCore->getRootCa())))
 		mCore->setRootCa(Utils::appStringToCoreString(Paths::getRootCaFilePath()));
 	lInfo() << "[CoreModel] Using RootCa path : " << QString::fromStdString(mCore->getRootCa());
+}
+
+void CoreModel::setCustomTones() {
+	// The SDK synthesises its telephony tones at full amplitude, which makes the call-waiting beep
+	// startling to hear mid-call. Registering a file diverts the tone to ToneManager::playFile, so
+	// the level becomes whatever we recorded. See Linphone/data/sound/generate-tones.py.
+	// These are not persisted anywhere by the SDK, so they must be registered on every start.
+	// Passing an empty path instead would restore the synthesised tone.
+	struct CustomTone {
+		linphone::ToneID id;
+		const char *fileName;
+	};
+	const CustomTone tones[] = {
+	    {linphone::ToneID::CallWaiting, Constants::CallWaitingToneFile},
+	    {linphone::ToneID::CallOnHold, Constants::CallOnHoldToneFile},
+	};
+	const QDir soundsDir(Paths::getPackageSoundsResourcesDirPath());
+	for (const auto &tone : tones) {
+		auto path = QDir::toNativeSeparators(soundsDir.filePath(tone.fileName));
+		if (!Paths::filePathExists(path)) {
+			// Deliberately leave the tone unset rather than registering a path that does not
+			// resolve: playFile has no fallback to the synthesised tone, so the user would get
+			// silence. The louder built-in tone is the better failure.
+			lWarning() << log().arg("Custom tone file not found, keeping the built-in tone: %1").arg(path);
+			continue;
+		}
+		lInfo() << log().arg("Using custom tone: %1").arg(path);
+		mCore->setTone(tone.id, Utils::appStringToCoreString(path));
+	}
 }
 
 //-------------------------------------------------------------------------------

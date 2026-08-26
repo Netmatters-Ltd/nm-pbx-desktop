@@ -49,6 +49,9 @@ public:
 	static const std::string UiSection;
 	static const std::string AppSection;
 	static const std::string CardDAVSection;
+	static const std::string AudioGainSectionPrefix;
+	static const char *CaptureGainKey;
+	static const char *PlaybackGainKey;
 	std::shared_ptr<linphone::Config> mConfig;
 
 	bool getVfsEnabled() const;
@@ -90,6 +93,22 @@ public:
 
 	float getCaptureGain() const;
 	void setCaptureGain(float gain);
+
+	// Per-device volume storage. The volume the user picks is remembered against the device it was
+	// picked for, so switching headset and back restores each one's own level.
+	// Values are stored linear in [0.0, 1.0], the same scale as the sliders.
+	static std::string audioGainSection(const QString &deviceId);
+	std::optional<float> readStoredGain(const QString &deviceId, const char *key) const;
+	void writeStoredGain(const QString &deviceId, const char *key, float linearGain);
+
+	// Applies a gain to whatever is live right now: the settings preview graph out of call, the
+	// SDK soft gain in call. Exactly one of the two is in play at any moment.
+	void applyCaptureGain(float gain);
+	void applyPlaybackGain(float gain);
+	void applyStoredGains();
+	// Deferred variant. The WASAPI filters only accept a volume once the ticker has activated them,
+	// so applying straight after createCaptureGraph() would be dropped.
+	void scheduleApplyStoredGains();
 
 	QVariantList getCaptureDevices() const;
 	QVariantList getPlaybackDevices() const;

@@ -66,6 +66,16 @@ if(ENABLE_APP_PACKAGE_ROOTCA)
 endif()
 install(FILES "${CMAKE_SOURCE_DIR}/Linphone/data/config/linphonerc-factory" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${EXECUTABLE_NAME}")
 
+# Our replacements for the SDK's synthesised call tones, which it generates far too loud.
+# The SDK opens tone files by path, so these must be installed loose rather than embedded in the Qt
+# resources like the rest of Linphone/data. This destination matches the SDK's own sound install
+# (CMAKE_INSTALL_DATADIR, not DATAROOTDIR) and is the directory registered as the SoundResources
+# factory path, so the SDK can also resolve these files by name alone if a full path ever fails.
+install(FILES
+	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-waiting.wav"
+	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-on-hold.wav"
+	DESTINATION "${CMAKE_INSTALL_DATADIR}/sounds/linphone")
+
 set(LINPHONE_QML_DIR "${CMAKE_SOURCE_DIR}/Linphone/view")
 set(QT_PATH "${Qt6Core_DIR}/../../..")
 

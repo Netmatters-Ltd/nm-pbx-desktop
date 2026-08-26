@@ -30,6 +30,11 @@
 #include "tool/crash_reporter/CrashReporter.hpp"
 #endif
 
+#include <algorithm>
+
+#include <QCryptographicHash>
+#include <QTimer>
+
 // =============================================================================
 
 DEFINE_ABSTRACT_OBJECT(SettingsModel)
@@ -39,6 +44,10 @@ using namespace std;
 const std::string SettingsModel::UiSection("ui");
 const std::string SettingsModel::AppSection("app");
 const std::string SettingsModel::CardDAVSection("carddav_0");
+// One config section per audio device, holding the volume the user last chose for it.
+const std::string SettingsModel::AudioGainSectionPrefix("nmpbx_audio_gain_");
+const char *SettingsModel::CaptureGainKey = "mic_gain";
+const char *SettingsModel::PlaybackGainKey = "spk_gain";
 std::shared_ptr<SettingsModel> SettingsModel::gSettingsModel;
 std::optional<std::string> SettingsModel::sAppliedCardDAVProvisioning;
 
@@ -88,8 +97,12 @@ SettingsModel::SettingsModel() {
 
 	// Media cards must not be used twice (capture card + call) else we will get latencies issues and bad echo
 	// calibrations in call.
-	QObject::connect(CoreModel::getInstance().get(), &CoreModel::firstCallStarted, this,
-	                 [this]() { deleteCaptureGraph(); });
+	QObject::connect(CoreModel::getInstance().get(), &CoreModel::firstCallStarted, this, [this]() {
+		deleteCaptureGraph();
+		// Deferred as well as immediate: the audio stream may not be up yet, and pinning the session
+		// volume back to full only takes effect once it is.
+		scheduleApplyStoredGains();
+	});
 	QObject::connect(CoreModel::getInstance().get(), &CoreModel::lastCallEnded, this, [this]() {
 		if (mCaptureGraphListenerCount > 0) createCaptureGraph(); // Repair the capture graph
 	});
@@ -106,7 +119,16 @@ SettingsModel::SettingsModel() {
 		    // emit playbackDeviceChanged(getPlaybackDevice());
 		    // emit captureDeviceChanged(getCaptureDevice());
 		    // emit ringerDeviceChanged(getRingerDevice());
+		    // Catches device switches that never reach this class, in particular the in-call
+		    // selector, which goes straight through CallCore to CallModel. Re-applying both
+		    // directions is idempotent, so there is no need to work out which one moved.
+		    applyStoredGains();
 	    });
+
+	// Restore the volumes the user last chose for the devices that are currently selected. The core
+	// has already applied whatever was left in the SDK's own global [sound] gain keys by this point,
+	// so this deliberately overrides it and makes startup deterministic.
+	scheduleApplyStoredGains();
 }
 
 SettingsModel::~SettingsModel() {
@@ -158,6 +180,8 @@ void SettingsModel::createCaptureGraph() {
 	                                               Utils::appStringToCoreString(getPlaybackDevice()["id"].toString()));
 	mSimpleCaptureGraph->start();
 	emit captureGraphRunningChanged(getCaptureGraphRunning());
+	// Covers opening the settings page, changing device, and the rebuild after a call ends.
+	scheduleApplyStoredGains();
 }
 void SettingsModel::deleteCaptureGraph() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
@@ -261,51 +285,105 @@ float SettingsModel::getMicVolume() {
 	return v;
 }
 
+std::string SettingsModel::audioGainSection(const QString &deviceId) {
+	// A device id looks like 'WASAPI: Headset Microphone (Jabra Evolve2 65) [Microphone]', which is
+	// not safe to use as an ini key or section name. Hash it and keep the readable id inside.
+	auto hash = QCryptographicHash::hash(deviceId.toUtf8(), QCryptographicHash::Sha256).toHex().left(16);
+	return AudioGainSectionPrefix + hash.toStdString();
+}
+
+std::optional<float> SettingsModel::readStoredGain(const QString &deviceId, const char *key) const {
+	if (!mConfig || deviceId.isEmpty()) return std::nullopt;
+	auto section = audioGainSection(deviceId);
+	if (!mConfig->hasEntry(section, key)) return std::nullopt;
+	return std::clamp(mConfig->getFloat(section, key, 1.0f), 0.0f, 1.0f);
+}
+
+void SettingsModel::writeStoredGain(const QString &deviceId, const char *key, float linearGain) {
+	if (!mConfig || deviceId.isEmpty()) return;
+	auto section = audioGainSection(deviceId);
+	// Kept alongside the value so the section can be recognised by a human reading the config.
+	mConfig->setString(section, "device_id", Utils::appStringToCoreString(deviceId));
+	mConfig->setFloat(section, key, std::clamp(linearGain, 0.0f, 1.0f));
+	mConfig->sync();
+}
+
+void SettingsModel::applyPlaybackGain(float gain) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	auto call = core->getCurrentCall();
+	if (call) {
+		// In call the soft gain does the work. Call::setSpeakerVolumeGain() is not used to carry the
+		// value: it drives the Windows per-application session volume, so setting both would apply
+		// the gain twice and land on gain squared. It is instead pinned back to full, because the
+		// settings preview does set that session volume and Windows remembers it per app and device,
+		// so it would otherwise still be attenuating here.
+		call->setSpeakerVolumeGain(1.0f);
+		core->setPlaybackGainDb(MediastreamerUtils::linearToDb(gain));
+	} else if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
+		mSimpleCaptureGraph->setPlaybackGain(gain);
+	}
+}
+
+void SettingsModel::applyCaptureGain(float gain) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	auto call = core->getCurrentCall();
+	if (call) {
+		call->setMicrophoneVolumeGain(1.0f);
+		core->setMicGainDb(MediastreamerUtils::linearToDb(gain));
+	} else if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
+		mSimpleCaptureGraph->setCaptureGain(gain);
+	}
+}
+
+void SettingsModel::applyStoredGains() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto captureGain = getCaptureGain();
+	auto playbackGain = getPlaybackGain();
+	lInfo() << log().arg("Applying stored gains, capture [%1] playback [%2]").arg(captureGain).arg(playbackGain);
+	applyCaptureGain(captureGain);
+	applyPlaybackGain(playbackGain);
+	emit captureGainChanged(captureGain);
+	emit playbackGainChanged(playbackGain);
+}
+
+void SettingsModel::scheduleApplyStoredGains() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	applyStoredGains();
+	// The capture graph's WASAPI filters reject a volume until the ticker has activated them, so the
+	// call above is a no-op for a graph that has only just started. Repeat it once it is up.
+	QTimer::singleShot(500, this, [this]() { applyStoredGains(); });
+}
+
 float SettingsModel::getPlaybackGain() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		return mSimpleCaptureGraph->getPlaybackGain();
-	} else {
-		auto call = CoreModel::getInstance()->getCore()->getCurrentCall();
-		if (call) return call->getSpeakerVolumeGain();
-		else return 0.0;
-	}
+	// The stored value is the source of truth. Reading it back off the live graph or call is
+	// unreliable: WASAPI returns -1 until its filters are activated, and there is nothing at all to
+	// read when the settings page is closed and no call is up.
+	return readStoredGain(getPlaybackDevice()["id"].toString(), PlaybackGainKey).value_or(1.0f);
 }
 
 void SettingsModel::setPlaybackGain(float gain) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	gain = std::clamp(gain, 0.0f, 1.0f);
 	float oldGain = getPlaybackGain();
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		mSimpleCaptureGraph->setPlaybackGain(gain);
-	}
-	auto currentCall = CoreModel::getInstance()->getCore()->getCurrentCall();
-	if (currentCall) {
-		currentCall->setSpeakerVolumeGain(gain);
-	}
+	writeStoredGain(getPlaybackDevice()["id"].toString(), PlaybackGainKey, gain);
+	applyPlaybackGain(gain);
 	if ((int)(oldGain * 1000) != (int)(gain * 1000)) emit playbackGainChanged(gain);
 }
 
 float SettingsModel::getCaptureGain() const {
 	mustBeInLinphoneThread(getClassName());
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		return mSimpleCaptureGraph->getCaptureGain();
-	} else {
-		auto call = CoreModel::getInstance()->getCore()->getCurrentCall();
-		if (call) return call->getMicrophoneVolumeGain();
-		else return 0.0;
-	}
+	return readStoredGain(getCaptureDevice()["id"].toString(), CaptureGainKey).value_or(1.0f);
 }
 
 void SettingsModel::setCaptureGain(float gain) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	gain = std::clamp(gain, 0.0f, 1.0f);
 	float oldGain = getCaptureGain();
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		mSimpleCaptureGraph->setCaptureGain(gain);
-	}
-	auto currentCall = CoreModel::getInstance()->getCore()->getCurrentCall();
-	if (currentCall) {
-		currentCall->setMicrophoneVolumeGain(gain);
-	}
+	writeStoredGain(getCaptureDevice()["id"].toString(), CaptureGainKey, gain);
+	applyCaptureGain(gain);
 	if ((int)(oldGain * 1000) != (int)(gain * 1000)) emit captureGainChanged(gain);
 }
 
@@ -377,6 +455,9 @@ void SettingsModel::setCaptureDevice(const QVariantMap &device) {
 		CoreModel::getInstance()->getCore()->setInputAudioDevice(audioDevice);
 		emit captureDeviceChanged(device);
 		resetCaptureGraph();
+		// resetCaptureGraph() rebuilds the graph and applies through createCaptureGraph(), but it
+		// does nothing when there is no graph, i.e. in call. Apply here so both states are covered.
+		applyStoredGains();
 	} else qWarning() << "Cannot set Capture device. The ID cannot be matched with an existant device : " << device;
 }
 
@@ -442,6 +523,7 @@ void SettingsModel::setPlaybackDevice(const QVariantMap &device) {
 		CoreModel::getInstance()->getCore()->setOutputAudioDevice(audioDevice);
 		emit playbackDeviceChanged(device);
 		resetCaptureGraph();
+		applyStoredGains();
 	} else qWarning() << "Cannot set Playback device. The ID cannot be matched with an existant device : " << device;
 }
 

@@ -328,7 +328,7 @@ There's a safety check at the start. If a checkout has genuine content changes, 
 
 Once it reports everything clean, re-run the configure step.
 
-Don't fix this by running `git config --global core.autocrlf false`, even though `depot_tools` suggests it in the warning above the error. Our `linphone-desktop` working tree is also CRLF on disk with LF committed, and has no `.gitattributes` to protect it, so turning the setting off globally will make every file in the project show as modified.
+Don't fix this by running `git config --global core.autocrlf false`, even though `depot_tools` suggests it in the warning above the error. Our `linphone-desktop` working tree is also CRLF on disk with LF committed, and its `.gitattributes` only covers patch and audio files rather than the tree as a whole, so turning the setting off globally will make every file in the project show as modified.
 
 ### Environment
 
@@ -356,7 +356,7 @@ cd build
 
 First:
 ```cmd
-set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%"
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin;%PATH%"
 ```
 
 If you have the build working and just need to re-run the whole thing:
@@ -411,6 +411,27 @@ windeployqt6.exe OUTPUT\bin\nmpbx.exe --release --qmldir C:\Users\sam.driver\Cod
 
 The final executable to actually run should be: `build\OUTPUT\bin\nmpbx.exe`
 
+### Regenerating the call tones
+
+We ship our own WAV files for the call-waiting and call-on-hold tones, because the SDK generates
+them far too loud. They live in `Linphone/data/sound/` alongside the script that produces them:
+
+```cmd
+python Linphone\data\sound\generate-tones.py
+```
+
+The script is deterministic, so re-running it without changing anything leaves the files untouched.
+Adjust `PEAK_DBFS` at the top of the script to change the loudness, then regenerate and commit both
+WAV files. The script's header explains the constraints the SDK imposes on these files, which are
+worth reading before changing the format.
+
+Two things to know:
+
+- These are install inputs, not build outputs, so editing a WAV needs the install step re-running.
+  A plain `cmake --build` will not refresh them.
+- The install rule that copies them lives in `cmake/install/install.cmake`, so changing it needs a
+  fresh configure, not just a build.
+
 ## Handling installer
 
 Run "x64 Native Tools Command Prompt for VS 2022" from the Windows start menu. Run the following within that command prompt (it matters that you run it in that specific command prompt instance.)
@@ -427,7 +448,7 @@ cd C:\Users\sam.driver\Code\linphone-desktop\build
 ```
 
 ```cmd
-set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%"
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin;%PATH%"
 ```
 
 We'll sign the app in the build tree, after building but before installing, leave the project's built-in signing off, and sign the installer as a separate final step. All signing is interactive with the eToken.
@@ -461,5 +482,5 @@ Then verify both:
 
 ```cmd
 signtool verify /pa /v bin\RelWithDebInfo\NMPBX.exe
-signtool verify /pa /v OUTPUT\Packages\NNMPBX-6.2.0-028.exe
+signtool verify /pa /v OUTPUT\Packages\NNMPBX-6.2.0-030.exe
 ```

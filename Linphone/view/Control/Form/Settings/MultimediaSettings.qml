@@ -106,9 +106,16 @@ ColumnLayout {
 					from: 0.0
 					to: 1.0
 					value: SettingsCpp.playbackGain
-					onMoved: {
-						if (mainItem.call) SettingsCpp.lSetPlaybackGain(value)
-						else SettingsCpp.playbackGain = value
+					// Volume is a live control, not a form field: it applies and is stored against the
+					// selected device straight away, in or out of a call.
+					onMoved: SettingsCpp.lSetPlaybackGain(value)
+					// Dragging the handle assigns to value and so breaks the binding above. This keeps
+					// the handle following the stored volume when the output device changes.
+					Connections {
+						target: SettingsCpp
+						function onPlaybackGainChanged(gain) {
+							speakerVolume.value = gain
+						}
 					}
 					//: %1 volume
 					Accessible.name: qsTr("device_volume_accessible_name").arg(qsTr("multimedia_settings_speaker_title"))
@@ -157,9 +164,12 @@ ColumnLayout {
 					from: 0.0
 					to: 1.0
 					value: SettingsCpp.captureGain
-					onMoved: {
-						if (mainItem.call) SettingsCpp.lSetCaptureGain(value)
-						else SettingsCpp.captureGain = value
+					onMoved: SettingsCpp.lSetCaptureGain(value)
+					Connections {
+						target: SettingsCpp
+						function onCaptureGainChanged(gain) {
+							microVolume.value = gain
+						}
 					}
 					//: %1 volume
 					Accessible.name: qsTr("device_volume_accessible_name").arg(qsTr("multimedia_settings_microphone_title"))
