@@ -81,7 +81,15 @@ ListView {
             Layout.preferredWidth: Utils.getSizeWithScreenRatio(24)
             Layout.preferredHeight: Utils.getSizeWithScreenRatio(24)
 			Layout.alignment: Qt.AlignVCenter
-            visible: mainItem.isTransferList && (mainItem.currentRemoteAddress !== modelData.core.remoteAddress)
+            visible: mainItem.isTransferList 
+			&& (mainItem.currentRemoteAddress !== modelData.core.remoteAddress)
+			&& modelData.core.state !== LinphoneEnums.CallState.IncomingReceived
+			&& modelData.core.state !== LinphoneEnums.CallState.PushIncomingReceived
+			&& modelData.core.state !== LinphoneEnums.CallState.OutgoingInit
+			&& modelData.core.state !== LinphoneEnums.CallState.OutgoingProgress
+			&& modelData.core.state !== LinphoneEnums.CallState.OutgoingRinging
+			&& modelData.core.state !== LinphoneEnums.CallState.OutgoingEarlyMedia
+			&& modelData.core.state !== LinphoneEnums.CallState.IncomingEarlyMedia
 			icon.source: AppIcons.transferCall
 			style: ButtonStyle.noBackground
 			onClicked: {
@@ -92,6 +100,7 @@ ListView {
 		}
 		Button {
 			id: pausingButton
+			visible: !mainItem.isTransferList
 			enabled: !(modelData.core.state === LinphoneEnums.CallState.PausedByRemote)
             Layout.preferredWidth: Utils.getSizeWithScreenRatio(28)
             Layout.preferredHeight: Utils.getSizeWithScreenRatio(28)

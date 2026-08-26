@@ -84,7 +84,7 @@ public:
 	virtual void setFilterType(int filterType);
 	//-------------------------------------------------------------
 
-	void onAdded();
+	void onAdded(const QModelIndex &parent, int first, int last);
 	void onRemoved();
 
 	int mInitialDisplayItems = -1;

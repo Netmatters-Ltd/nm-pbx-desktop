@@ -16,9 +16,21 @@ DeleteRegValue HKLM "SOFTWARE\RegisteredApplications" "@APPLICATION_NAME@"
 
 DeleteRegKey HKCR "@APPLICATION_NAME@.sip"
 DeleteRegKey HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@"
+DeleteRegKey HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip"
 DeleteRegKey HKCR "@APPLICATION_NAME@.sips"
 DeleteRegKey HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@"
+DeleteRegKey HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips"
 DeleteRegKey HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config"
 DeleteRegKey HKCR "@APPLICATION_NAME@.tel"
 DeleteRegKey HKCR "@APPLICATION_NAME@.callto"
+
+## Our own protocol scheme declarations
+# The shared schemes (sip, sips, tel, callto) are left in place on purpose, as
+# other softphones may rely on them.
+
+DeleteRegKey HKCR "sip-@EXECUTABLE_NAME@"
+DeleteRegKey HKCR "@EXECUTABLE_NAME@-sip"
+DeleteRegKey HKCR "sips-@EXECUTABLE_NAME@"
+DeleteRegKey HKCR "@EXECUTABLE_NAME@-sips"
+DeleteRegKey HKCR "@EXECUTABLE_NAME@-config"
 

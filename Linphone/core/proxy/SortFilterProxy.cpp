@@ -109,6 +109,7 @@ void SortFilterProxy::invalidateFilter() {
 	QSortFilterProxyModel::beginFilterChange();
 	QSortFilterProxyModel::endFilterChange();
 #else
-	invalidateFilter();
+	// Must be qualified: an unqualified call resolves back to this override and recurses forever.
+	QSortFilterProxyModel::invalidateFilter();
 #endif
 }

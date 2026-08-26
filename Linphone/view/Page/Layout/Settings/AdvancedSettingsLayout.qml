@@ -35,6 +35,22 @@ AbstractSettingsLayout {
 				propertyName: "autoStart"
 				propertyOwner: SettingsCpp
 			}
+			// These two strings are already translated under the DebugSettingsLayout
+			// context, so reuse them rather than duplicating them in every .ts file.
+			SwitchSetting {
+				Layout.fillWidth: true
+				//: "Activer les traces de débogage"
+				titleText: qsTranslate("DebugSettingsLayout", "settings_debug_enable_logs_title")
+				propertyName: "logsEnabled"
+				propertyOwner: SettingsCpp
+			}
+			SwitchSetting {
+				Layout.fillWidth: true
+				//: "Activer les traces de débogage intégrales"
+				titleText: qsTranslate("DebugSettingsLayout", "settings_debug_enable_full_logs_title")
+				propertyName: "fullLogsEnabled"
+				propertyOwner: SettingsCpp
+			}
 		}
 	}
 }

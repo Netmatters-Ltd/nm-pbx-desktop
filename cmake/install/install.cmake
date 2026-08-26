@@ -1,20 +1,20 @@
 ################################################################################
 #
 #  Copyright (c) 2017-2024 Belledonne Communications SARL.
-# 
+#
 #  This file is part of linphone-desktop
 #  (see https://www.linphone.org).
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
@@ -40,7 +40,7 @@ if(NOT LINPHONEAPP_VERSION)
 endif()
 
 if (NOT(LINPHONEAPP_VERSION))
-  set(LINPHONEAPP_VERSION "6.1.0")
+  set(LINPHONEAPP_VERSION "6.2.0")
 endif ()
 
 include(${CMAKE_SOURCE_DIR}/Linphone/application_info.cmake)
@@ -65,6 +65,16 @@ if(ENABLE_APP_PACKAGE_ROOTCA)
 	install(FILES "${LINPHONE_OUTPUT_DIR}/share/linphone/rootca.pem" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${EXECUTABLE_NAME}")
 endif()
 install(FILES "${CMAKE_SOURCE_DIR}/Linphone/data/config/linphonerc-factory" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${EXECUTABLE_NAME}")
+
+# Our replacements for the SDK's synthesised call tones, which it generates far too loud.
+# The SDK opens tone files by path, so these must be installed loose rather than embedded in the Qt
+# resources like the rest of Linphone/data. This destination matches the SDK's own sound install
+# (CMAKE_INSTALL_DATADIR, not DATAROOTDIR) and is the directory registered as the SoundResources
+# factory path, so the SDK can also resolve these files by name alone if a full path ever fails.
+install(FILES
+	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-waiting.wav"
+	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-on-hold.wav"
+	DESTINATION "${CMAKE_INSTALL_DATADIR}/sounds/linphone")
 
 set(LINPHONE_QML_DIR "${CMAKE_SOURCE_DIR}/Linphone/view")
 set(QT_PATH "${Qt6Core_DIR}/../../..")
@@ -192,7 +202,7 @@ if(${ENABLE_APP_PACKAGING})
 	set(CPACK_PACKAGE_EXECUTABLES "${EXECUTABLE_NAME};${APPLICATION_NAME}")
 	set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 	set(CPACK_MONOLITHIC_INSTALL TRUE)# Need it since libturbo-jpeg introduce components (lib/include etc.)
-	
+
 	if(ENABLE_APP_LICENSE)
 		set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
 	else()
@@ -201,7 +211,7 @@ if(${ENABLE_APP_PACKAGING})
 	set(CPACK_RESOURCE_FILE_LICENSE_PROVIDED ${ENABLE_APP_LICENSE})
 	set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/Linphone/data/icon.ico")
 	set(PERFORM_SIGNING 0)
-	
+
 	configure_file("${CMAKE_SOURCE_DIR}/cmake/install/cleanCPack.cmake.in" "${CMAKE_BINARY_DIR}/cmake/install/cleanCPack.cmake" @ONLY)
 	set(CPACK_PRE_BUILD_SCRIPTS  "${CMAKE_BINARY_DIR}/cmake/install/cleanCPack.cmake")
 	set(CPACK_PACKAGE_INSTALL_DIRECTORY ${APPLICATION_NAME})
@@ -249,14 +259,14 @@ if(${ENABLE_APP_PACKAGING})
 		set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/Linphone/data/icon.ico")
 		set(CPACK_NSIS_DISPLAY_NAME "${APPLICATION_NAME}")	# = The display name string that appears in the Windows Add/Remove Program control panel
 		set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "${APPLICATION_NAME}")
-		
+
 		if (LINPHONE_MICRO_VERSION)# CPACK_NSIS_PACKAGE_NAME = Title at the top of the installer
 			set(CPACK_NSIS_PACKAGE_NAME "${APPLICATION_NAME} ${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}")
 		else ()
 			set(CPACK_NSIS_PACKAGE_NAME "${APPLICATION_NAME} ${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}")
 		endif ()
 		set(CPACK_NSIS_URL_INFO_ABOUT ${APPLICATION_URL})
-		
+
 		file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}" DOS_STYLE_BINARY_DIR)
 		string(REPLACE "\\" "\\\\" ESCAPED_DOS_STYLE_BINARY_DIR "${DOS_STYLE_BINARY_DIR}")
 		configure_file("${CMAKE_SOURCE_DIR}/cmake/install/windows/install.nsi.in" "${CMAKE_CURRENT_BINARY_DIR}/install.nsi" @ONLY)
@@ -267,8 +277,8 @@ if(${ENABLE_APP_PACKAGING})
 		set(CPACK_NSIS_MUI_FINISHPAGE_RUN "${EXECUTABLE_NAME}.exe")
 		set(CPACK_NSIS_INSTALLED_ICON_NAME "${CPACK_NSIS_EXECUTABLES_DIRECTORY}/${CPACK_NSIS_MUI_FINISHPAGE_RUN}")
 		message(STATUS "Set NSIS CPack generator in OUTPUT/Packages")
-		
-		
+
+
 		if(LINPHONE_WINDOWS_SIGN_TOOL AND LINPHONE_WINDOWS_SIGN_TIMESTAMP_URL)
 			find_program(SIGNTOOL ${LINPHONE_WINDOWS_SIGN_TOOL})
 			set(TIMESTAMP_URL ${LINPHONE_WINDOWS_SIGN_TIMESTAMP_URL})
@@ -299,7 +309,7 @@ if(${ENABLE_APP_PACKAGING})
 				message(STATUS "No signtool certificate found; assuming development machine (${PFX_FILE})")
 			endif ()
 		endif ()
-		
+
 	else()
 ##############################################
 #	LINUX

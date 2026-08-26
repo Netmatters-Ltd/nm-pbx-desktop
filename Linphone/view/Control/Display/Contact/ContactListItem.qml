@@ -285,12 +285,7 @@ FocusScope {
         }
         onClicked: mouse => {
             forceActiveFocus()
-            if (mouse && mouse.button == Qt.RightButton
-                && mainItem.showContactMenu) {
-                if (friendPopup) friendPopup.open()
-            } else {
-                mainItem.clicked(mouse)
-            }
+            mainItem.clicked(mouse)
         }
     }
 }

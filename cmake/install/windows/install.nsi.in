@@ -6,6 +6,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@" "" ""
 WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities" "ApplicationDescription" "@APPLICATION_DESCRIPTION@"
 WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities" "ApplicationName" "@APPLICATION_NAME@"
 WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities" "FriendlyAppName" "@APPLICATION_NAME@"
+WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities" "ApplicationIcon" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKLM "SOFTWARE\RegisteredApplications" "@APPLICATION_NAME@" "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities"
 WriteRegStr HKLM "SOFTWARE\IM Providers\@APPLICATION_NAME@" "ProcessName" "@EXECUTABLE_NAME@.exe"
 WriteRegStr HKLM "SOFTWARE\IM Providers\@APPLICATION_NAME@" "FriendlyName" "@APPLICATION_NAME@"
@@ -45,6 +46,7 @@ WriteRegStr HKCR "callto" "URL Protocol" ""
 
 ## SIP
 WriteRegStr HKCR "@APPLICATION_NAME@.sip" "" "@APPLICATION_NAME@ sip Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.sip\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.sip\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sip\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sip\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -52,6 +54,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## SIP-@EXECUTABLE_NAME@
 WriteRegStr HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@" "" "@APPLICATION_NAME@ sip-@EXECUTABLE_NAME@ Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sip-@EXECUTABLE_NAME@\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -59,6 +62,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## @EXECUTABLE_NAME@-SIP
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip" "" "@APPLICATION_NAME@ @EXECUTABLE_NAME@-sip Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sip\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -66,6 +70,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## SIPS
 WriteRegStr HKCR "@APPLICATION_NAME@.sips" "" "@APPLICATION_NAME@ sips Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.sips\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.sips\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sips\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sips\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -73,6 +78,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## SIPS-@EXECUTABLE_NAME@
 WriteRegStr HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@" "" "@APPLICATION_NAME@ sips-@EXECUTABLE_NAME@ Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.sips-@EXECUTABLE_NAME@\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -80,6 +86,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## @EXECUTABLE_NAME@-SIPS
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips" "" "@APPLICATION_NAME@ @EXECUTABLE_NAME@-sips Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-sips\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -87,6 +94,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## @EXECUTABLE_NAME@-CONFIG
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config" "" "@APPLICATION_NAME@ @EXECUTABLE_NAME@-config Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.@EXECUTABLE_NAME@-config\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -94,6 +102,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## TEL
 WriteRegStr HKCR "@APPLICATION_NAME@.tel" "" "@APPLICATION_NAME@ tel Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.tel\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.tel\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.tel\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.tel\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""
@@ -101,6 +110,7 @@ WriteRegStr HKLM "SOFTWARE\@APPLICATION_VENDOR@\@APPLICATION_NAME@\Capabilities\
 
 ## CALLTO
 WriteRegStr HKCR "@APPLICATION_NAME@.callto" "" "@APPLICATION_NAME@ callto Protocol"
+WriteRegStr HKCR "@APPLICATION_NAME@.callto\DefaultIcon" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe,0"
 WriteRegStr HKCR "@APPLICATION_NAME@.callto\Shell" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.callto\Shell\Open" "" ""
 WriteRegStr HKCR "@APPLICATION_NAME@.callto\Shell\Open\Command" "" "$INSTDIR\bin\@EXECUTABLE_NAME@.exe $\"%1$\""

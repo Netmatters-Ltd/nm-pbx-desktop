@@ -1,0 +1,28 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3d285cb6..63c1a6e4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -452,7 +452,7 @@ if(WIN32)
+ 		list(APPEND LINK_LIBS D3D11 dxgi dxguid kernel32 comdlg32 advapi32 shell32 Dwmapi)
+ 	endif()
+ endif()
+-if(LIBM)
++if(LIBM AND NOT MSVC)
+ 	list(APPEND LINK_LIBS m)
+ endif()
+ if(CpuFeatures_FOUND)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 0568efe3..df17d746 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -20,7 +20,9 @@
+ # along with this program. If not, see <http://www.gnu.org/licenses/>.
+ ############################################################################
+ 
+-find_library(LIBM NAMES m)
++if(NOT MSVC)
++    find_library(LIBM NAMES m)
++endif()
+ 
+ find_program(AWK_PROGRAM awk)
+ if(NOT AWK_PROGRAM)

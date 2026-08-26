@@ -3,9 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.Basic as Control
 
 import Linphone
-import UtilsCpp 1.0
-import ConstantsCpp 1.0
-import SettingsCpp
+import ContactsCpp
 import "qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js" as Utils
 
 Flickable {
@@ -16,17 +14,18 @@ Flickable {
     property bool showMe: true
     property bool hideSuggestions: false
     property bool showFavorites: true
-    property var sourceFlags: LinphoneEnums.MagicSearchSource.All
     property int extensionFilter: MagicSearchProxy.ExtensionFilter.All
 
     property FriendGui highlightedContact
 
-    property bool searchOnEmpty: true
-    property bool loading: false
-    property bool pauseSearch: false
+    // The address book is fetched once by ContactsCpp and shared by every view, so the only time
+    // there is nothing to show is before that first fetch completes.
+    readonly property bool loading: !ContactsCpp.initialLoadComplete
 
+    // Searching is a local filter over the shared result set, which is what allows each view to
+    // hold its own search text without disturbing the others.
     property string searchBarText
-    property string searchText
+    readonly property string searchText: searchBarText
 
     property bool haveContacts: count > 0
     property int count: (favoritesSection.model ? favoritesSection.model.count || 0 : 0)
@@ -38,7 +37,6 @@ Flickable {
 
     contentHeight: contentsLayout.implicitHeight
 
-    signal contactDeletionRequested(FriendGui contact)
     signal contactSelected(FriendGui contact)
 
     function selectContact(address) {
@@ -50,25 +48,9 @@ Flickable {
         mainItem.highlightedContact = null
     }
 
-    function forceFullRefresh() {
-        mainItem.loading = true
-        mainItem.resetSelections()
-        magicSearchProxy.forceUpdate()
-    }
-
-    onSearchBarTextChanged: {
-        if (!pauseSearch && (mainItem.searchOnEmpty || searchBarText != '')) {
-            searchText = searchBarText.length === 0 ? "*" : searchBarText
-        }
-    }
-    onPauseSearchChanged: {
-        if (!pauseSearch && (mainItem.searchOnEmpty || searchBarText != '')) {
-            searchText = searchBarText.length === 0 ? "*" : searchBarText
-        }
-    }
-    onSearchTextChanged: {
-        loading = true
-    }
+    // Filtering happens locally and synchronously, so scroll back to the top as the text changes
+    // rather than waiting on a result callback.
+    onSearchTextChanged: mainItem.contentY = 0
 
     Behavior on contentY {
         NumberAnimation {
@@ -86,34 +68,6 @@ Flickable {
         policy: Control.ScrollBar.AsNeeded
     }
 
-    property MagicSearchProxy mainModel: MagicSearchProxy {
-        id: magicSearchProxy
-        searchText: mainItem.searchText
-        aggregationFlag: LinphoneEnums.MagicSearchAggregation.Friend
-        sourceFlags: mainItem.sourceFlags
-        onModelReset: {
-            mainItem.resetSelections()
-        }
-        onResultsProcessed: {
-            mainItem.loading = false
-            mainItem.contentY = 0
-        }
-        onInitialized: {
-            if (mainItem.searchOnEmpty || searchText != '') {
-                mainItem.loading = true
-                forceUpdate()
-            }
-        }
-    }
-
-    Connections {
-        target: SettingsCpp
-        onLdapConfigChanged: {
-            if (SettingsCpp.syncLdapContacts)
-                magicSearchProxy.forceUpdate()
-        }
-    }
-
     onAtYEndChanged: if (atYEnd) {
         if (contactsProxy.haveMore)
             contactsProxy.displayMore()
@@ -123,28 +77,32 @@ Flickable {
 
     MagicSearchProxy {
         id: favoritesProxy
-        parentProxy: mainItem.mainModel
+        parentProxy: ContactsCpp.rootProxy
         showMe: mainItem.showMe
         extensionFilter: mainItem.extensionFilter
+        filterText: mainItem.searchText
         filterType: MagicSearchProxy.FilteringTypes.Favorites
     }
 
     MagicSearchProxy {
         id: contactsProxy
-        parentProxy: mainItem.mainModel
+        parentProxy: ContactsCpp.rootProxy
         extensionFilter: mainItem.extensionFilter
+        filterText: mainItem.searchText
+        // CardDAV and LDAP contacts belong in the main list rather than in suggestions, whether or
+        // not a search is running: they are all stored contacts as far as the user is concerned.
         filterType: MagicSearchProxy.FilteringTypes.App
-                    | (mainItem.searchText != '*'
-                       && mainItem.searchText != ''
-                       || SettingsCpp.syncLdapContacts ? MagicSearchProxy.FilteringTypes.Ldap | MagicSearchProxy.FilteringTypes.CardDAV : 0)
+                    | MagicSearchProxy.FilteringTypes.Ldap
+                    | MagicSearchProxy.FilteringTypes.CardDAV
         initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
         displayItemsStep: 3 * initialDisplayItems / 2
     }
 
     MagicSearchProxy {
         id: suggestionsProxy
-        parentProxy: mainItem.mainModel
+        parentProxy: ContactsCpp.rootProxy
         extensionFilter: mainItem.extensionFilter
+        filterText: mainItem.searchText
         filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
         initialDisplayItems: contactsProxy.haveMore
             ? 0
@@ -185,9 +143,6 @@ Flickable {
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
             }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
-            }
         }
 
         ContactGridSection {
@@ -205,9 +160,6 @@ Flickable {
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
             }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
-            }
         }
 
         ContactGridSection {
@@ -224,9 +176,6 @@ Flickable {
             }
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
-            }
-            onContactDeletionRequested: contact => {
-                mainItem.contactDeletionRequested(contact)
             }
         }
     }

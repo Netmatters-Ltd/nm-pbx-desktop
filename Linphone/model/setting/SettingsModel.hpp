@@ -27,6 +27,7 @@
 #include <QObject>
 #include <QVariantMap>
 #include <linphone++/linphone.hh>
+#include <optional>
 
 #include "tool/AbstractObject.hpp"
 
@@ -48,6 +49,9 @@ public:
 	static const std::string UiSection;
 	static const std::string AppSection;
 	static const std::string CardDAVSection;
+	static const std::string AudioGainSectionPrefix;
+	static const char *CaptureGainKey;
+	static const char *PlaybackGainKey;
 	std::shared_ptr<linphone::Config> mConfig;
 
 	bool getVfsEnabled() const;
@@ -90,6 +94,22 @@ public:
 	float getCaptureGain() const;
 	void setCaptureGain(float gain);
 
+	// Per-device volume storage. The volume the user picks is remembered against the device it was
+	// picked for, so switching headset and back restores each one's own level.
+	// Values are stored linear in [0.0, 1.0], the same scale as the sliders.
+	static std::string audioGainSection(const QString &deviceId);
+	std::optional<float> readStoredGain(const QString &deviceId, const char *key) const;
+	void writeStoredGain(const QString &deviceId, const char *key, float linearGain);
+
+	// Applies a gain to whatever is live right now: the settings preview graph out of call, the
+	// SDK soft gain in call. Exactly one of the two is in play at any moment.
+	void applyCaptureGain(float gain);
+	void applyPlaybackGain(float gain);
+	void applyStoredGains();
+	// Deferred variant. The WASAPI filters only accept a volume once the ticker has activated them,
+	// so applying straight after createCaptureGraph() would be dropped.
+	void scheduleApplyStoredGains();
+
 	QVariantList getCaptureDevices() const;
 	QVariantList getPlaybackDevices() const;
 	QVariantList getRingerDevices() const;
@@ -115,6 +135,7 @@ public:
 
 	int getCardDAVMinCharResearch() const;
 	void setCardDAVMinCharResearch(int min);
+	int getCardDAVSyncIntervalSeconds() const;
 
 	QVariantMap getRingerDevice() const;
 	void setRingerDevice(QVariantMap device);
@@ -171,9 +192,11 @@ public:
 	static const std::shared_ptr<linphone::FriendList> getCardDAVListForNewFriends();
 	static void setCardDAVListForNewFriends(std::string listName);
 
-	// Reads the [carddav_provision] section from the active config and creates or
-	// updates the provisioned CardDAV friend list accordingly.  Safe to call more
-	// than once — idempotent when the server URL has not changed.
+	// Reconciles the provisioned CardDAV friend list against the [carddav_provision]
+	// section of the active config: retires the address book belonging to the instance
+	// we have just left, then creates or updates the one for the current instance.
+	// Does nothing while the provisioned details are unchanged, so it is safe to call
+	// from every config-ready notification.
 	static void applyCardDAVProvisioning();
 
 	static QString getDeviceName(const std::shared_ptr<linphone::Config> &config);
@@ -297,6 +320,21 @@ private:
 	void notifyConfigReady();
 	MediastreamerUtils::SimpleCaptureGraph *mSimpleCaptureGraph = nullptr;
 	int mCaptureGraphListenerCount = 0;
+
+	// Removes the CardDAV friend list left behind by the instance we were previously
+	// provisioned against, so that its contacts go away with it and its name is freed.
+	// Address books the user added by hand are left untouched.
+	static void retireStaleProvisionedCardDAVLists(const std::shared_ptr<linphone::Core> &core,
+	                                               const std::string &currentServerUrl,
+	                                               const std::string &currentDisplayName);
+	// Returns a display name that no other friend list is using, so that we never issue
+	// a rename that would break the UNIQUE constraint on friends_list.name.
+	static std::string getAvailableCardDAVDisplayName(const std::shared_ptr<linphone::Core> &core,
+	                                                  const std::string &wantedName,
+	                                                  const std::string &currentServerUrl);
+	// Details of the last [carddav_provision] section applied in this process, unset until
+	// the first apply. Used to skip the redundant second call per launch.
+	static std::optional<std::string> sAppliedCardDAVProvisioning;
 
 #ifdef ENABLE_QT_KEYCHAIN
 	VfsUtils mVfsUtils;

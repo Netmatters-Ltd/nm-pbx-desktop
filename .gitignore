@@ -41,10 +41,12 @@ rpm-*/
 
 vgcore.*
 linphone.spec
+nul
 
 # Exceptions -------------------------------------------------------------------
 
 !.clang-format
+!.gitattributes
 !.gitignore
 !.gitlab-ci*
 !.gitmodules

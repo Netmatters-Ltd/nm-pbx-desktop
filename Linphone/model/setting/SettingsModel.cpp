@@ -30,6 +30,11 @@
 #include "tool/crash_reporter/CrashReporter.hpp"
 #endif
 
+#include <algorithm>
+
+#include <QCryptographicHash>
+#include <QTimer>
+
 // =============================================================================
 
 DEFINE_ABSTRACT_OBJECT(SettingsModel)
@@ -39,7 +44,12 @@ using namespace std;
 const std::string SettingsModel::UiSection("ui");
 const std::string SettingsModel::AppSection("app");
 const std::string SettingsModel::CardDAVSection("carddav_0");
+// One config section per audio device, holding the volume the user last chose for it.
+const std::string SettingsModel::AudioGainSectionPrefix("nmpbx_audio_gain_");
+const char *SettingsModel::CaptureGainKey = "mic_gain";
+const char *SettingsModel::PlaybackGainKey = "spk_gain";
 std::shared_ptr<SettingsModel> SettingsModel::gSettingsModel;
+std::optional<std::string> SettingsModel::sAppliedCardDAVProvisioning;
 
 SettingsModel::SettingsModel() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
@@ -87,8 +97,12 @@ SettingsModel::SettingsModel() {
 
 	// Media cards must not be used twice (capture card + call) else we will get latencies issues and bad echo
 	// calibrations in call.
-	QObject::connect(CoreModel::getInstance().get(), &CoreModel::firstCallStarted, this,
-	                 [this]() { deleteCaptureGraph(); });
+	QObject::connect(CoreModel::getInstance().get(), &CoreModel::firstCallStarted, this, [this]() {
+		deleteCaptureGraph();
+		// Deferred as well as immediate: the audio stream may not be up yet, and pinning the session
+		// volume back to full only takes effect once it is.
+		scheduleApplyStoredGains();
+	});
 	QObject::connect(CoreModel::getInstance().get(), &CoreModel::lastCallEnded, this, [this]() {
 		if (mCaptureGraphListenerCount > 0) createCaptureGraph(); // Repair the capture graph
 	});
@@ -105,7 +119,16 @@ SettingsModel::SettingsModel() {
 		    // emit playbackDeviceChanged(getPlaybackDevice());
 		    // emit captureDeviceChanged(getCaptureDevice());
 		    // emit ringerDeviceChanged(getRingerDevice());
+		    // Catches device switches that never reach this class, in particular the in-call
+		    // selector, which goes straight through CallCore to CallModel. Re-applying both
+		    // directions is idempotent, so there is no need to work out which one moved.
+		    applyStoredGains();
 	    });
+
+	// Restore the volumes the user last chose for the devices that are currently selected. The core
+	// has already applied whatever was left in the SDK's own global [sound] gain keys by this point,
+	// so this deliberately overrides it and makes startup deterministic.
+	scheduleApplyStoredGains();
 }
 
 SettingsModel::~SettingsModel() {
@@ -157,6 +180,8 @@ void SettingsModel::createCaptureGraph() {
 	                                               Utils::appStringToCoreString(getPlaybackDevice()["id"].toString()));
 	mSimpleCaptureGraph->start();
 	emit captureGraphRunningChanged(getCaptureGraphRunning());
+	// Covers opening the settings page, changing device, and the rebuild after a call ends.
+	scheduleApplyStoredGains();
 }
 void SettingsModel::deleteCaptureGraph() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
@@ -260,51 +285,105 @@ float SettingsModel::getMicVolume() {
 	return v;
 }
 
+std::string SettingsModel::audioGainSection(const QString &deviceId) {
+	// A device id looks like 'WASAPI: Headset Microphone (Jabra Evolve2 65) [Microphone]', which is
+	// not safe to use as an ini key or section name. Hash it and keep the readable id inside.
+	auto hash = QCryptographicHash::hash(deviceId.toUtf8(), QCryptographicHash::Sha256).toHex().left(16);
+	return AudioGainSectionPrefix + hash.toStdString();
+}
+
+std::optional<float> SettingsModel::readStoredGain(const QString &deviceId, const char *key) const {
+	if (!mConfig || deviceId.isEmpty()) return std::nullopt;
+	auto section = audioGainSection(deviceId);
+	if (!mConfig->hasEntry(section, key)) return std::nullopt;
+	return std::clamp(mConfig->getFloat(section, key, 1.0f), 0.0f, 1.0f);
+}
+
+void SettingsModel::writeStoredGain(const QString &deviceId, const char *key, float linearGain) {
+	if (!mConfig || deviceId.isEmpty()) return;
+	auto section = audioGainSection(deviceId);
+	// Kept alongside the value so the section can be recognised by a human reading the config.
+	mConfig->setString(section, "device_id", Utils::appStringToCoreString(deviceId));
+	mConfig->setFloat(section, key, std::clamp(linearGain, 0.0f, 1.0f));
+	mConfig->sync();
+}
+
+void SettingsModel::applyPlaybackGain(float gain) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	auto call = core->getCurrentCall();
+	if (call) {
+		// In call the soft gain does the work. Call::setSpeakerVolumeGain() is not used to carry the
+		// value: it drives the Windows per-application session volume, so setting both would apply
+		// the gain twice and land on gain squared. It is instead pinned back to full, because the
+		// settings preview does set that session volume and Windows remembers it per app and device,
+		// so it would otherwise still be attenuating here.
+		call->setSpeakerVolumeGain(1.0f);
+		core->setPlaybackGainDb(MediastreamerUtils::linearToDb(gain));
+	} else if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
+		mSimpleCaptureGraph->setPlaybackGain(gain);
+	}
+}
+
+void SettingsModel::applyCaptureGain(float gain) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	auto call = core->getCurrentCall();
+	if (call) {
+		call->setMicrophoneVolumeGain(1.0f);
+		core->setMicGainDb(MediastreamerUtils::linearToDb(gain));
+	} else if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
+		mSimpleCaptureGraph->setCaptureGain(gain);
+	}
+}
+
+void SettingsModel::applyStoredGains() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto captureGain = getCaptureGain();
+	auto playbackGain = getPlaybackGain();
+	lInfo() << log().arg("Applying stored gains, capture [%1] playback [%2]").arg(captureGain).arg(playbackGain);
+	applyCaptureGain(captureGain);
+	applyPlaybackGain(playbackGain);
+	emit captureGainChanged(captureGain);
+	emit playbackGainChanged(playbackGain);
+}
+
+void SettingsModel::scheduleApplyStoredGains() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	applyStoredGains();
+	// The capture graph's WASAPI filters reject a volume until the ticker has activated them, so the
+	// call above is a no-op for a graph that has only just started. Repeat it once it is up.
+	QTimer::singleShot(500, this, [this]() { applyStoredGains(); });
+}
+
 float SettingsModel::getPlaybackGain() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		return mSimpleCaptureGraph->getPlaybackGain();
-	} else {
-		auto call = CoreModel::getInstance()->getCore()->getCurrentCall();
-		if (call) return call->getSpeakerVolumeGain();
-		else return 0.0;
-	}
+	// The stored value is the source of truth. Reading it back off the live graph or call is
+	// unreliable: WASAPI returns -1 until its filters are activated, and there is nothing at all to
+	// read when the settings page is closed and no call is up.
+	return readStoredGain(getPlaybackDevice()["id"].toString(), PlaybackGainKey).value_or(1.0f);
 }
 
 void SettingsModel::setPlaybackGain(float gain) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	gain = std::clamp(gain, 0.0f, 1.0f);
 	float oldGain = getPlaybackGain();
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		mSimpleCaptureGraph->setPlaybackGain(gain);
-	}
-	auto currentCall = CoreModel::getInstance()->getCore()->getCurrentCall();
-	if (currentCall) {
-		currentCall->setSpeakerVolumeGain(gain);
-	}
+	writeStoredGain(getPlaybackDevice()["id"].toString(), PlaybackGainKey, gain);
+	applyPlaybackGain(gain);
 	if ((int)(oldGain * 1000) != (int)(gain * 1000)) emit playbackGainChanged(gain);
 }
 
 float SettingsModel::getCaptureGain() const {
 	mustBeInLinphoneThread(getClassName());
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		return mSimpleCaptureGraph->getCaptureGain();
-	} else {
-		auto call = CoreModel::getInstance()->getCore()->getCurrentCall();
-		if (call) return call->getMicrophoneVolumeGain();
-		else return 0.0;
-	}
+	return readStoredGain(getCaptureDevice()["id"].toString(), CaptureGainKey).value_or(1.0f);
 }
 
 void SettingsModel::setCaptureGain(float gain) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	gain = std::clamp(gain, 0.0f, 1.0f);
 	float oldGain = getCaptureGain();
-	if (mSimpleCaptureGraph && mSimpleCaptureGraph->isRunning()) {
-		mSimpleCaptureGraph->setCaptureGain(gain);
-	}
-	auto currentCall = CoreModel::getInstance()->getCore()->getCurrentCall();
-	if (currentCall) {
-		currentCall->setMicrophoneVolumeGain(gain);
-	}
+	writeStoredGain(getCaptureDevice()["id"].toString(), CaptureGainKey, gain);
+	applyCaptureGain(gain);
 	if ((int)(oldGain * 1000) != (int)(gain * 1000)) emit captureGainChanged(gain);
 }
 
@@ -376,6 +455,9 @@ void SettingsModel::setCaptureDevice(const QVariantMap &device) {
 		CoreModel::getInstance()->getCore()->setInputAudioDevice(audioDevice);
 		emit captureDeviceChanged(device);
 		resetCaptureGraph();
+		// resetCaptureGraph() rebuilds the graph and applies through createCaptureGraph(), but it
+		// does nothing when there is no graph, i.e. in call. Apply here so both states are covered.
+		applyStoredGains();
 	} else qWarning() << "Cannot set Capture device. The ID cannot be matched with an existant device : " << device;
 }
 
@@ -441,6 +523,7 @@ void SettingsModel::setPlaybackDevice(const QVariantMap &device) {
 		CoreModel::getInstance()->getCore()->setOutputAudioDevice(audioDevice);
 		emit playbackDeviceChanged(device);
 		resetCaptureGraph();
+		applyStoredGains();
 	} else qWarning() << "Cannot set Playback device. The ID cannot be matched with an existant device : " << device;
 }
 
@@ -772,6 +855,75 @@ void SettingsModel::setCardDAVListForNewFriends(std::string name) {
 // CardDAV provisioning
 // =============================================================================
 
+// Pulls the hostname out of an http(s) URL. Returns an empty string if there isn't one.
+static std::string cardDAVServerHost(const std::string &url) {
+	auto schemePos = url.find("://");
+	if (schemePos == std::string::npos) return std::string();
+	auto hostStart = schemePos + 3;
+	auto hostEnd = url.find_first_of(":/", hostStart);
+	if (hostEnd == std::string::npos) hostEnd = url.length();
+	return url.substr(hostStart, hostEnd - hostStart);
+}
+
+void SettingsModel::retireStaleProvisionedCardDAVLists(const std::shared_ptr<linphone::Core> &core,
+                                                       const std::string &currentServerUrl,
+                                                       const std::string &currentDisplayName) {
+	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
+	auto config = core->getConfig();
+	auto lastAppliedUrl = config->getString(UiSection, "carddav_provision_applied_url", "");
+	auto listForNewFriends = getCardDAVListForNewFriends();
+	auto nameForNewFriends = listForNewFriends ? listForNewFriends->getDisplayName() : std::string();
+
+	// getFriendsLists() hands back a copy of the list, so removing as we go is safe.
+	for (auto &fl : core->getFriendsLists()) {
+		if (fl->getType() != linphone::FriendList::Type::CardDAV) continue;
+		if (!currentServerUrl.empty() && fl->getUri() == currentServerUrl) continue; // The one we are about to apply.
+
+		// Only retire the book we provisioned ourselves. A book on the same host holding the
+		// name we need counts too: that is the previous instance on the first run after this
+		// fix, when there is no applied URL recorded yet. Anything else was added by hand.
+		bool wasProvisioned = !lastAppliedUrl.empty() && fl->getUri() == lastAppliedUrl;
+		bool clashesOnName = !currentDisplayName.empty() && fl->getDisplayName() == currentDisplayName &&
+		                     cardDAVServerHost(fl->getUri()) == cardDAVServerHost(currentServerUrl);
+		if (!wasProvisioned && !clashesOnName) continue;
+
+		if (!nameForNewFriends.empty() && fl->getDisplayName() == nameForNewFriends) setCardDAVListForNewFriends("");
+
+		// A sync started by CoreModel::start() may still be in flight against this book.
+		// Removing it from the DB resets its storage id, and a late write would then insert
+		// it again under the same name and break the UNIQUE constraint on friends_list.name.
+		// Friend::saveInDb() bails out when database storage is off, which closes that window.
+		fl->enableDatabaseStorage(false);
+		lInfo() << sLog().arg("CardDAV provisioning: retiring address book") << fl->getUri()
+		        << "left over from the previous instance";
+		core->removeFriendList(fl);
+	}
+}
+
+std::string SettingsModel::getAvailableCardDAVDisplayName(const std::shared_ptr<linphone::Core> &core,
+                                                          const std::string &wantedName,
+                                                          const std::string &currentServerUrl) {
+	auto isFree = [&core, &currentServerUrl](const std::string &name) {
+		auto owner = core->getFriendListByName(name);
+		return !owner || owner->getUri() == currentServerUrl;
+	};
+	if (isFree(wantedName)) return wantedName;
+
+	// Somebody else owns the name, most likely an address book the user added by hand.
+	// Setting it anyway would throw inside the SDK and take the whole app down with it, so
+	// find a free variant instead. The URL is the last resort: it is unique per address book.
+	std::string candidate;
+	for (int suffix = 2; suffix < 100; ++suffix) {
+		candidate = wantedName + " (" + std::to_string(suffix) + ")";
+		if (isFree(candidate)) break;
+		candidate.clear();
+	}
+	if (candidate.empty()) candidate = wantedName + " " + currentServerUrl;
+	lWarning() << sLog().arg("CardDAV provisioning: display name") << wantedName << "is already in use, using"
+	           << candidate << "instead";
+	return candidate;
+}
+
 void SettingsModel::applyCardDAVProvisioning() {
 	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
 	auto core = CoreModel::getInstance()->getCore();
@@ -780,35 +932,38 @@ void SettingsModel::applyCardDAVProvisioning() {
 	auto config = core->getConfig();
 	const std::string provSection("carddav_provision");
 	auto serverUrl = config->getString(provSection, "server_url", "");
-	if (serverUrl.empty()) return;
-
 	auto username = config->getString(provSection, "username", "");
 	auto password = config->getString(provSection, "password", "");
 	auto displayName = config->getString(provSection, "display_name", "");
 
+	// We are notified that the config is ready more than once per launch. There is nothing to
+	// redo while the provisioned details are unchanged, and repeating it would fire a second
+	// pointless sync.
+	auto signature = serverUrl + '\n' + username + '\n' + password + '\n' + displayName;
+	if (sAppliedCardDAVProvisioning && *sAppliedCardDAVProvisioning == signature) return;
+
 	// Derive a display name from the server hostname if one isn't provided.
-	if (displayName.empty()) {
-		auto schemePos = serverUrl.find("://");
-		if (schemePos != std::string::npos) {
-			auto hostStart = schemePos + 3;
-			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
-			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
-			displayName = serverUrl.substr(hostStart, hostEnd - hostStart);
-		}
+	if (displayName.empty() && !serverUrl.empty()) {
+		displayName = cardDAVServerHost(serverUrl);
 		if (displayName.empty()) displayName = "Contacts";
 	}
 
-	// Extract the server hostname so auth info can be matched by domain.
-	std::string serverHost;
-	{
-		auto schemePos = serverUrl.find("://");
-		if (schemePos != std::string::npos) {
-			auto hostStart = schemePos + 3;
-			auto hostEnd = serverUrl.find_first_of(":/", hostStart);
-			if (hostEnd == std::string::npos) hostEnd = serverUrl.length();
-			serverHost = serverUrl.substr(hostStart, hostEnd - hostStart);
-		}
+	// Drop the address book belonging to the instance we have just left, along with its
+	// contacts, before touching anything else. This also frees up its name, which we are
+	// about to reuse whenever both instances are provisioned from the same host.
+	retireStaleProvisionedCardDAVLists(core, serverUrl, displayName);
+
+	// No CardDAV on this instance. The previous instance's book has gone, so there is
+	// nothing left to provision.
+	if (serverUrl.empty()) {
+		config->setString(UiSection, "carddav_provision_applied_url", "");
+		config->sync();
+		sAppliedCardDAVProvisioning = signature;
+		return;
 	}
+
+	// Extract the server hostname so auth info can be matched by domain.
+	auto serverHost = cardDAVServerHost(serverUrl);
 
 	// Store auth info if credentials are provided.  We store with an empty
 	// realm so the SDK matches on domain alone, which is correct for HTTP
@@ -842,11 +997,20 @@ void SettingsModel::applyCardDAVProvisioning() {
 		lInfo() << sLog().arg("CardDAV provisioning: created friend list for") << serverUrl;
 	}
 
-	friendList->setDisplayName(displayName);
+	auto availableName = getAvailableCardDAVDisplayName(core, displayName, serverUrl);
+	if (!availableName.empty() && friendList->getDisplayName() != availableName)
+		friendList->setDisplayName(availableName);
+
+	// Remember what we applied so the next launch can tell this book apart from any the
+	// user added themselves.
+	config->setString(UiSection, "carddav_provision_applied_url", serverUrl);
+	config->sync();
+	sAppliedCardDAVProvisioning = signature;
 
 	// Kick off an immediate sync so contacts are available straight away.
 	auto agent = std::make_shared<CardDAVSyncAgent>();
-	agent->start(friendList, []() {
+	agent->start(friendList, [](bool succeeded) {
+		if (!succeeded) return;
 		QMetaObject::invokeMethod(
 		    App::getInstance()->getSettings().get(),
 		    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
@@ -856,15 +1020,26 @@ void SettingsModel::applyCardDAVProvisioning() {
 
 // CardDAV min characters for research
 
+// A value above 0 keeps the remote CardDAV source out of the wildcard "browse" search and
+// out of short searches, so those are served from the locally synced friend list instead of
+// a request to the server. Default to 3 rather than the SDK's 0: with 0 every contact list
+// refresh, including one caused by simply navigating back to a tab, waits on the network.
 int SettingsModel::getCardDAVMinCharResearch() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
-	return mConfig->getInt(SettingsModel::CardDAVSection, "min_characters", 0);
+	return mConfig->getInt(SettingsModel::CardDAVSection, "min_characters", 3);
 }
 
 void SettingsModel::setCardDAVMinCharResearch(int min) {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
 	mConfig->setInt(SettingsModel::CardDAVSection, "min_characters", min);
 	emit cardDAVMinCharResearchChanged(min);
+}
+
+// How often the address book is re-synced in the background. 0 or below disables the periodic sync
+// and leaves the manual refresh button as the only way to pick up server-side changes.
+int SettingsModel::getCardDAVSyncIntervalSeconds() const {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return mConfig->getInt(SettingsModel::CardDAVSection, "sync_interval_seconds", 900);
 }
 
 // =============================================================================

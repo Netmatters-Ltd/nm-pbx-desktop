@@ -218,6 +218,11 @@ void CallList::onStateChanged() {
 			}
 			break;
 		}
+		case LinphoneEnums::CallState::OutgoingProgress: {
+			auto sharedCall = get(call);
+			setCurrentCallCore(sharedCall ? sharedCall.objectCast<CallCore>() : nullptr);
+			break;
+		}
 		default: {
 		}
 	}

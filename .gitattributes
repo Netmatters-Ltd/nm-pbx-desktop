@@ -1,0 +1,5 @@
+# Patch files must keep LF endings or git apply will reject them on Windows.
+*.patch -text
+
+# Generated tone files are binary; never apply EOL conversion or try to diff them.
+*.wav binary

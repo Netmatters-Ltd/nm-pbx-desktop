@@ -215,22 +215,18 @@ ListView {
 		onContactDeletionRequested: (contact) => mainItem.contactDeletionRequested(contact)
 
 		onClicked: (mouse) => {
-		   if (mouse && mouse.button == Qt.RightButton) {
-			   friendPopup.open()
-		   } else {
-				forceActiveFocus()
-				mainItem.highlightedContact = contactItem.searchResultItem
-				if (mainItem.multiSelectionEnabled) {
-					var indexInSelection = mainItem.selectedContacts.indexOf(searchResultItem.core.defaultAddress)
-					if (indexInSelection == -1) {
-						mainItem.addContactToSelection(searchResultItem.core.defaultAddress)
-					}
-					else {
-						mainItem.removeContactFromSelection(indexInSelection)
-					}
+			forceActiveFocus()
+			mainItem.highlightedContact = contactItem.searchResultItem
+			if (mainItem.multiSelectionEnabled) {
+				var indexInSelection = mainItem.selectedContacts.indexOf(searchResultItem.core.defaultAddress)
+				if (indexInSelection == -1) {
+					mainItem.addContactToSelection(searchResultItem.core.defaultAddress)
 				}
-				mainItem.contactSelected(searchResultItem)
+				else {
+					mainItem.removeContactFromSelection(indexInSelection)
+				}
 			}
+			mainItem.contactSelected(searchResultItem)
 		}
 		onContainsMouseChanged: (containsMouse) => {
 			if(containsMouse)

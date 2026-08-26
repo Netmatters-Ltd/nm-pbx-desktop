@@ -37,6 +37,7 @@ list(APPEND _LINPHONEAPP_SOURCES
 	core/chat/files/ChatMessageFileProxy.cpp
 	core/chat/message/imdn/ImdnStatusList.cpp
 	core/chat/message/imdn/ImdnStatusProxy.cpp
+	core/contacts/ContactsCore.cpp
 	core/emoji/EmojiList.cpp
 	core/emoji/EmojiModel.cpp
 	core/emoji/EmojiProxy.cpp

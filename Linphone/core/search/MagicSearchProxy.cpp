@@ -28,6 +28,9 @@ MagicSearchProxy::MagicSearchProxy(QObject *parent) : LimitProxy(parent) {
 	auto magicSearchList = MagicSearchList::create();
 	setList(magicSearchList);
 	connect(this, &MagicSearchProxy::forceUpdate, [this] {
+		// A proxy attached to a parent shares the parent's list, so re-running the search here would
+		// just repeat what the parent already does, once per attached view.
+		if (mParentProxy) return;
 		if (mList) emit mList->lSearch(mSearchText, getSourceFlags(), getAggregationFlag(), getMaxResults());
 	});
 	connect(App::getInstance(), &App::currentDateChanged, this, &MagicSearchProxy::forceUpdate);
@@ -237,6 +240,20 @@ bool MagicSearchProxy::SortFilterList::filterAcceptsRow(int sourceRow, const QMo
 		if (toShow && mExtensionFilter != (int)ExtensionFilter::All) {
 			bool internal = friendCore->isExtension();
 			toShow = (mExtensionFilter == (int)ExtensionFilter::Extensions) ? internal : !internal;
+		}
+
+		// Search is a local filter over the already synced address book, so each view can hold its
+		// own search text while sharing one underlying result set.
+		if (toShow && !mFilterText.isEmpty() && mFilterText != "*") {
+			toShow = friendCore->getFullName().contains(mFilterText, Qt::CaseInsensitive);
+			if (!toShow) {
+				for (auto &friendAddress : friendCore->getAllAddresses()) {
+					if (friendAddress.toMap()["address"].toString().contains(mFilterText, Qt::CaseInsensitive)) {
+						toShow = true;
+						break;
+					}
+				}
+			}
 		}
 
 		if (toShow && mHideListProxy) {

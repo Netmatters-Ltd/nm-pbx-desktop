@@ -685,8 +685,12 @@ Item {
                                 }
                             }
                         }
+                        // The Extensions and Contacts tabs stay loaded for the life of the window.
+                        // Unloading them destroyed their search models, so returning to a tab meant
+                        // rebuilding every contact and waiting on a fresh fetch before anything
+                        // appeared. Holding both costs some memory but makes switching instant.
                         Loader {
-                            active: mainStackLayout.currentIndex === 0
+                            active: true
                             sourceComponent: ContactPage {
                                 id: extensionPage
                                 extensionFilter: MagicSearchProxy.ExtensionFilter.Extensions
@@ -695,7 +699,7 @@ Item {
                             }
                         }
                         Loader {
-                            active: mainStackLayout.currentIndex === 1
+                            active: true
                             sourceComponent: ContactPage {
                                 id: contactPage
                                 extensionFilter: MagicSearchProxy.ExtensionFilter.Contacts

@@ -20,8 +20,8 @@
 
 #include "SettingsCore.hpp"
 #include "core/App.hpp"
+#include "core/contacts/ContactsCore.hpp"
 #include "core/path/Paths.hpp"
-#include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
@@ -330,20 +330,18 @@ void SettingsCore::setSelf(QSharedPointer<SettingsCore> me) {
 	});
 
 	mSettingsModelConnection->makeConnectToCore(&SettingsCore::lSetPlaybackGain, [this](const float value) {
-		mSettingsModelConnection->invokeToModel([this, value]() {
-			mAutoSaved = true;
-			SettingsModel::getInstance()->setPlaybackGain(value);
-		});
+		// No mAutoSaved here: the reply lands in setPlaybackGainFromModel, which never consumes the
+		// flag, so setting it would leave it stuck on and swallow the next real unsaved change.
+		// Nothing needs saving anyway, the model has already stored the value against the device.
+		mSettingsModelConnection->invokeToModel(
+		    [value]() { SettingsModel::getInstance()->setPlaybackGain(value); });
 	});
 	mSettingsModelConnection->makeConnectToModel(&SettingsModel::playbackGainChanged, [this](const float value) {
 		mSettingsModelConnection->invokeToCore([this, value]() { setPlaybackGainFromModel(value); });
 	});
 
 	mSettingsModelConnection->makeConnectToCore(&SettingsCore::lSetCaptureGain, [this](const float value) {
-		mSettingsModelConnection->invokeToModel([this, value]() {
-			mAutoSaved = true;
-			SettingsModel::getInstance()->setCaptureGain(value);
-		});
+		mSettingsModelConnection->invokeToModel([value]() { SettingsModel::getInstance()->setCaptureGain(value); });
 	});
 	mSettingsModelConnection->makeConnectToModel(&SettingsModel::captureGainChanged, [this](const float value) {
 		mSettingsModelConnection->invokeToCore([this, value]() { setCaptureGainFromModel(value); });
@@ -1058,23 +1056,10 @@ void SettingsCore::sendLogs() const {
 	mSettingsModelConnection->invokeToModel([this]() { SettingsModel::getInstance()->sendLogs(); });
 }
 
+// Kept for the QML that already calls this. ContactsCore owns the sync so that the periodic and
+// manual paths share one implementation, one in-progress flag and one watchdog.
 void SettingsCore::refreshCardDAVAddressBooks() {
-	mSettingsModelConnection->invokeToModel([this]() {
-		auto core = CoreModel::getInstance()->getCore();
-		if (!core) return;
-
-		for (auto &friendList : core->getFriendsLists()) {
-			if (friendList->getType() == linphone::FriendList::Type::CardDAV) {
-				auto agent = std::make_shared<CardDAVSyncAgent>();
-				agent->start(friendList, []() {
-					QMetaObject::invokeMethod(
-					    App::getInstance()->getSettings().get(),
-					    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
-					    Qt::QueuedConnection);
-				});
-			}
-		}
-	});
+	ContactsCore::getInstance()->refresh();
 }
 
 QString SettingsCore::getLogsEmail() const {
@@ -1173,8 +1158,9 @@ void SettingsCore::writeIntoModel(std::shared_ptr<SettingsModel> model) const {
 	model->setMediaEncryptionMandatory(mMediaEncryptionMandatory);
 	model->setCreateEndToEndEncryptedMeetingsAndGroupCalls(mCreateEndToEndEncryptedMeetingsAndGroupCalls);
 
-	model->setCaptureGain(mCaptureGain);
-	model->setPlaybackGain(mPlaybackGain);
+	// Volume is not written back here. It is applied and stored the moment the slider moves, per
+	// device. Re-applying the snapshot taken when the settings page opened would stamp the previous
+	// device's volume onto whichever device is selected at save time, wiping that device's own value.
 
 	// Video
 	model->setVideoDevice(mVideoDevice);

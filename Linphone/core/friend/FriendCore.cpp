@@ -108,7 +108,12 @@ FriendCore::FriendCore(const std::shared_ptr<linphone::Friend> &contact, bool is
 		mIsStored = isStored;
 		mIsLdap = ToolModel::friendIsInFriendList(ToolModel::getLdapFriendList(), contact) ||
 		          (sourceFlags & (int)linphone::MagicSearch::Source::LdapServers) != 0;
-		mIsCardDAV = (sourceFlags & (int)linphone::MagicSearch::Source::RemoteCardDAV) != 0;
+		// Take this from the list the friend actually belongs to rather than from the search source
+		// that happened to return it. A contact synced from CardDAV is server-owned however we found
+		// it, and getReadOnly() depends on this to keep the app from editing it.
+		auto friendList = contact->getFriendList();
+		mIsCardDAV = (friendList && friendList->getType() == linphone::FriendList::Type::CardDAV) ||
+		             (sourceFlags & (int)linphone::MagicSearch::Source::RemoteCardDAV) != 0;
 		mIsAppFriend = ToolModel::friendIsInFriendList(ToolModel::getAppFriendList(), contact);
 	} else {
 		mIsSaved = false;

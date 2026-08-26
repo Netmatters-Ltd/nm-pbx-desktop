@@ -15,7 +15,6 @@ Item {
 	property real cellSpacing: Utils.getSizeWithScreenRatio(8)
 
 	signal contactSelected(FriendGui contact)
-	signal contactDeletionRequested(FriendGui contact)
 
 	implicitHeight: flow.implicitHeight
 
@@ -39,9 +38,6 @@ Item {
 				onClicked: mouse => {
 					mainItem.highlightedContact = $modelData
 					mainItem.contactSelected($modelData)
-				}
-				onContactDeletionRequested: contact => {
-					mainItem.contactDeletionRequested(contact)
 				}
 			}
 		}
