@@ -67,7 +67,7 @@ would apply a second, different transform on top of ours.
 ## Matching a call to a contact
 
 `ToolModel::findFriendByAddress` is the single lookup, used by `CallCore`, `CallHistoryCore`,
-`Notifier` and `ToolModel::getDisplayName`. It runs on the linphone thread and has three tiers.
+`Notifier`, `ParticipantDeviceCore` and `ToolModel::getDisplayName`. It runs on the linphone thread and has three tiers.
 
 1. **Cache.** `FriendsManager`'s known and unknown maps, keyed by `FriendsManager::addressKey`.
 2. **Local friends.** `core->findFriend()`, which covers everything the CardDAV sync has pulled
@@ -127,6 +127,36 @@ dropdown in account settings shows United Kingdom rather than a blank entry.
 
 Expect a side effect: once the prefix is populated, SDK phone matching wakes up across the app, so
 searching contacts by number behaves differently from before.
+
+## Conference participants
+
+Merging calls produces a local conference, and its tiles were showing people as
+`127.0.0.1:5080`. Two addresses are in play and the wrong one was being used.
+
+A `linphone::ParticipantDevice` takes its address from the SIP **Contact** header of the leg
+(`ParticipantDevice::ParticipantDevice(participant, session, name)` in the SDK). On our PBX that
+Contact is Asterisk's internal socket behind Flexisip, so it identifies nothing. The friend lookup
+missed it and `getDisplayName` fell through to its last resort, the raw URI.
+
+The participant address is the useful one. `Conference::addParticipantDevice` builds the device from
+`call->getRemoteAddress()`, so `device->getParticipant()->getAddress()` is the same address
+`CallCore` uses for `remoteName`. `ParticipantDeviceCore` now identifies from that, running the same
+tiers as a one-to-one call: `findFriendByAddress`, then the SIP display name, then
+`getDisplayName`. The device address is used only if there is no participant.
+
+`mName`, `mAddress` and `mUniqueAddress` stay on the device address. They are identity keys rather
+than labels: `ParticipantDeviceList::findDeviceByUniqueAddress` uses `uniqueAddress` when a device
+leaves, and `ActiveSpeakerLayout.qml` compares `address` to hide the active speaker from the strip.
+One participant can have several devices in a server-hosted conference, and those keys have to stay
+distinct.
+
+One-to-one calls are untouched. `ParticipantDeviceCore` is only built from `ConferenceCore` and
+`ParticipantDeviceList`, both driven by a conference; without one, the sticker falls through to
+`call.core.remoteName`.
+
+Still outstanding: conference tiles pass no address to their `Avatar`, so contact photos never load
+there, and `displayName` is a `CONSTANT` property resolved once, so a contact edited mid-conference
+does not refresh. `CallHistoryCore` shows the refresh pattern if we want it.
 
 ## Known gaps
 

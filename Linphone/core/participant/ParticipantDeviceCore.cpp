@@ -47,13 +47,18 @@ ParticipantDeviceCore::ParticipantDeviceCore(const std::shared_ptr<linphone::Par
 		auto deviceAddress = device->getAddress();
 		mUniqueAddress = Utils::coreStringToAppString(deviceAddress->asString());
 		mAddress = Utils::coreStringToAppString(deviceAddress->asStringUriOnly());
-		// the display name of the device himself may be the uncleaned sip uri
-		// Use the participant name instead
+		// The device address is the Contact header of the leg, which on a PBX is often an
+		// internal socket rather than the caller. The participant address is the call's remote
+		// address, so identify from that and only fall back to the device.
 		auto participant = device->getParticipant();
-		mDisplayName = Utils::coreStringToAppString(participant ? participant->getAddress()->getDisplayName() : "");
-		if (mDisplayName.isEmpty()) {
-			mDisplayName = ToolModel::getDisplayName(deviceAddress);
-		}
+		auto identityAddress = participant ? participant->getAddress() : deviceAddress;
+		auto linphoneFriend = ToolModel::findFriendByAddress(identityAddress);
+		if (linphoneFriend)
+			mDisplayName = Utils::coreStringToAppString(
+			    linphoneFriend->getVcard() ? linphoneFriend->getVcard()->getFullName() : linphoneFriend->getName());
+		if (mDisplayName.isEmpty())
+			mDisplayName = Utils::coreStringToAppString(identityAddress->getDisplayName());
+		if (mDisplayName.isEmpty()) mDisplayName = ToolModel::getDisplayName(identityAddress);
 		mIsMuted = device->getIsMuted();
 		mIsSpeaking = device->getIsSpeaking();
 		mParticipantDeviceModel = Utils::makeQObject_ptr<ParticipantDeviceModel>(device);
