@@ -412,6 +412,11 @@ void CliModel::executeCommand(const QString &command) { //, CommandFormat *forma
 				               .arg(scheme)
 				               .arg(addressToInterpret);
 
+				// Normalised here rather than left to createCall: this branch hands on the fully
+				// interpreted SIP URI as a string, by which point it no longer looks like a
+				// dialled number. tel: links routinely carry the international form.
+				addressToInterpret = ToolModel::normalizePhoneNumber(addressToInterpret);
+
 				// Use interpretUrl to properly append default SIP domain
 				address = ToolModel::interpretUrl(addressToInterpret);
 				if (address) {

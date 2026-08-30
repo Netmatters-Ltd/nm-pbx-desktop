@@ -296,7 +296,9 @@ void CallCore::setSelf(QSharedPointer<CallCore> me) {
 
 	mCallModelConnection->makeConnectToCore(&CallCore::lTransferCall, [this](QString address) {
 		mCallModelConnection->invokeToModel([this, address]() {
-			auto linAddr = ToolModel::interpretUrl(address);
+			// A blind transfer target is dialled, so it gets the same local-format conversion
+			// as any other number typed into the app.
+			auto linAddr = ToolModel::interpretUrl(ToolModel::normalizePhoneNumber(address));
 			if (linAddr) mCallModel->transferTo(linAddr);
 		});
 	});

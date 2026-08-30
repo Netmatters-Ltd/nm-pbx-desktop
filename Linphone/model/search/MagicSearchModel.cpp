@@ -93,15 +93,17 @@ void MagicSearchModel::onSearchResultsReceived(const std::shared_ptr<linphone::M
 		auto f = result->getFriend();
 		auto friendsManager = FriendsManager::getInstance();
 		if (f) {
-			auto friendAddress = f->getAddress() ? f->getAddress() : nullptr;
-			if (friendAddress) {
-				// friendAddress->clean();
-				qDebug() << "friend exists, append to unknown map";
+			// File the friend under every address it holds, not just its default. A lookup keyed
+			// on one of its other addresses would otherwise miss, and stay marked as a known
+			// failure. Keys come from FriendsManager::addressKey so this writer agrees with
+			// ToolModel::findFriendByAddress on the format.
+			auto friendAddresses = f->getAddresses();
+			auto defaultAddress = f->getAddress();
+			if (defaultAddress) friendAddresses.push_back(defaultAddress);
+			for (auto &friendAddress : friendAddresses) {
+				if (!friendAddress) continue;
 				friendsManager->appendUnknownFriend(friendAddress, f);
-				if (friendsManager->isInOtherAddresses(
-				        Utils::coreStringToAppString(friendAddress->asStringUriOnly()))) {
-					friendsManager->removeOtherAddress(Utils::coreStringToAppString(friendAddress->asStringUriOnly()));
-				}
+				friendsManager->removeOtherAddress(FriendsManager::addressKey(friendAddress));
 			}
 			auto fList = f->getFriendList();
 

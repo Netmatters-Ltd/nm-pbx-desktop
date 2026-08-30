@@ -199,6 +199,12 @@ public:
 	// from every config-ready notification.
 	static void applyCardDAVProvisioning();
 
+	// Makes sure the default account carries a dial plan, because matching an inbound number
+	// against a contact's stored numbers depends on it: the SDK normalises both sides through the
+	// account's international prefix, and with no prefix a UK national number never reaches E.164,
+	// so nothing matches. Provisioning wins; a prefix already set is never overwritten.
+	static void applyAccountDialPlanDefault();
+
 	static QString getDeviceName(const std::shared_ptr<linphone::Config> &config);
 
 	static bool clearLocalLdapFriendsUponStartup(const std::shared_ptr<linphone::Config> &config);

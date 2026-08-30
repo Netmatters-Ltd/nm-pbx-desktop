@@ -37,6 +37,11 @@ public:
 	static std::shared_ptr<FriendsManager> create(QObject *parent);
 	static std::shared_ptr<FriendsManager> getInstance();
 
+	// The one place an address becomes a cache key. Cleaning here keeps the same person on the
+	// same key however their address reached us, so a call carrying ";user=phone" or a transport
+	// parameter still matches the contact that a plain lookup would have found.
+	static QString addressKey(const std::shared_ptr<const linphone::Address> &address);
+
 	QVariantMap getKnownFriends() const;
 	QVariantMap getUnknownFriends() const;
 	QStringList getOtherAddresses() const;
@@ -56,6 +61,10 @@ public:
 
 	void removeUnknownFriend(const QString &key);
 	void removeOtherAddress(const QString &key);
+
+	// Drops every trace of a friend from all three caches. A contact can be cached under several
+	// keys, one per address, so forgetting only the first would leave a stale name behind.
+	void forgetFriend(const std::shared_ptr<linphone::Friend> &f);
 
 private:
 	static std::shared_ptr<FriendsManager> gFriendsManager;
