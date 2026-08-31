@@ -38,8 +38,12 @@ void removeAllKeysFor(QVariantMap &map, const std::shared_ptr<linphone::Friend> 
 }
 
 // Every address a friend holds, so invalidation covers all of them rather than just the default.
-std::list<std::shared_ptr<linphone::Address>> allAddressesOf(const std::shared_ptr<linphone::Friend> &f) {
-	auto addresses = f->getAddresses();
+std::list<std::shared_ptr<const linphone::Address>> allAddressesOf(const std::shared_ptr<linphone::Friend> &f) {
+	// getAddresses hands back mutable pointers and getAddress a const one, so the list is built by
+	// hand rather than appended to.
+	std::list<std::shared_ptr<const linphone::Address>> addresses;
+	for (auto &address : f->getAddresses())
+		addresses.push_back(address);
 	auto defaultAddress = f->getAddress();
 	if (defaultAddress) {
 		bool alreadyListed = false;

@@ -67,7 +67,8 @@ would apply a second, different transform on top of ours.
 ## Matching a call to a contact
 
 `ToolModel::findFriendByAddress` is the single lookup, used by `CallCore`, `CallHistoryCore`,
-`Notifier`, `ParticipantDeviceCore` and `ToolModel::getDisplayName`. It runs on the linphone thread and has three tiers.
+`Notifier`, `ParticipantDeviceCore` and `ToolModel::getDisplayName`. It runs on the linphone thread
+and has four tiers.
 
 1. **Cache.** `FriendsManager`'s known and unknown maps, keyed by `FriendsManager::addressKey`.
 2. **Local friends.** `core->findFriend()`, which covers everything the CardDAV sync has pulled
@@ -76,14 +77,16 @@ would apply a second, different transform on top of ours.
    `core->findFriendByPhoneNumber()`. The SDK normalises both the inbound number and each
    contact's stored numbers through the account's dial plan, so `07771514661` matches a contact
    holding `+447771514661`.
+4. **The account's own domain.** The same username rewritten onto the default account's domain,
+   for the host mismatch described below.
 
-Only if all three miss does the existing remote-directory magic search fire. That path is
+Only if all four miss does the existing remote-directory magic search fire. That path is
 asynchronous and returns nothing to the caller. It is inert in the usual deployment: the whole
 address book is synced locally and no remote contact directory is registered. We keep it rather
 than delete it, but we do not rely on it, and `CallCore::findRemoteFriend` is likewise left as it
 is.
 
-The two synchronous tiers run **before** the negative cache is consulted. That ordering matters:
+The synchronous tiers run **before** the negative cache is consulted. That ordering matters:
 the negative cache is written before the async search returns, so a phone tier placed after it
 would be short-circuited on the second lookup of the same address.
 
@@ -100,6 +103,34 @@ agree on the key format or the caches silently stop hitting.
 
 The caches are in-memory only and are rebuilt from the core on each launch. Nothing serialises
 them.
+
+### The PBX answers on one host, contacts are stored on another
+
+Inbound legs arrive from Asterisk as `sip:123@206.189.115.172`, while the address book holds
+`sip:123@nm-test.nmpbx.uk`. It is the same machine, the IP being what `nm-test.nmpbx.uk` resolves
+to, but the SDK matches friends on the whole URI string (`FriendList::findFriendByUri` is a lookup
+in a map keyed by `asStringUriOnly`), so the two never meet and every internal caller rang in
+unidentified.
+
+`rebaseOnAccountDomain` clones the address, puts the default account's domain on it and clears the
+port, then `findFriend` runs again. Outbound calls already carry the account domain and skip the
+tier entirely.
+
+The trade-off: a caller from a genuinely foreign SIP domain whose username happens to match one of
+our extensions would be matched to that contact. In this deployment nothing reaches the client
+except through the PBX, so it is not a case that arises, and the alternative - deciding whether a
+host is really our PBX by resolving it on the linphone thread - costs more than it is worth.
+
+### The PBX's own name in the From header
+
+Asterisk sends `From: "asterisk" <sip:123@...>` on every leg, so the SIP display name identifies
+the server rather than the caller. It sat above the username in `getDisplayName`, which is why
+merged calls showed two tiles both reading "asterisk".
+
+`isIgnoredDisplayName` drops it. The list comes from `ignored_display_names` in the provisioning
+file's `[ui]` section, comma separated, and defaults to `asterisk`. An ignored name is treated as
+though the header carried none, so the lookup falls through to the account or the username as it
+would for a bare address.
 
 ### Cache invalidation
 
@@ -154,9 +185,14 @@ One-to-one calls are untouched. `ParticipantDeviceCore` is only built from `Conf
 `ParticipantDeviceList`, both driven by a conference; without one, the sticker falls through to
 `call.core.remoteName`.
 
-Still outstanding: conference tiles pass no address to their `Avatar`, so contact photos never load
-there, and `displayName` is a `CONSTANT` property resolved once, so a contact edited mid-conference
-does not refresh. `CallHistoryCore` shows the refresh pattern if we want it.
+`ParticipantDeviceCore` exposes that address as `identityAddress`, and `Sticker.qml` hands it to
+the tile's `Avatar` as `_address`. Without it a conference tile has neither an account nor a call
+to give the `Avatar`, so it had nothing to look a contact photo up with and only ever drew
+initials. `Utils::findAvatarByAddress` now goes through `ToolModel::findFriendByAddress` as well,
+rather than calling `core->findFriend` directly, so a photo is found wherever the name is.
+
+Still outstanding: `displayName` is a `CONSTANT` property resolved once, so a contact edited
+mid-conference does not refresh. `CallHistoryCore` shows the refresh pattern if we want it.
 
 ## Known gaps
 

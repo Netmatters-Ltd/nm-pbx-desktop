@@ -97,7 +97,9 @@ void MagicSearchModel::onSearchResultsReceived(const std::shared_ptr<linphone::M
 			// on one of its other addresses would otherwise miss, and stay marked as a known
 			// failure. Keys come from FriendsManager::addressKey so this writer agrees with
 			// ToolModel::findFriendByAddress on the format.
-			auto friendAddresses = f->getAddresses();
+			std::list<std::shared_ptr<const linphone::Address>> friendAddresses;
+			for (auto &friendAddress : f->getAddresses())
+				friendAddresses.push_back(friendAddress);
 			auto defaultAddress = f->getAddress();
 			if (defaultAddress) friendAddresses.push_back(defaultAddress);
 			for (auto &friendAddress : friendAddresses) {

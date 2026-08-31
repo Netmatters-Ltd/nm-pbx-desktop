@@ -24,6 +24,7 @@
 #include "core/path/Paths.hpp"
 #include "model/core/CoreModel.hpp"
 #include "model/friend/FriendsManager.hpp"
+#include "model/setting/SettingsModel.hpp"
 #include "tool/UriTools.hpp"
 #include "tool/Utils.hpp"
 #include <QDebug>
@@ -115,6 +116,25 @@ std::shared_ptr<linphone::AudioDevice> ToolModel::findAudioDevice(const QString 
 	return nullptr;
 }
 
+namespace {
+// Asterisk stamps its own name into the From display name of every leg it hands us, so
+// "asterisk" <sip:123@...> arrives for each caller and beats the caller's own identity. Names
+// listed in the provisioning file's [ui] ignored_display_names (comma separated, "asterisk" by
+// default) are treated as if the header carried no display name at all.
+bool isIgnoredDisplayName(const QString &displayName) {
+	if (displayName.isEmpty()) return true;
+	auto core = CoreModel::getInstance()->getCore();
+	auto config = core ? core->getConfig() : nullptr;
+	auto configured = config ? Utils::coreStringToAppString(
+	                              config->getString(SettingsModel::UiSection, "ignored_display_names", "asterisk"))
+	                         : QStringLiteral("asterisk");
+	const auto trimmed = displayName.trimmed();
+	for (const auto &ignored : configured.split(QLatin1Char(','), Qt::SkipEmptyParts))
+		if (trimmed.compare(ignored.trimmed(), Qt::CaseInsensitive) == 0) return true;
+	return false;
+}
+} // namespace
+
 QString ToolModel::getDisplayName(const std::shared_ptr<const linphone::Address> &address) {
 	QString displayName;
 	if (address) {
@@ -124,6 +144,7 @@ QString ToolModel::getDisplayName(const std::shared_ptr<const linphone::Address>
 		}
 		if (displayName.isEmpty()) {
 			displayName = Utils::coreStringToAppString(address->getDisplayName());
+			if (isIgnoredDisplayName(displayName)) displayName.clear();
 			if (displayName.isEmpty()) {
 				auto accounts = CoreModel::getInstance()->getCore()->getAccountList();
 				auto found = std::find_if(accounts.begin(), accounts.end(),
@@ -283,6 +304,24 @@ bool looksLikePhoneNumber(const QString &username) {
 	if (username.size() < 7) return false;
 	return std::all_of(username.cbegin(), username.cend(), [](QChar c) { return c.isDigit(); });
 }
+
+// The same user reached through another host form. Inbound legs from the PBX arrive as
+// sip:123@<server ip> while the address book holds sip:123@<account domain>, and the SDK matches
+// friends on the whole URI string, so the two never meet. Returns the address rewritten onto the
+// default account's domain, or null when there is nothing to gain.
+std::shared_ptr<linphone::Address> rebaseOnAccountDomain(const std::shared_ptr<const linphone::Address> &address,
+                                                         const std::shared_ptr<linphone::Core> &core) {
+	if (!address || !core) return nullptr;
+	auto account = core->getDefaultAccount();
+	auto params = account ? account->getParams() : nullptr;
+	if (!params) return nullptr;
+	auto domain = params->getDomain();
+	if (domain.empty() || address->getUsername().empty() || address->getDomain() == domain) return nullptr;
+	auto rebased = address->clone();
+	rebased->setDomain(domain);
+	rebased->setPort(0); // Friends are stored without one, and the match is on the URI string.
+	return rebased;
+}
 } // namespace
 
 std::shared_ptr<linphone::Friend>
@@ -315,6 +354,12 @@ ToolModel::findFriendByAddress(const std::shared_ptr<const linphone::Address> &l
 		if (looksLikePhoneNumber(username)) {
 			f = core->findFriendByPhoneNumber(Utils::appStringToCoreString(username));
 		}
+	}
+
+	// Then the same address on the account's own domain. See rebaseOnAccountDomain.
+	if (!f) {
+		auto rebased = rebaseOnAccountDomain(cleanAddr, core);
+		if (rebased) f = core->findFriend(rebased);
 	}
 
 	if (f) {

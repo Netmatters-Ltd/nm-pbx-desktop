@@ -33,11 +33,14 @@ Item {
 			? callState === LinphoneEnums.CallState.Paused
 			: callState === LinphoneEnums.CallState.PausedByRemote
 
+	// The address the name and the avatar are resolved from. A participant device carries the
+	// remote party in identityAddress; its own address is the leg's Contact header, which on a PBX
+	// identifies the server rather than the caller.
 	property string remoteAddress: account
 		? account.core.identityAddress
 		: participantDevice
-			? participantDevice.core.address
-			: call
+			? participantDevice.core.identityAddress
+			: call && !previewEnabled
 				? call.core.remoteAddress
 				: ""
 	property var localNameObj: previewEnabled && call
@@ -113,6 +116,9 @@ Item {
 					visible: !joiningView.visible
 					account: mainItem.account
 					call: !mainItem.previewEnabled ? mainItem.call : null
+					// Conference tiles have neither an account nor a call to hand the Avatar, so give it
+					// the address directly or no contact photo is ever loaded.
+					_address: mainItem.remoteAddress
 					displayNameVal: mainItem.displayName
 					securityBreach: mainItem.securityBreach ? mainItem.securityBreach : securityLevel === LinphoneEnums.SecurityLevel.Unsafe
 					secured: securityLevel === LinphoneEnums.SecurityLevel.EndToEndEncryptedAndVerified

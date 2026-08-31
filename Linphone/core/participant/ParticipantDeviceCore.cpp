@@ -52,12 +52,15 @@ ParticipantDeviceCore::ParticipantDeviceCore(const std::shared_ptr<linphone::Par
 		// address, so identify from that and only fall back to the device.
 		auto participant = device->getParticipant();
 		auto identityAddress = participant ? participant->getAddress() : deviceAddress;
+		// Kept separately from mAddress so the tile can look up a contact photo with it, the way
+		// the contacts and extensions lists do.
+		mIdentityAddress = Utils::coreStringToAppString(identityAddress->asStringUriOnly());
 		auto linphoneFriend = ToolModel::findFriendByAddress(identityAddress);
 		if (linphoneFriend)
 			mDisplayName = Utils::coreStringToAppString(
 			    linphoneFriend->getVcard() ? linphoneFriend->getVcard()->getFullName() : linphoneFriend->getName());
-		if (mDisplayName.isEmpty())
-			mDisplayName = Utils::coreStringToAppString(identityAddress->getDisplayName());
+		// getDisplayName runs the same tiers again and adds the SIP display name, the local
+		// account and finally the username.
 		if (mDisplayName.isEmpty()) mDisplayName = ToolModel::getDisplayName(identityAddress);
 		mIsMuted = device->getIsMuted();
 		mIsSpeaking = device->getIsSpeaking();
@@ -130,6 +133,10 @@ int ParticipantDeviceCore::getSecurityLevel() const {
 
 time_t ParticipantDeviceCore::getTimeOfJoining() const {
 	return mParticipantDeviceModel ? mParticipantDeviceModel->getTimeOfJoining() : 0;
+}
+
+QString ParticipantDeviceCore::getIdentityAddress() const {
+	return mIdentityAddress;
 }
 
 QString ParticipantDeviceCore::getAddress() const {

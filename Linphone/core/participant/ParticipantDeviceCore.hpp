@@ -37,6 +37,9 @@ class ParticipantDeviceCore : public QObject, public AbstractObject {
 	Q_PROPERTY(QString displayName READ getDisplayName CONSTANT)
 	Q_PROPERTY(QString name READ getName CONSTANT)
 	Q_PROPERTY(QString address READ getAddress CONSTANT)
+	// The remote party of the leg, as opposed to "address" which is the device's Contact header and
+	// is only an identity key. Use this one to identify the person.
+	Q_PROPERTY(QString identityAddress READ getIdentityAddress CONSTANT)
 	Q_PROPERTY(QString uniqueAddress READ getUniqueAddress CONSTANT)
 	Q_PROPERTY(int securityLevel READ getSecurityLevel NOTIFY securityLevelChanged)
 	Q_PROPERTY(time_t timeOfJoining READ getTimeOfJoining CONSTANT)
@@ -63,6 +66,7 @@ public:
 	QString getName() const;
 	QString getDisplayName() const;
 	QString getAddress() const;
+	QString getIdentityAddress() const;
 	QString getUniqueAddress() const;
 	int getSecurityLevel() const;
 	time_t getTimeOfJoining() const;
@@ -109,6 +113,7 @@ private:
 	QString mDisplayName;
 	QString mUniqueAddress;
 	QString mAddress;
+	QString mIdentityAddress;
 	bool mIsMe = false;
 	bool mIsLocal = false;
 	bool mIsVideoEnabled;
