@@ -26,51 +26,52 @@
 
 DEFINE_ABSTRACT_OBJECT(FriendsManager)
 
+namespace {
+// QMap::key() returns only the first key holding a value, so a contact cached under several of
+// its addresses would otherwise be left half-evicted, still showing its old name on the rest.
+void removeAllKeysFor(QVariantMap &map, const std::shared_ptr<linphone::Friend> &f) {
+	auto value = QVariant::fromValue(f);
+	for (auto it = map.begin(); it != map.end();) {
+		if (it.value() == value) it = map.erase(it);
+		else ++it;
+	}
+}
+
+// Every address a friend holds, so invalidation covers all of them rather than just the default.
+std::list<std::shared_ptr<const linphone::Address>> allAddressesOf(const std::shared_ptr<linphone::Friend> &f) {
+	// getAddresses hands back mutable pointers and getAddress a const one, so the list is built by
+	// hand rather than appended to.
+	std::list<std::shared_ptr<const linphone::Address>> addresses;
+	for (auto &address : f->getAddresses())
+		addresses.push_back(address);
+	auto defaultAddress = f->getAddress();
+	if (defaultAddress) {
+		bool alreadyListed = false;
+		for (auto &address : addresses)
+			if (address && address->weakEqual(defaultAddress)) alreadyListed = true;
+		if (!alreadyListed) addresses.push_back(defaultAddress);
+	}
+	return addresses;
+}
+} // namespace
+
 std::shared_ptr<FriendsManager> FriendsManager::gFriendsManager;
 FriendsManager::FriendsManager(QObject *parent) : QObject(parent) {
 	moveToThread(CoreModel::getInstance()->thread());
 
 	connect(CoreModel::getInstance().get(), &CoreModel::friendRemoved, this,
-	        [this](const std::shared_ptr<linphone::Friend> &f) {
-		        auto key = mKnownFriends.key(QVariant::fromValue(f), nullptr);
-		        if (key != nullptr) {
-			        mKnownFriends.remove(key);
-		        }
-		        auto unknown = mUnknownFriends.key(QVariant::fromValue(f), nullptr);
-		        if (unknown != nullptr) {
-			        mUnknownFriends.remove(unknown);
-		        }
-		        if (f->getAddress()) {
-			        auto address = QString::fromStdString(f->getAddress()->asStringUriOnly());
-			        mOtherAddresses.removeAll(address);
-		        }
-	        });
+	        [this](const std::shared_ptr<linphone::Friend> &f) { forgetFriend(f); });
 	connect(CoreModel::getInstance().get(), &CoreModel::friendCreated, this,
 	        [this](const std::shared_ptr<linphone::Friend> &f) {
-		        auto unknown = mUnknownFriends.key(QVariant::fromValue(f), nullptr);
-		        if (unknown != nullptr) {
-			        mUnknownFriends.remove(unknown);
-		        }
-		        if (f->getAddress()) {
-			        auto address = QString::fromStdString(f->getAddress()->asStringUriOnly());
-			        mOtherAddresses.removeAll(address);
-		        }
+		        // A newly created friend supersedes anything the magic search turned up for it, and
+		        // clears the "we looked and found nothing" marker so the next call resolves. Known
+		        // entries are left alone: they already point at a real friend.
+		        removeAllKeysFor(mUnknownFriends, f);
+		        for (auto &address : allAddressesOf(f))
+			        mOtherAddresses.removeAll(addressKey(address));
 	        });
 	connect(CoreModel::getInstance().get(), &CoreModel::friendUpdated, this,
-	        [this](const std::shared_ptr<linphone::Friend> &f) {
-		        auto key = mKnownFriends.key(QVariant::fromValue(f), nullptr);
-		        if (key != nullptr) {
-			        mKnownFriends.remove(key);
-		        }
-		        auto unknown = mUnknownFriends.key(QVariant::fromValue(f), nullptr);
-		        if (unknown != nullptr) {
-			        mUnknownFriends.remove(unknown);
-		        }
-		        if (f->getAddress()) {
-			        auto address = QString::fromStdString(f->getAddress()->asStringUriOnly());
-			        mOtherAddresses.removeAll(address);
-		        }
-	        });
+	        [this](const std::shared_ptr<linphone::Friend> &f) { forgetFriend(f); });
 }
 
 FriendsManager::~FriendsManager() {
@@ -85,6 +86,23 @@ std::shared_ptr<FriendsManager> FriendsManager::create(QObject *parent) {
 std::shared_ptr<FriendsManager> FriendsManager::getInstance() {
 	if (!gFriendsManager) gFriendsManager = FriendsManager::create(nullptr);
 	return gFriendsManager;
+}
+
+QString FriendsManager::addressKey(const std::shared_ptr<const linphone::Address> &address) {
+	if (!address) return QString();
+	// clean() mutates in place and the address handed to us is often the SDK friend's own, so this
+	// has to work on a copy.
+	auto cleaned = address->clone();
+	cleaned->clean();
+	return Utils::coreStringToAppString(cleaned->asStringUriOnly());
+}
+
+void FriendsManager::forgetFriend(const std::shared_ptr<linphone::Friend> &f) {
+	if (!f) return;
+	removeAllKeysFor(mKnownFriends, f);
+	removeAllKeysFor(mUnknownFriends, f);
+	for (auto &address : allAddressesOf(f))
+		mOtherAddresses.removeAll(addressKey(address));
 }
 
 QVariantMap FriendsManager::getKnownFriends() const {
@@ -131,7 +149,7 @@ bool FriendsManager::isInOtherAddresses(const QString &key) {
 
 void FriendsManager::appendKnownFriend(std::shared_ptr<const linphone::Address> address,
                                        std::shared_ptr<linphone::Friend> f) {
-	auto key = Utils::coreStringToAppString(address->asStringUriOnly());
+	auto key = addressKey(address);
 	if (mKnownFriends.contains(key)) {
 		qDebug() << "friend is already in konwn list, return";
 		return;
@@ -141,7 +159,7 @@ void FriendsManager::appendKnownFriend(std::shared_ptr<const linphone::Address> 
 
 void FriendsManager::appendUnknownFriend(std::shared_ptr<const linphone::Address> address,
                                          std::shared_ptr<linphone::Friend> f) {
-	auto key = Utils::coreStringToAppString(address->asStringUriOnly());
+	auto key = addressKey(address);
 	if (mUnknownFriends.contains(key)) {
 		qDebug() << "friend is already in unkonwn list, return";
 		return;

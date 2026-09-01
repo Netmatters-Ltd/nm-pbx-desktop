@@ -70,6 +70,7 @@ SettingsModel::SettingsModel() {
 			                                           // and after config is fetched.
 			    notifyConfigReady();
 			    applyCardDAVProvisioning();
+			    applyAccountDialPlanDefault();
 		    }
 	    });
 	QObject::connect(CoreModel::getInstance().get(), &CoreModel::configuringStatus, this,
@@ -80,6 +81,7 @@ SettingsModel::SettingsModel() {
 			                 mConfig = core->getConfig();
 			                 notifyConfigReady();
 			                 applyCardDAVProvisioning();
+			                 applyAccountDialPlanDefault();
 		                 }
 	                 });
 	QObject::connect(
@@ -89,6 +91,9 @@ SettingsModel::SettingsModel() {
 		    if (!getDisableMeetingsFeature() && account &&
 		        !account->getParams()->getAudioVideoConferenceFactoryAddress())
 			    setDisableMeetingsFeature(true);
+		    // Switching server or account brings a different set of params, which may have no
+		    // dial plan of its own.
+		    applyAccountDialPlanDefault();
 	    });
 	auto defaultAccount = core->getDefaultAccount();
 	if (!getDisableMeetingsFeature() && defaultAccount &&
@@ -1016,6 +1021,55 @@ void SettingsModel::applyCardDAVProvisioning() {
 		    []() { emit App::getInstance()->getSettings()->cardDAVAddressBookSynchronized(); },
 		    Qt::QueuedConnection);
 	});
+}
+
+// Account dial plan
+
+// Identifying a caller by number depends on the account carrying an international prefix. The SDK
+// normalises the inbound number and every contact's stored numbers through it, and with an empty
+// prefix it falls back to a generic dial plan where a UK national number never reaches E.164 - so
+// a contact holding +447771514661 would never match a call from 07771514661.
+//
+// Order: an explicit international_prefix in the provisioning file wins, then whatever the account
+// already has (from provisioning or from account settings), and only if both are absent do we fill
+// in the UK. Deliberately not derived from the machine's region: these are UK deployments, and a
+// laptop set to another country should not quietly change how numbers are matched.
+void SettingsModel::applyAccountDialPlanDefault() {
+	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
+	auto core = CoreModel::getInstance()->getCore();
+	if (!core) return;
+	auto account = core->getDefaultAccount();
+	if (!account || !account->getParams()) return;
+
+	auto configuredPrefix = core->getConfig()->getString(UiSection, "international_prefix", "");
+	auto currentPrefix = account->getParams()->getInternationalPrefix();
+
+	std::string callingCode;
+	std::string isoCountryCode;
+	if (!configuredPrefix.empty()) {
+		callingCode = configuredPrefix;
+	} else if (!currentPrefix.empty()) {
+		return; // Already set, by provisioning or by the user. Leave it be.
+	} else {
+		callingCode = "44";
+	}
+	if (callingCode == currentPrefix) return;
+
+	// Find the matching plan so the ISO code is set too, otherwise the account settings dial plan
+	// dropdown has nothing to select. +44 is shared with the Crown Dependencies, so keep looking
+	// for the UK entry rather than settling for whichever of them comes first.
+	for (auto &plan : linphone::Factory::get()->getDialPlans()) {
+		if (plan->getCountryCallingCode() != callingCode) continue;
+		isoCountryCode = plan->getIsoCountryCode();
+		if (callingCode != "44" || isoCountryCode == "GB") break;
+	}
+
+	auto params = account->getParams()->clone();
+	params->setInternationalPrefix(callingCode);
+	if (!isoCountryCode.empty()) params->setInternationalPrefixIsoCountryCode(isoCountryCode);
+	account->setParams(params);
+	lInfo() << sLog().arg("Applied dial plan to the default account: prefix") << callingCode.c_str() << "country"
+	        << (isoCountryCode.empty() ? "unknown" : isoCountryCode.c_str());
 }
 
 // CardDAV min characters for research

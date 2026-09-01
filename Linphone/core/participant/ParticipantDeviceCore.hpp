@@ -37,7 +37,13 @@ class ParticipantDeviceCore : public QObject, public AbstractObject {
 	Q_PROPERTY(QString displayName READ getDisplayName CONSTANT)
 	Q_PROPERTY(QString name READ getName CONSTANT)
 	Q_PROPERTY(QString address READ getAddress CONSTANT)
+	// The remote party of the leg, as opposed to "address" which is the device's Contact header and
+	// is only an identity key. Use this one to identify the person.
+	Q_PROPERTY(QString identityAddress READ getIdentityAddress CONSTANT)
 	Q_PROPERTY(QString uniqueAddress READ getUniqueAddress CONSTANT)
+	// The only dependable way to tell two devices apart. Our PBX gives every leg the same Contact
+	// header, so neither "address" nor "uniqueAddress" identifies a device on its own.
+	Q_PROPERTY(QString deviceId READ getDeviceId CONSTANT)
 	Q_PROPERTY(int securityLevel READ getSecurityLevel NOTIFY securityLevelChanged)
 	Q_PROPERTY(time_t timeOfJoining READ getTimeOfJoining CONSTANT)
 	Q_PROPERTY(bool videoEnabled READ isVideoEnabled NOTIFY videoEnabledChanged)
@@ -63,7 +69,9 @@ public:
 	QString getName() const;
 	QString getDisplayName() const;
 	QString getAddress() const;
+	QString getIdentityAddress() const;
 	QString getUniqueAddress() const;
+	QString getDeviceId() const;
 	int getSecurityLevel() const;
 	time_t getTimeOfJoining() const;
 	bool isVideoEnabled() const;
@@ -109,6 +117,8 @@ private:
 	QString mDisplayName;
 	QString mUniqueAddress;
 	QString mAddress;
+	QString mIdentityAddress;
+	QString mDeviceId;
 	bool mIsMe = false;
 	bool mIsLocal = false;
 	bool mIsVideoEnabled;

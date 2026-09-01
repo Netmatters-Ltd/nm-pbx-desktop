@@ -24,12 +24,14 @@
 #include "core/path/Paths.hpp"
 #include "model/core/CoreModel.hpp"
 #include "model/friend/FriendsManager.hpp"
+#include "model/setting/SettingsModel.hpp"
 #include "tool/UriTools.hpp"
 #include "tool/Utils.hpp"
 #include <QDebug>
 #include <QDirIterator>
 #include <QLibrary>
 #include <QTest>
+#include <algorithm>
 
 DEFINE_ABSTRACT_OBJECT(ToolModel)
 
@@ -51,6 +53,39 @@ std::shared_ptr<linphone::Address> ToolModel::interpretUrl(const QString &addres
 		}
 	}
 	return interpretedAddress;
+}
+
+QString ToolModel::resolveCountryCallingCode(const std::shared_ptr<linphone::Account> &account) {
+	mustBeInLinphoneThread(QString(gClassName) + " : " + Q_FUNC_INFO);
+	auto core = CoreModel::getInstance()->getCore();
+	auto acc = account ? account : (core ? core->getDefaultAccount() : nullptr);
+	// Not cached: the dial plan can be changed in account settings at any time.
+	if (acc && acc->getParams()) {
+		auto prefix = Utils::coreStringToAppString(acc->getParams()->getInternationalPrefix());
+		if (!prefix.isEmpty()) return prefix;
+	}
+	// We ship to UK customers. Deliberately not derived from the machine's region, so a laptop
+	// set to another country still dials the way the PBX expects.
+	return QStringLiteral("44");
+}
+
+QString ToolModel::normalizePhoneNumber(const QString &number, const std::shared_ptr<linphone::Account> &account) {
+	if (number.isEmpty()) return number;
+	// Anything already carrying a scheme is an address, not a dialled number, so leave it be.
+	if (number.contains(QStringLiteral("://")) || number.startsWith(QStringLiteral("sip:")) ||
+	    number.startsWith(QStringLiteral("sips:")) || number.startsWith(QStringLiteral("tel:")))
+		return number;
+
+	auto prefix = resolveCountryCallingCode(account);
+	if (prefix.isEmpty()) return number;
+
+	// +447771514661 and 00447771514661 both become 07771514661. Everything else is untouched,
+	// including numbers already in local form and internal extensions.
+	const QString plusForm = QStringLiteral("+") + prefix;
+	const QString zerosForm = QStringLiteral("00") + prefix;
+	if (number.startsWith(plusForm)) return QStringLiteral("0") + number.mid(plusForm.size());
+	if (number.startsWith(zerosForm)) return QStringLiteral("0") + number.mid(zerosForm.size());
+	return number;
 }
 
 std::shared_ptr<linphone::Call> ToolModel::getCallByRemoteAddress(const QString &remoteAddress) {
@@ -81,6 +116,25 @@ std::shared_ptr<linphone::AudioDevice> ToolModel::findAudioDevice(const QString 
 	return nullptr;
 }
 
+namespace {
+// Asterisk stamps its own name into the From display name of every leg it hands us, so
+// "asterisk" <sip:123@...> arrives for each caller and beats the caller's own identity. Names
+// listed in the provisioning file's [ui] ignored_display_names (comma separated, "asterisk" by
+// default) are treated as if the header carried no display name at all.
+bool isIgnoredDisplayName(const QString &displayName) {
+	if (displayName.isEmpty()) return true;
+	auto core = CoreModel::getInstance()->getCore();
+	auto config = core ? core->getConfig() : nullptr;
+	auto configured = config ? Utils::coreStringToAppString(
+	                              config->getString(SettingsModel::UiSection, "ignored_display_names", "asterisk"))
+	                         : QStringLiteral("asterisk");
+	const auto trimmed = displayName.trimmed();
+	for (const auto &ignored : configured.split(QLatin1Char(','), Qt::SkipEmptyParts))
+		if (trimmed.compare(ignored.trimmed(), Qt::CaseInsensitive) == 0) return true;
+	return false;
+}
+} // namespace
+
 QString ToolModel::getDisplayName(const std::shared_ptr<const linphone::Address> &address) {
 	QString displayName;
 	if (address) {
@@ -90,6 +144,7 @@ QString ToolModel::getDisplayName(const std::shared_ptr<const linphone::Address>
 		}
 		if (displayName.isEmpty()) {
 			displayName = Utils::coreStringToAppString(address->getDisplayName());
+			if (isIgnoredDisplayName(displayName)) displayName.clear();
 			if (displayName.isEmpty()) {
 				auto accounts = CoreModel::getInstance()->getCore()->getAccountList();
 				auto found = std::find_if(accounts.begin(), accounts.end(),
@@ -108,12 +163,8 @@ QString ToolModel::getDisplayName(const std::shared_ptr<const linphone::Address>
 				}
 			}
 		}
-		// TODO
-		//	std::shared_ptr<linphone::Address> cleanAddress = address->clone();
-		//	cleanAddress->clean();
-		//	QString qtAddress = Utils::coreStringToAppString(cleanAddress->asStringUriOnly());
-		//	auto sipAddressEntry = getSipAddressEntry(qtAddress, cleanAddress);
-		//	displayName = sipAddressEntry->displayNames.get();
+		// The address is cleaned inside findFriendByAddress above, so there is nothing left to do
+		// here. (This once referred to a getSipAddressEntry cache that no longer exists.)
 	}
 	return displayName;
 }
@@ -210,7 +261,8 @@ QString ToolModel::encodeTextToQmlRichFormat(const QString &text,
 							// participants.at(std::distance(participants.begin(), it));
 							auto address = foundParticipant->getAddress();
 							auto isFriend = findFriendByAddress(address);
-							// address->clean();
+							// Deliberately not cleaned: this string is a mention link target that has to
+							// round-trip back to the same participant address, not a cache key.
 							auto addressString = Utils::coreStringToAppString(address->asStringUriOnly());
 							if (isFriend)
 								part = "@" + Utils::coreStringToAppString(isFriend->getAddress()->getDisplayName());
@@ -234,45 +286,101 @@ QString ToolModel::encodeTextToQmlRichFormat(const QString &text,
 }
 
 std::shared_ptr<linphone::Friend> ToolModel::findFriendByAddress(const QString &address) {
+	mustBeInLinphoneThread(QString(gClassName) + " : " + Q_FUNC_INFO);
 	auto linphoneAddr = ToolModel::interpretUrl(address);
 	if (linphoneAddr) return ToolModel::findFriendByAddress(linphoneAddr);
 	else return nullptr;
 }
 
+namespace {
+// Whether a SIP username is worth putting through the SDK's phone number matching. Mirrors the
+// Android guard (leading '+' or all digits) with one addition: a length floor. Internal
+// extensions are short and numeric, and are already resolved against the synced address book by
+// findFriend, so letting them through would gain nothing and risk matching a contact who happens
+// to store the same digits as a phone number.
+bool looksLikePhoneNumber(const QString &username) {
+	if (username.isEmpty()) return false;
+	if (username.startsWith(QLatin1Char('+'))) return true;
+	if (username.size() < 7) return false;
+	return std::all_of(username.cbegin(), username.cend(), [](QChar c) { return c.isDigit(); });
+}
+
+// The same user reached through another host form. Inbound legs from the PBX arrive as
+// sip:123@<server ip> while the address book holds sip:123@<account domain>, and the SDK matches
+// friends on the whole URI string, so the two never meet. Returns the address rewritten onto the
+// default account's domain, or null when there is nothing to gain.
+std::shared_ptr<linphone::Address> rebaseOnAccountDomain(const std::shared_ptr<const linphone::Address> &address,
+                                                         const std::shared_ptr<linphone::Core> &core) {
+	if (!address || !core) return nullptr;
+	auto account = core->getDefaultAccount();
+	auto params = account ? account->getParams() : nullptr;
+	if (!params) return nullptr;
+	auto domain = params->getDomain();
+	if (domain.empty() || address->getUsername().empty() || address->getDomain() == domain) return nullptr;
+	auto rebased = address->clone();
+	rebased->setDomain(domain);
+	rebased->setPort(0); // Friends are stored without one, and the match is on the URI string.
+	return rebased;
+}
+} // namespace
+
 std::shared_ptr<linphone::Friend>
 ToolModel::findFriendByAddress(const std::shared_ptr<const linphone::Address> &linphoneAddr) {
+	mustBeInLinphoneThread(QString(gClassName) + " : " + Q_FUNC_INFO);
+	if (!linphoneAddr) return nullptr;
 	auto friendsManager = FriendsManager::getInstance();
-	// linphoneAddr->clean();
-	QString key = Utils::coreStringToAppString(linphoneAddr->asStringUriOnly());
+	QString key = FriendsManager::addressKey(linphoneAddr);
 	if (friendsManager->isInKnownFriends(key)) {
-		// qDebug() << key << "have been found in known friend, return it";
 		return friendsManager->getKnownFriendAtKey(key);
 	} else if (friendsManager->isInUnknownFriends(key)) {
-		// qDebug() << key << "have been found in unknown friend, return it";
 		return friendsManager->getUnknownFriendAtKey(key);
 	}
-	auto f = CoreModel::getInstance()->getCore()->findFriend(linphoneAddr);
-	if (f) {
-		if (friendsManager->isInUnknownFriends(key)) {
-			friendsManager->removeUnknownFriend(key);
-		}
-		// qDebug() << "found friend, add to known map";
-		friendsManager->appendKnownFriend(linphoneAddr, f);
-	}
+
+	auto core = CoreModel::getInstance()->getCore();
+	// Strip transport and uri parameters such as ";user=phone" so the lookup sees the same address
+	// the contact was stored with.
+	auto cleanAddr = linphoneAddr->clone();
+	cleanAddr->clean();
+
+	// First, contacts held locally, which includes everything the CardDAV sync has pulled down.
+	auto f = core->findFriend(cleanAddr);
+
+	// Then, the same number written another way. A contact storing +447771514661 will not match an
+	// inbound call from 07771514661 on address alone, but the SDK normalises both sides through the
+	// account's dial plan here. That makes this tier dependent on the account carrying an
+	// international prefix; see SettingsModel::applyAccountDialPlanDefault.
 	if (!f) {
-		if (friendsManager->isInOtherAddresses(key)) {
-			// qDebug() << "A magic search has already be done for address" << key << "and nothing was found,return ";
-			return nullptr;
+		auto username = Utils::coreStringToAppString(cleanAddr->getUsername());
+		if (looksLikePhoneNumber(username)) {
+			f = core->findFriendByPhoneNumber(Utils::appStringToCoreString(username));
 		}
-		friendsManager->appendOtherAddress(key);
-		if (CoreModel::getInstance()->getCore()->getRemoteContactDirectories().empty()) return nullptr;
-		qDebug() << "Couldn't find friend" << linphoneAddr->asStringUriOnly() << "in core or in maps, use magic search";
-		CoreModel::getInstance()->searchInMagicSearch(Utils::coreStringToAppString(linphoneAddr->asStringUriOnly()),
-		                                              (int)linphone::MagicSearch::Source::LdapServers |
-		                                                  (int)linphone::MagicSearch::Source::RemoteCardDAV,
-		                                              LinphoneEnums::MagicSearchAggregation::Friend, 50);
 	}
-	return f;
+
+	// Then the same address on the account's own domain. See rebaseOnAccountDomain.
+	if (!f) {
+		auto rebased = rebaseOnAccountDomain(cleanAddr, core);
+		if (rebased) f = core->findFriend(rebased);
+	}
+
+	if (f) {
+		friendsManager->removeUnknownFriend(key);
+		friendsManager->removeOtherAddress(key);
+		friendsManager->appendKnownFriend(cleanAddr, f);
+		return f;
+	}
+
+	// Finally the remote directories. Asynchronous, so this call still returns nothing; the result
+	// arrives via MagicSearchModel. Inert in the usual deployment, where the whole address book is
+	// synced locally and no remote directory is registered, but harmless to keep.
+	if (friendsManager->isInOtherAddresses(key)) return nullptr;
+	friendsManager->appendOtherAddress(key);
+	if (core->getRemoteContactDirectories().empty()) return nullptr;
+	qDebug() << "Couldn't find friend" << key << "in core or in maps, use magic search";
+	CoreModel::getInstance()->searchInMagicSearch(key,
+	                                              (int)linphone::MagicSearch::Source::LdapServers |
+	                                                  (int)linphone::MagicSearch::Source::RemoteCardDAV,
+	                                              LinphoneEnums::MagicSearchAggregation::Friend, 50);
+	return nullptr;
 }
 
 bool ToolModel::createCall(const QString &sipAddress,
@@ -301,7 +409,10 @@ bool ToolModel::createCall(const QString &sipAddress,
 
 	bool localVideoEnabled = options.contains("localVideoEnabled") ? options["localVideoEnabled"].toBool() : false;
 
-	std::shared_ptr<linphone::Address> address = interpretUrl(sipAddress);
+	// Every dialled string arrives here: the dial pad, the contacts list (which passes a contact's
+	// stored number verbatim) and redial from history. interpretUrl itself is left free of PBX
+	// policy because it also interprets account identities and addresses we are only looking up.
+	std::shared_ptr<linphone::Address> address = interpretUrl(normalizePhoneNumber(sipAddress));
 
 	if (!address) {
 		lCritical() << "[" + QString(gClassName) + "] The calling address is not an interpretable SIP address: "
@@ -407,7 +518,7 @@ bool ToolModel::createGroupCall(QString subject, const std::list<QString> &parti
 		callParams->setVideoDirection(linphone::MediaDirection::RecvOnly);
 		std::list<std::shared_ptr<linphone::Address>> participants;
 		for (auto &address : participantAddresses) {
-			auto linAddr = ToolModel::interpretUrl(address);
+			auto linAddr = ToolModel::interpretUrl(normalizePhoneNumber(address));
 			participants.push_back(linAddr);
 		}
 		auto status = conference->inviteParticipants(participants, callParams);

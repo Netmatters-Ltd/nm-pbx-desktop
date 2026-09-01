@@ -177,8 +177,9 @@ CallCore::~CallCore() {
 	lDebug() << "[CallCore] delete" << this;
 	mustBeInMainThread("~" + getClassName());
 	emit mCallModel->removeListener();
-	mCallModel->deleteLater();
-	mCallModelConnection->deleteLater();
+    // Previously there was a manual `->deleteLater()` call here for the model and connection.
+    // That was likely causing a crash as the smart pointers managing these objects would attempt to delete them again.
+    // Not trigging a manual deletion matches the other cores.
 }
 
 void CallCore::setSelf(QSharedPointer<CallCore> me) {
@@ -296,7 +297,9 @@ void CallCore::setSelf(QSharedPointer<CallCore> me) {
 
 	mCallModelConnection->makeConnectToCore(&CallCore::lTransferCall, [this](QString address) {
 		mCallModelConnection->invokeToModel([this, address]() {
-			auto linAddr = ToolModel::interpretUrl(address);
+			// A blind transfer target is dialled, so it gets the same local-format conversion
+			// as any other number typed into the app.
+			auto linAddr = ToolModel::interpretUrl(ToolModel::normalizePhoneNumber(address));
 			if (linAddr) mCallModel->transferTo(linAddr);
 		});
 	});

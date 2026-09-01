@@ -16,7 +16,12 @@ Notification {
 	overriddenHeight: content.height
 	
 	readonly property var call: notificationData && notificationData.call
-	readonly property var displayName: notificationData && notificationData.displayName
+	// remoteName is a notifying property, so a name resolved after the toast appeared still shows.
+	// notificationData.displayName is the fallback: it is the only source for a conference, where
+	// it carries the subject rather than a contact name.
+	readonly property var displayName: (call && call.core && call.core.remoteName)
+		? call.core.remoteName
+		: (notificationData && notificationData.displayName)
 	property var state: call.core.state
 	property var status: call.core.status
 	property var conference: call.core.conference

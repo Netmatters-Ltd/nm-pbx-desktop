@@ -107,7 +107,9 @@ void ConferenceCore::setSelf(QSharedPointer<ConferenceCore> me) {
 	    [this](const std::shared_ptr<linphone::Conference> &conference, int count) {
 		    if (auto participantDevice = conference->getActiveSpeakerParticipantDevice()) {
 			    auto device = ParticipantDeviceCore::create(participantDevice);
-			    setActiveSpeakerDevice(device);
+			    // This runs on the linphone thread: only the queued call may touch core state. Calling
+			    // setActiveSpeakerDevice directly here reference-counted mActiveSpeakerDevice from two
+			    // threads at once and corrupted the heap when a participant left.
 			    mConferenceModelConnection->invokeToCore([this, device]() { setActiveSpeakerDevice(device); });
 		    } else if (conference->getParticipantDeviceList().size() > 1) {
 			    for (auto &device : conference->getParticipantDeviceList()) {
@@ -169,6 +171,7 @@ void ConferenceCore::setRecording(bool recording) {
 }
 
 void ConferenceCore::setParticipantDeviceCount(int count) {
+	mustBeInMainThread(log().arg(Q_FUNC_INFO));
 	if (mParticipantDeviceCount != count) {
 		mParticipantDeviceCount = count;
 		emit participantDeviceCountChanged();
@@ -227,6 +230,7 @@ ParticipantGui *ConferenceCore::getMeGui() const {
 }
 
 void ConferenceCore::setActiveSpeakerDevice(const QSharedPointer<ParticipantDeviceCore> &device) {
+	mustBeInMainThread(log().arg(Q_FUNC_INFO));
 	if (mActiveSpeakerDevice != device) {
 		mActiveSpeakerDevice = device;
 		qDebug() << log().arg("Changing active speaker device to %1").arg(device ? device->getAddress() : "None");

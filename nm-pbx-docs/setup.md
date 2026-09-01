@@ -475,7 +475,7 @@ cmake --install . --config RelWithDebInfo
 
 Sign the installer. You will need to check `C:\Users\sam.driver\Code\linphone-desktop\build\OUTPUT\Packages` to see what exactly the .exe is named, and use that here.
 ```cmd
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" OUTPUT\Packages\NMPBX-6.2.0-028.exe
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /tr http://timestamp.sectigo.com /td sha256 /fd sha256 /n "Netmatters Limited" OUTPUT\Packages\NMPBX-6.2.0-030.exe
 ```
 
 Then verify both:

@@ -7,6 +7,9 @@ path = external/linphone-sdk
 [submodule "external/google/crashpad"]
 	path = external/google/crashpad
 	url = https://gitlab.linphone.org/BC/public/external/crashpad.git
+	ignore = untracked
 [submodule "external/google/chromium-depot-tools"]
 	path = external/google/chromium-depot-tools
 	url = https://gitlab.linphone.org/BC/public/external/chromium-depot-tools.git
+[submodule "external/linphone-sdk"]
+	ignore = dirty

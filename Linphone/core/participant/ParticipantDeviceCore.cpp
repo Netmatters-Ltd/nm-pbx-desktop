@@ -47,13 +47,24 @@ ParticipantDeviceCore::ParticipantDeviceCore(const std::shared_ptr<linphone::Par
 		auto deviceAddress = device->getAddress();
 		mUniqueAddress = Utils::coreStringToAppString(deviceAddress->asString());
 		mAddress = Utils::coreStringToAppString(deviceAddress->asStringUriOnly());
-		// the display name of the device himself may be the uncleaned sip uri
-		// Use the participant name instead
+		// The device address is the Contact header of the leg, which on a PBX is often an
+		// internal socket rather than the caller. The participant address is the call's remote
+		// address, so identify from that and only fall back to the device.
 		auto participant = device->getParticipant();
-		mDisplayName = Utils::coreStringToAppString(participant ? participant->getAddress()->getDisplayName() : "");
-		if (mDisplayName.isEmpty()) {
-			mDisplayName = ToolModel::getDisplayName(deviceAddress);
-		}
+		auto identityAddress = participant ? participant->getAddress() : deviceAddress;
+		// Kept separately from mAddress so the tile can look up a contact photo with it, the way
+		// the contacts and extensions lists do.
+		mIdentityAddress = Utils::coreStringToAppString(identityAddress->asStringUriOnly());
+		auto linphoneFriend = ToolModel::findFriendByAddress(identityAddress);
+		if (linphoneFriend)
+			mDisplayName = Utils::coreStringToAppString(
+			    linphoneFriend->getVcard() ? linphoneFriend->getVcard()->getFullName() : linphoneFriend->getName());
+		// getDisplayName runs the same tiers again and adds the SIP display name, the local
+		// account and finally the username.
+		if (mDisplayName.isEmpty()) mDisplayName = ToolModel::getDisplayName(identityAddress);
+		// Identity for the lifetime of the device. The addresses above describe the leg but do not
+		// distinguish one device from another behind this PBX.
+		mDeviceId = QString::number(reinterpret_cast<quintptr>(device.get()), 16);
 		mIsMuted = device->getIsMuted();
 		mIsSpeaking = device->getIsSpeaking();
 		mParticipantDeviceModel = Utils::makeQObject_ptr<ParticipantDeviceModel>(device);
@@ -127,12 +138,24 @@ time_t ParticipantDeviceCore::getTimeOfJoining() const {
 	return mParticipantDeviceModel ? mParticipantDeviceModel->getTimeOfJoining() : 0;
 }
 
+QString ParticipantDeviceCore::getIdentityAddress() const {
+	return mIdentityAddress;
+}
+
 QString ParticipantDeviceCore::getAddress() const {
 	return mAddress;
 }
 
 QString ParticipantDeviceCore::getUniqueAddress() const {
 	return mUniqueAddress;
+}
+
+QString ParticipantDeviceCore::getDeviceId() const {
+	return mDeviceId;
+}
+
+std::shared_ptr<linphone::ParticipantDevice> ParticipantDeviceCore::getDevice() {
+	return mParticipantDeviceModel ? mParticipantDeviceModel->getMonitor() : nullptr;
 }
 
 bool ParticipantDeviceCore::getPaused() const {

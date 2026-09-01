@@ -35,6 +35,17 @@ public:
 	~ToolModel();
 
 	static std::shared_ptr<linphone::Address> interpretUrl(const QString &address);
+
+	// The PBX only routes numbers in local format, so a number held in international form has to
+	// be converted before it becomes a SIP address or the call comes back as a 404. Mirrors
+	// LinphoneUtils.normalizePhoneNumber in the Android app; see
+	// nm-pbx-docs/caller-identification.md. Applied at the dialling sites only, never to account
+	// identities or to addresses we are merely looking up.
+	static QString normalizePhoneNumber(const QString &number,
+	                                    const std::shared_ptr<linphone::Account> &account = nullptr);
+	// Country calling code without the leading '+', e.g. "44". The account's dial plan, else the UK.
+	static QString resolveCountryCallingCode(const std::shared_ptr<linphone::Account> &account = nullptr);
+
 	static std::shared_ptr<linphone::Call> getCallByRemoteAddress(const QString &remoteAddress);
 	static std::shared_ptr<linphone::FriendPhoneNumber> makeLinphoneNumber(const QString &label, const QString &number);
 	static std::shared_ptr<linphone::AudioDevice> findAudioDevice(const QString &id,

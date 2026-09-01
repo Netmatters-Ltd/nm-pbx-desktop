@@ -450,7 +450,9 @@ VariantObject *Utils::findAvatarByAddress(const QString &address) {
 		auto defaultFriendList = ToolModel::getAppFriendList();
 		if (!defaultFriendList) return QVariant();
 		auto linphoneAddr = ToolModel::interpretUrl(address);
-		auto linFriend = CoreModel::getInstance()->getCore()->findFriend(linphoneAddr);
+		// Same lookup as the name, so a contact photo is found wherever the name is: through the
+		// cache, the phone-number tier and the account domain rewrite.
+		auto linFriend = ToolModel::findFriendByAddress(linphoneAddr);
 		if (linFriend) avatar = Utils::coreStringToAppString(linFriend->getPhoto());
 		return QVariant(avatar);
 	});
