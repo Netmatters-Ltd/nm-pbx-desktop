@@ -43,7 +43,8 @@ public:
 	QSharedPointer<ParticipantDeviceCore> getMe() const;
 
 	void setDevices(QList<QSharedPointer<ParticipantDeviceCore>> devices);
-	QSharedPointer<ParticipantDeviceCore> findDeviceByUniqueAddress(const QString &address);
+	QSharedPointer<ParticipantDeviceCore>
+	findDeviceByModel(const std::shared_ptr<const linphone::ParticipantDevice> &device);
 	void setConferenceModel(const std::shared_ptr<ConferenceModel> &conferenceModel);
 
 	void setSelf(QSharedPointer<ParticipantDeviceList> me);

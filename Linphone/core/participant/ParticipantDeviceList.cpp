@@ -78,12 +78,16 @@ void ParticipantDeviceList::setDevices(QList<QSharedPointer<ParticipantDeviceCor
 	lDebug() << log().arg("Add %1 devices").arg(devices.size());
 }
 
-QSharedPointer<ParticipantDeviceCore> ParticipantDeviceList::findDeviceByUniqueAddress(const QString &address) {
-	lDebug() << "address to find" << address;
-	auto found = std::find_if(mList.begin(), mList.end(), [address](const QSharedPointer<QObject> &obj) {
-		auto device = qobject_cast<QSharedPointer<ParticipantDeviceCore>>(obj);
-		lDebug() << "address" << device->getUniqueAddress();
-		return device && device->getUniqueAddress() == address;
+// Matched on the SDK device rather than on an address: this PBX gives every leg the same Contact
+// header, so an address lookup returned whichever device came first and then found nothing at all
+// for the second removal. Main thread only, because mList belongs to it.
+QSharedPointer<ParticipantDeviceCore>
+ParticipantDeviceList::findDeviceByModel(const std::shared_ptr<const linphone::ParticipantDevice> &device) {
+	mustBeInMainThread(log().arg(Q_FUNC_INFO));
+	if (!device) return nullptr;
+	auto found = std::find_if(mList.begin(), mList.end(), [device](const QSharedPointer<QObject> &obj) {
+		auto deviceCore = qobject_cast<QSharedPointer<ParticipantDeviceCore>>(obj);
+		return deviceCore && deviceCore->getDevice() == device;
 	});
 	if (found != mList.end()) {
 		return qobject_cast<QSharedPointer<ParticipantDeviceCore>>(*found);
@@ -134,10 +138,10 @@ void ParticipantDeviceList::setSelf(QSharedPointer<ParticipantDeviceList> me) {
 		    &ConferenceModel::participantDeviceRemoved,
 		    [this](const std::shared_ptr<linphone::Conference> &conference,
 		           const std::shared_ptr<const linphone::ParticipantDevice> &participantDevice) {
-			    QString uniqueAddress =
-			        Utils::coreStringToAppString(participantDevice->getAddress()->asString().c_str());
-			    auto deviceCore = findDeviceByUniqueAddress(uniqueAddress);
-			    mConferenceModelConnection->invokeToCore([this, deviceCore]() {
+			    // This lambda runs on the linphone thread, so it carries the device across and looks
+			    // it up on the main thread. Reading mList here raced with the main thread mutating it.
+			    mConferenceModelConnection->invokeToCore([this, participantDevice]() {
+				    auto deviceCore = findDeviceByModel(participantDevice);
 				    lDebug() << "[ParticipantDeviceList] : remove a device" << deviceCore;
 				    if (!remove(deviceCore))
 					    lWarning() << log().arg("Unable to remove") << deviceCore << "as it is not part of the list";

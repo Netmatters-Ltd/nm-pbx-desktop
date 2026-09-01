@@ -175,11 +175,8 @@ The participant address is the useful one. `Conference::addParticipantDevice` bu
 tiers as a one-to-one call: `findFriendByAddress`, then the SIP display name, then
 `getDisplayName`. The device address is used only if there is no participant.
 
-`mName`, `mAddress` and `mUniqueAddress` stay on the device address. They are identity keys rather
-than labels: `ParticipantDeviceList::findDeviceByUniqueAddress` uses `uniqueAddress` when a device
-leaves, and `ActiveSpeakerLayout.qml` compares `address` to hide the active speaker from the strip.
-One participant can have several devices in a server-hosted conference, and those keys have to stay
-distinct.
+`mName`, `mAddress` and `mUniqueAddress` stay on the device address. They describe the leg, but as
+the next section explains, they are no longer used to tell one device from another.
 
 One-to-one calls are untouched. `ParticipantDeviceCore` is only built from `ConferenceCore` and
 `ParticipantDeviceList`, both driven by a conference; without one, the sticker falls through to
@@ -193,6 +190,40 @@ rather than calling `core->findFriend` directly, so a photo is found wherever th
 
 Still outstanding: `displayName` is a `CONSTANT` property resolved once, so a contact edited
 mid-conference does not refresh. `CallHistoryCore` shows the refresh pattern if we want it.
+
+### The device address is not a key either
+
+Merging two calls and having one party hang up crashed the app, reliably, with
+`0xC0000374` (heap corruption). The dump pointed at a string allocation during logging, which is
+only where the broken heap was noticed. Three things in the teardown were at fault.
+
+**Every leg has the same Contact.** The log shows `sip:asterisk@127.0.0.1:5080` for both remote
+devices, and that is what `uniqueAddress` held. Removing a device by that string took out whichever
+one came first and then found nothing for the second, leaving a departed device in the list and
+dropping a live one. `ActiveSpeakerLayout.qml` compared the same address to hide the active speaker
+from the strip, so it would have hidden both remote tiles.
+
+`ParticipantDeviceCore` now carries a `deviceId`, derived from the SDK `ParticipantDevice` it was
+built from. It is the one thing the PBX cannot make ambiguous.
+`ParticipantDeviceList::findDeviceByModel` compares the device itself rather than any string, and
+the active-speaker strip compares `deviceId`. Do not reintroduce a lookup keyed on an address.
+
+**Core state was being written from the linphone thread.** `SafeConnection::makeConnectToModel`
+connects with `Qt::DirectConnection`, so those lambdas run on the linphone thread and may only
+queue work with `invokeToCore`. `ConferenceCore`'s `participantDeviceCountChanged` handler called
+`setActiveSpeakerDevice` directly *and* queued the identical call, so two threads reference-counted
+the same `QSharedPointer`. That is the corruption. Only the queued call remains, and
+`setActiveSpeakerDevice` and `setParticipantDeviceCount` now assert `mustBeInMainThread`, which
+logs `[Thread] Not processing in Main thread` rather than aborting.
+
+**The list was read from the wrong thread.** The `participantDeviceRemoved` handler searched
+`mList` on the linphone thread while the main thread was mutating it in `setDevices` and `remove`.
+The search moved inside the `invokeToCore` block; the linphone-thread lambda now carries only the
+`shared_ptr` to the device across.
+
+One loose end: every `ConferenceModel` signal is handled twice in the logs, so two objects are
+listening to the same conference and each builds its own set of `ParticipantDeviceCore`s. It
+doubles the work in this teardown but is not the corruption. Worth chasing separately.
 
 ## Known gaps
 

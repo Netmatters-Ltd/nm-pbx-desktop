@@ -62,6 +62,9 @@ ParticipantDeviceCore::ParticipantDeviceCore(const std::shared_ptr<linphone::Par
 		// getDisplayName runs the same tiers again and adds the SIP display name, the local
 		// account and finally the username.
 		if (mDisplayName.isEmpty()) mDisplayName = ToolModel::getDisplayName(identityAddress);
+		// Identity for the lifetime of the device. The addresses above describe the leg but do not
+		// distinguish one device from another behind this PBX.
+		mDeviceId = QString::number(reinterpret_cast<quintptr>(device.get()), 16);
 		mIsMuted = device->getIsMuted();
 		mIsSpeaking = device->getIsSpeaking();
 		mParticipantDeviceModel = Utils::makeQObject_ptr<ParticipantDeviceModel>(device);
@@ -145,6 +148,14 @@ QString ParticipantDeviceCore::getAddress() const {
 
 QString ParticipantDeviceCore::getUniqueAddress() const {
 	return mUniqueAddress;
+}
+
+QString ParticipantDeviceCore::getDeviceId() const {
+	return mDeviceId;
+}
+
+std::shared_ptr<linphone::ParticipantDevice> ParticipantDeviceCore::getDevice() {
+	return mParticipantDeviceModel ? mParticipantDeviceModel->getMonitor() : nullptr;
 }
 
 bool ParticipantDeviceCore::getPaused() const {

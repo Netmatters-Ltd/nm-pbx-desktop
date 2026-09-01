@@ -23,8 +23,10 @@ Item {
 		: ""
 	property bool sideStickersVisible: sideStickers.visible
 	
-	// currently speaking address (for hiding in list view)
-	property string activeSpeakerAddress
+	// currently speaking device (for hiding it in the list view). Identified by deviceId rather
+	// than by address: our PBX gives every leg the same Contact header, so comparing addresses hid
+	// every remote tile rather than just the active speaker's.
+	property string activeSpeakerId
 
 	property ParticipantDeviceProxy participantDevices : ParticipantDeviceProxy {
 		id: allDevices
@@ -45,15 +47,15 @@ Item {
 			call: mainItem.call
 			displayAll: !mainItem.conference
 			participantDevice: mainItem.conference && mainItem.conference.core.activeSpeakerDevice
-			property var address: participantDevice && participantDevice.core.address
+			property var deviceId: participantDevice && participantDevice.core.deviceId
 			videoEnabled: (participantDevice && participantDevice.core.videoEnabled) || (!participantDevice && call && call.core.remoteVideoEnabled)
 			qmlName: 'AS'
 			securityBreach: !mainItem.conference && mainItem.call?.core.isMismatch || false
 			displayPresence: false
 			Binding {
 				target: mainItem
-				property: "activeSpeakerAddress"
-				value: activeSpeakerSticker.address
+				property: "activeSpeakerId"
+				value: activeSpeakerSticker.deviceId
 				when: true
 			}
 		}
@@ -70,7 +72,7 @@ Item {
 			clip: true
 			delegate: Item{	// Spacing workaround
 				visible: $modelData && mainItem.callState != LinphoneEnums.CallState.End  && mainItem.callState != LinphoneEnums.CallState.Released
-										&& ($modelData.core.address != activeSpeakerAddress || mainItem.conference?.core.isScreenSharingEnabled) || false
+										&& ($modelData.core.deviceId != activeSpeakerId || mainItem.conference?.core.isScreenSharingEnabled) || false
                 height: visible ? Utils.getSizeWithScreenRatio(180 + 15) : 0
                 width: Utils.getSizeWithScreenRatio(300)
 				Sticker {
