@@ -177,8 +177,9 @@ CallCore::~CallCore() {
 	lDebug() << "[CallCore] delete" << this;
 	mustBeInMainThread("~" + getClassName());
 	emit mCallModel->removeListener();
-	mCallModel->deleteLater();
-	mCallModelConnection->deleteLater();
+    // Previously there was a manual `->deleteLater()` call here for the model and connection.
+    // That was likely causing a crash as the smart pointers managing these objects would attempt to delete them again.
+    // Not trigging a manual deletion matches the other cores.
 }
 
 void CallCore::setSelf(QSharedPointer<CallCore> me) {
