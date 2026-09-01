@@ -1030,7 +1030,9 @@ AbstractWindow {
                         target: rightPanel.contentLoader
                         function onItemChanged() {
                             if (rightPanel.contentLoader.item.objectName === "callListPanel") {
-                                rightPanel.customHeaderButtons = mergeCallPopupButton.createObject(rightPanel)
+                                // NMPBX: "Merge all calls" and its popup menu are hidden for now.
+                                // Restore the line below to reinstate them.
+                                // rightPanel.customHeaderButtons = mergeCallPopupButton.createObject(rightPanel)
                             }
                         }
                     }
