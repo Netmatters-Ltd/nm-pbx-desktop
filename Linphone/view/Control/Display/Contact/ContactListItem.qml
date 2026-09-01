@@ -143,8 +143,13 @@ FocusScope {
                         focus: visible
                         radius: Utils.getSizeWithScreenRatio(40)
                         style: ButtonStyle.grey
-                        onClicked: UtilsCpp.createCall(mainItem.addressFromFilter)
-                        KeyNavigation.left: chatButton
+                        // Go through startCallWithContact rather than dialling addressFromFilter.
+                        // That property only ever holds a SIP address, so a contact synced from
+                        // CardDAV with nothing but phone numbers gave us an empty string to call.
+                        // startCallWithContact looks at the phone numbers too, and asks which one
+                        // to use when there is more than one, the same as everywhere else.
+                        onClicked: mainWindow.startCallWithContact(mainItem.searchResultItem, false)
+                        KeyNavigation.left: videoCallButton
                         KeyNavigation.right: videoCallButton
                     }
                     IconButton {
@@ -158,14 +163,16 @@ FocusScope {
                         focus: visible && !callButton.visible
                         radius: Utils.getSizeWithScreenRatio(40)
                         style: ButtonStyle.grey
-                        onClicked: UtilsCpp.createCall(mainItem.addressFromFilter, {"localVideoEnabled": true})
+                        onClicked: mainWindow.startCallWithContact(mainItem.searchResultItem, true)
                         KeyNavigation.left: callButton
-                        KeyNavigation.right: chatButton
+                        KeyNavigation.right: callButton
                     }
                     IconButton {
                         id: chatButton
-                        visible: actionButtons.visible
-                                    && !SettingsCpp.disableChatFeature
+                        // Not exposed in this version of the app. These action buttons only
+                        // appear in the search bar results, and a contact there may well have
+                        // no SIP address to message, so the button had nothing to open.
+                        visible: false
                         Layout.preferredWidth: Utils.getSizeWithScreenRatio(45)
                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(45)
                         icon.width: Utils.getSizeWithScreenRatio(24)

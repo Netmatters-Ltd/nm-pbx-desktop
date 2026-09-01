@@ -465,8 +465,11 @@ QList<QVariant> FriendCore::getAllAddresses() const {
 	auto phoneNumbers = mPhoneNumberList;
 	while (addressIt != mAddressList.end()) {
 		auto username = Utils::getUsername(addressIt->toMap()["address"].toString());
-		std::remove_if(phoneNumbers.begin(), phoneNumbers.end(),
-		               [username](const QVariant &data) { return data.toMap()["address"].toString() == username; });
+		// Was std::remove_if without the matching erase, so nothing was ever dropped. An
+		// extension holding both sip:1234@domain and the number 1234 listed 1234 twice, and
+		// got asked which one to call when there was only ever one.
+		phoneNumbers.removeIf(
+		    [username](const QVariant &data) { return data.toMap()["address"].toString() == username; });
 		++addressIt;
 	}
 	addresses << phoneNumbers;
