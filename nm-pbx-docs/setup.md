@@ -148,10 +148,10 @@ Add `C:\Program Files\7-Zip` to the system Path environment variable in Windows 
 
 ## Clone repository
 ```pwsh
-git clone https://github.com/Anatta336/linphone-desktop.git --recursive
+git clone https://github.com/Netmatters-Ltd/nm-pbx-desktop.git --recursive
 ```
 
-Note this pulls several submodules from the main project, in addition to our customised linphone-desktop project.
+Note this pulls several submodules from the main project, in addition to our customised project.
 
 ## Build
 
