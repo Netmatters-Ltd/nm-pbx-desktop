@@ -1,0 +1,73 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/cmake.exe",
+            "args": ["--build", "${workspaceFolder}/build", "--config", "RelWithDebInfo", "--parallel", "10"],
+            "problemMatcher": ["$msCompile"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": false
+            }
+        },
+        {
+            "label": "Install",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/cmake.exe",
+            "args": ["--install", "${workspaceFolder}/build", "--config", "RelWithDebInfo"],
+            "dependsOn": "Build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Deploy Qt",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                "${workspaceFolder}/scripts/deploy-qt-if-needed.ps1"
+            ],
+            "dependsOn": "Install",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Deploy Qt (Force)",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                "${workspaceFolder}/scripts/deploy-qt-if-needed.ps1", "-Force"
+            ],
+            "dependsOn": "Install",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Package Release",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                "${workspaceFolder}/scripts/package-release.ps1"
+            ],
+            "problemMatcher": ["$msCompile"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}

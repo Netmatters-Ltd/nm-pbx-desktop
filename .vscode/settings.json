@@ -1,0 +1,20 @@
+{
+    "cmake.cmakePath": "C:/msys64/mingw64/bin/cmake.exe",
+    "cmake.generator": "Visual Studio 17 2022",
+    "cmake.platform": "x64",
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureArgs": [
+        "-DENABLE_WINDOWS_TOOLS_CHECK=ON",
+        "-DENABLE_UPDATE_CHECK=OFF",
+        "-DLINPHONEAPP_VERSION=6.1.0"
+    ],
+    "cmake.parallelJobs": 10,
+    "cmake.configureOnOpen": false,
+    "cmake.environment": {
+        "PATH": "C:\\Qt\\6.10.3\\msvc2022_64\\bin;${env:PATH}"
+    },
+    "files.associations": {
+        "*.ts": "xml"
+    }
+}

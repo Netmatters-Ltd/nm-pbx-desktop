@@ -43,11 +43,18 @@ vgcore.*
 linphone.spec
 nul
 
+# Packaged installer output (scripts/package-release.ps1) -----------------------
+
+/NMPBX-*-win64.exe
+/NMPBX-release/
+
 # Exceptions -------------------------------------------------------------------
 
 !.clang-format
 !.gitattributes
 !.gitignore
+!.vscode
+!.vscode/**
 !.gitlab-ci*
 !.gitmodules
 

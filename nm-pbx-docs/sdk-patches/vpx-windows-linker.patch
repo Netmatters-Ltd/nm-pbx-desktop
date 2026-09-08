@@ -1,0 +1,14 @@
+diff --git a/cmake/Windows/vpx_configure.sh.cmake b/cmake/Windows/vpx_configure.sh.cmake
+index b37c132bc5..5a77d64c0e 100644
+--- a/cmake/Windows/vpx_configure.sh.cmake
++++ b/cmake/Windows/vpx_configure.sh.cmake
+@@ -3,6 +3,9 @@
+ export INCLUDE="@EP_ENV_INCLUDE@"
+ export LIB="@EP_ENV_LIB@"
+ export LIBPATH="@EP_ENV_LIBPATH@"
++unset CC CXX
++export TMPDIR="@EP_BUILD_DIR@/vpx-configure-tmp"
++mkdir -p "$TMPDIR"
+ 
+ mkdir -p "@EP_BUILD_DIR@"
+ cd @EP_BUILD_DIR@

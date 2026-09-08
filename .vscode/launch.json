@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch NMPBX (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/OUTPUT/bin/nmpbx.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/OUTPUT/bin",
+            "environment": [],
+            "console": "externalTerminal",
+            "preLaunchTask": "Deploy Qt"
+        }
+    ]
+}
