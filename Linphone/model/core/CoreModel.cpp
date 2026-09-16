@@ -86,6 +86,12 @@ void CoreModel::start() {
 	// }
 
 	mCore->enableVideoPreview(false); // SDK doesn't write the state in configuration if not ready.
+
+	// Pin the video display filter. The Windows default, MSOGL, builds its own native window
+	// and drives it with EGL, which Qt 6 no longer ships, so it returns a window id that is not
+	// a Qt renderer and the app crashes when it uses it. Setting it here rather than relying on
+	// the factory config means a provisioning file cannot leave us on the default.
+	mCore->setVideoDisplayFilter(Constants::QtVideoDisplayFilter);
 	auto config = mCore->getConfig();
 	QString userAgent = ToolModel::computeUserAgent(config);
 	mCore->setUserAgent(Utils::appStringToCoreString(userAgent), LINPHONESDK_VERSION);

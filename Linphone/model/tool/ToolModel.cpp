@@ -25,6 +25,7 @@
 #include "model/core/CoreModel.hpp"
 #include "model/friend/FriendsManager.hpp"
 #include "model/setting/SettingsModel.hpp"
+#include "tool/Constants.hpp"
 #include "tool/UriTools.hpp"
 #include "tool/Utils.hpp"
 #include <QDebug>
@@ -86,6 +87,22 @@ QString ToolModel::normalizePhoneNumber(const QString &number, const std::shared
 	if (number.startsWith(plusForm)) return QStringLiteral("0") + number.mid(plusForm.size());
 	if (number.startsWith(zerosForm)) return QStringLiteral("0") + number.mid(zerosForm.size());
 	return number;
+}
+
+bool ToolModel::qtVideoRendererAvailable() {
+	mustBeInLinphoneThread(QString(gClassName) + " : " + Q_FUNC_INFO);
+	auto core = CoreModel::getInstance()->getCore();
+	auto filter = core ? Utils::coreStringToAppString(core->getVideoDisplayFilter()) : QString();
+	if (filter == Constants::QtVideoDisplayFilter) return true;
+	// The callers retry once a second, so say this once rather than filling the log.
+	static bool warned = false;
+	if (!warned) {
+		warned = true;
+		lCritical() << "[ToolModel] Video display filter is"
+		            << (filter.isEmpty() ? QStringLiteral("unset") : filter) << "rather than"
+		            << Constants::QtVideoDisplayFilter << "- refusing to create a video renderer.";
+	}
+	return false;
 }
 
 std::shared_ptr<linphone::Call> ToolModel::getCallByRemoteAddress(const QString &remoteAddress) {

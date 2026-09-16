@@ -25,6 +25,7 @@
 
 #include "../App.hpp"
 #include "PreviewManager.hpp"
+#include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
 DEFINE_ABSTRACT_OBJECT(PreviewManager)
@@ -70,15 +71,13 @@ QQuickFramebufferObject::Renderer *PreviewManager::subscribe(const CameraGui *ca
 	mCounterMutex.unlock();
 	App::postModelBlock([&renderer, isFirst = (itCandidate == mCandidates.begin()),
 	                     name = itCandidate->first->getQmlName()]() {
+		// Only MSQOGL returns a Qt renderer here. Other display filters return a different type
+		// altogether, and casting that would crash the render thread rather than fail cleanly.
+		if (!ToolModel::qtVideoRendererAvailable()) return;
 		renderer =
 		    (QQuickFramebufferObject::Renderer *)CoreModel::getInstance()->getCore()->createNativePreviewWindowId(
 		        nullptr);
-		if (!renderer) { // TODO debug
-			renderer =
-			    (QQuickFramebufferObject::Renderer *)CoreModel::getInstance()->getCore()->createNativePreviewWindowId(
-			        nullptr);
-		}
-		if (isFirst) {
+		if (isFirst && renderer) {
 			lDebug() << "[PreviewManager] " << name << " Set Native Preview Id with " << renderer;
 			CoreModel::getInstance()->getCore()->setNativePreviewWindowId(renderer);
 		}
