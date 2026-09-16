@@ -53,6 +53,10 @@ public:
 
 	static constexpr size_t MaxLogsCollectionSize = 10485760 * 5; // 50MB.
 
+	// The mediastreamer2 video display filter that renders into the QML scene. The Windows
+	// default, MSOGL, opens its own native window and needs EGL, which Qt 6 no longer ships.
+	static constexpr char QtVideoDisplayFilter[] = "MSQOGL";
+
 #ifdef ENABLE_UPDATE_CHECK
 	static constexpr int VersionUpdateCheckInterval = 86400000; // 24 hours in milliseconds.
 #endif                                                          // ifdef ENABLE_UPDATE_CHECK
