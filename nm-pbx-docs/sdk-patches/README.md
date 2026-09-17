@@ -58,6 +58,37 @@ old releases, so this needs forward-porting from tag 5.4.114 to master and a sig
 agreement before it can go via https://www.linphone.org/en/form-to-contribute-code/. Worth doing, so
 we can drop this patch.
 
+### `mediastreamer2-preprocess-timing.patch`
+
+**Diagnostic only. Remove once the cause is found.**
+
+Times the filter preprocess loop in `ms_ticker_attach_multiple`. That loop runs on the calling
+thread rather than the ticker thread, so during call setup it runs on the SIP thread and blocks
+every SIP message for that client until it finishes, including the ACK.
+
+One attach covers both audio devices, because `ms_filter_find_neighbours` pulls in the whole graph,
+so the per-filter line names `MSWASAPIRead` or `MSWASAPIWrite` directly. That line is gated at 50ms:
+the graph is 15 to 25 filters, and the SDK log write takes a process-wide mutex and writes to file,
+so logging every filter would inflate the very number we are measuring. The total for the loop is
+logged unconditionally, because without a healthy-call baseline we cannot tell "audio setup was
+fast" from "the instrumentation did not run".
+
+Added while investigating the client freezes reported in September 2026 (task 5214105), alongside
+the app-side watchdog in `Linphone/tool/stall`.
+
+### `mswasapi-activate-timing.patch`
+
+**Diagnostic only. Remove once the cause is found.**
+
+Times the WASAPI device setup that the preprocess loop above triggers. Covers `MSWasapi::activate`
+as a whole plus `IAudioClient::Initialize` inside it, and `MSWasapi::createAudioClient` including
+the `WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE)` that has no timeout and the
+`IMMDeviceEnumerator` path taken when the user is not on the default device. Which of those two runs
+depends on the user's device selection, so both are instrumented.
+
+Note the unbounded wait is in `createAudioClient`, not in `activate`. Windows only, which is all
+mswasapi is.
+
 ## Applying
 
 From the repository root, after the submodules are checked out, run
@@ -69,6 +100,8 @@ To do it by hand instead:
 git -C external/linphone-sdk/mediastreamer2 apply ../../../nm-pbx-docs/sdk-patches/mediastreamer2-msvc-libm.patch
 git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches/liblinphone-carddav-auth-username.patch
 git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches/liblinphone-log-collection.patch
+git -C external/linphone-sdk/mediastreamer2 apply ../../../nm-pbx-docs/sdk-patches/mediastreamer2-preprocess-timing.patch
+git -C external/linphone-sdk/mswasapi     apply ../../../nm-pbx-docs/sdk-patches/mswasapi-activate-timing.patch
 ```
 
 ## Checking what is applied
@@ -76,6 +109,7 @@ git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches
 ```
 git -C external/linphone-sdk/mediastreamer2 diff
 git -C external/linphone-sdk/liblinphone  diff
+git -C external/linphone-sdk/mswasapi     diff
 ```
 
 ## Refreshing a patch after an SDK bump
@@ -83,11 +117,23 @@ git -C external/linphone-sdk/liblinphone  diff
 If a patch no longer applies cleanly, fix it by hand in the submodule working tree, then regenerate
 the file:
 
+Use git's own `--output=` rather than shell redirection. PowerShell's `>` writes CRLF and may add a
+BOM, and `.gitattributes` marks `*.patch` as `-text` precisely because `git apply` rejects a patch
+whose line endings have been converted. `--output=` writes raw LF. It needs an absolute path,
+because `-C` has already changed git's working directory.
+
 ```
-git -C external/linphone-sdk/liblinphone diff src/vcard/carddav-context.cpp > nm-pbx-docs/sdk-patches/liblinphone-carddav-auth-username.patch
-git -C external/linphone-sdk/liblinphone diff coreapi/linphonecore.c > nm-pbx-docs/sdk-patches/liblinphone-log-collection.patch
-git -C external/linphone-sdk/mediastreamer2 diff > nm-pbx-docs/sdk-patches/mediastreamer2-msvc-libm.patch
+git -C external/linphone-sdk/liblinphone    diff --output=<repo>/nm-pbx-docs/sdk-patches/liblinphone-carddav-auth-username.patch -- src/vcard/carddav-context.cpp
+git -C external/linphone-sdk/liblinphone    diff --output=<repo>/nm-pbx-docs/sdk-patches/liblinphone-log-collection.patch        -- coreapi/linphonecore.c
+git -C external/linphone-sdk/mediastreamer2 diff --output=<repo>/nm-pbx-docs/sdk-patches/mediastreamer2-msvc-libm.patch          -- CMakeLists.txt src/CMakeLists.txt
+git -C external/linphone-sdk/mediastreamer2 diff --output=<repo>/nm-pbx-docs/sdk-patches/mediastreamer2-preprocess-timing.patch  -- src/base/msticker.c
+git -C external/linphone-sdk/mswasapi       diff --output=<repo>/nm-pbx-docs/sdk-patches/mswasapi-activate-timing.patch          -- mswasapi.cpp
 ```
 
-Note that the two liblinphone patches touch different files, so `git -C ... diff` with no path would
-merge them into one. Always pass the path.
+Several patches share a submodule: two are against `liblinphone` and two against `mediastreamer2`.
+`git -C ... diff` with no path would merge them into one, and the merged patches would then conflict
+with each other when the apply script runs. **Always pass the path.**
+
+Check a regenerated patch with `git -C <submodule> apply --reverse --check <patch>` before
+committing it. That is the same test the apply script uses for "already applied", so if it passes,
+the script will recognise the patch correctly.

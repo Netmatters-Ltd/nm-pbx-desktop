@@ -98,6 +98,19 @@ private:
 	QString mConfigPath;
 	QTimer *mIterateTimer = nullptr;
 	QTimer *mCardDAVSyncTimer = nullptr;
+
+	// Stall instrumentation. Thresholds live in tool/stall/StallMonitor.hpp.
+	// mIterateIntervalMs caches the timer interval so the hot path does not read it back off
+	// the QTimer on every tick.
+	int mIterateIntervalMs = 0;
+	qint64 mLastIterateEndMs = -1;
+	qint64 mIterateTicks = 0;
+	qint64 mStallCount = 0;
+	qint64 mSummarisedStallCount = 0;
+	qint64 mWorstGapMs = 0;
+	qint64 mWorstIterateMs = 0;
+	qint64 mStalledTotalMs = 0;
+	qint64 mLastSummaryMs = 0;
 	QMap<QString, OIDCModel *> mOpenIdConnections;
 	std::shared_ptr<MagicSearchModel> mMagicSearch;
 	bool mStarted = false;
@@ -107,6 +120,7 @@ private:
 	void setPathsAfterCreation();
 	void setPathAfterStart();
 	void setCustomTones();
+	void onIterate();
 
 	static std::shared_ptr<CoreModel> gCoreModel;
 

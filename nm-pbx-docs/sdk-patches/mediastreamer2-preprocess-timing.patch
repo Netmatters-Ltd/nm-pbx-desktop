@@ -1,0 +1,38 @@
+diff --git a/src/base/msticker.c b/src/base/msticker.c
+index 440aa37b..1d361ba0 100644
+--- a/src/base/msticker.c
++++ b/src/base/msticker.c
+@@ -147,6 +147,10 @@ int ms_ticker_attach_multiple(MSTicker *ticker, MSFilter *f, ...) {
+ 	bctbx_list_t *filters = NULL;
+ 	bctbx_list_t *it;
+ 	bctbx_list_t *total_sources = NULL;
++	/* NMPBX: diagnostic timing, see nm-pbx-docs/sdk-patches. */
++	uint64_t preprocess_start;
++	uint64_t filter_start;
++	uint64_t elapsed;
+ 	va_list l;
+ 
+ 	va_start(l, f);
+@@ -161,9 +165,22 @@ int ms_ticker_attach_multiple(MSTicker *ticker, MSFilter *f, ...) {
+ 				break;
+ 			}
+ 			/*run preprocess on each filter: */
++			/* NMPBX: this loop runs on the calling thread, not the ticker, so on a client it
++			   blocks the SIP thread during call setup and delays the ACK. The per-filter line
++			   is gated because the graph is 15-25 filters and logging every one of them would
++			   inflate the very number we are measuring. */
++			preprocess_start = ms_get_cur_time_ms();
+ 			for (it = filters; it != NULL; it = it->next) {
++				filter_start = ms_get_cur_time_ms();
+ 				ms_filter_preprocess((MSFilter *)it->data, ticker);
++				elapsed = ms_get_cur_time_ms() - filter_start;
++				if (elapsed >= 50)
++					ms_warning("ms_ticker_attach: preprocess of filter %s took %i ms.",
++					           ((MSFilter *)it->data)->desc->name, (int)elapsed);
+ 			}
++			elapsed = ms_get_cur_time_ms() - preprocess_start;
++			ms_message("ms_ticker_attach: preprocess of all filters around %s took %i ms.", f->desc->name,
++			           (int)elapsed);
+ 			bctbx_list_free(filters);
+ 			total_sources = bctbx_list_concat(total_sources, sources);
+ 		} else {

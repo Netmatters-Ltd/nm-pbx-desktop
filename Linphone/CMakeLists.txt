@@ -206,6 +206,10 @@ endif()
 set_target_properties(${TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 if(WIN32)
+	# DbgHelp for the stall watchdog: symbolisation and minidump writing. bctoolbox pulls it
+	# in with a #pragma at bctoolbox/src/utils/win_utils.cc, but that applies to bctoolbox's
+	# own link and does not propagate to this executable.
+	target_link_libraries(${TARGET_NAME} PUBLIC dbghelp)
 	if(ENABLE_SCREENSHARING)
 		target_link_libraries(${TARGET_NAME} PUBLIC Dwmapi)
 	endif()

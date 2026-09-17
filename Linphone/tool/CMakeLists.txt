@@ -9,6 +9,8 @@ list(APPEND _LINPHONEAPP_SOURCES
 	tool/thread/SafeSharedPointer.hpp
 	tool/thread/SafeConnection.hpp
 	tool/thread/Thread.cpp
+	tool/stall/StallMonitor.cpp
+	tool/stall/StallPlatform.hpp
 	tool/providers/AvatarProvider.cpp
 	tool/providers/EmojiProvider.cpp
 	tool/providers/ExternalImageProvider.cpp
@@ -40,16 +42,19 @@ if (APPLE)
 		tool/native/DesktopToolsMacOsNative.mm
 		tool/native/screen-saver/ScreenSaverMacOs.m
 		tool/native/state-process/StateProcessMacOs.mm
+		tool/stall/StallPlatformGeneric.cpp
 		)
 elseif (WIN32)
 	list(APPEND _LINPHONEAPP_SOURCES
 		tool/native/DesktopToolsWindows.cpp
+		tool/stall/StallPlatformWindows.cpp
 		)
 else ()
 	list(APPEND _LINPHONEAPP_SOURCES
 		tool/native/DesktopToolsLinux.cpp
 		tool/native/screen-saver/ScreenSaverDBus.cpp
 		tool/native/screen-saver/ScreenSaverXdg.cpp
+		tool/stall/StallPlatformGeneric.cpp
 		)
 endif ()
 

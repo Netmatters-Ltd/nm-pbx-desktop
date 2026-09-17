@@ -287,6 +287,11 @@ QString Paths::getLogsDirPath() {
 	                          Constants::PathLogs);
 }
 
+QString Paths::getStallDumpsDirPath() {
+	return getWritableDirPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
+	                          Constants::PathStallDumps);
+}
+
 QString Paths::getCrashpadDirPath() {
 #ifdef HAVE_CRASH_HANDLER
 	return getWritableDirPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +

@@ -20,6 +20,7 @@
 
 #include "Thread.hpp"
 #include "core/App.hpp"
+#include "tool/stall/StallMonitor.hpp"
 #include <QDebug>
 
 Thread::Thread(QObject *parent) : QThread(parent) {
@@ -27,6 +28,9 @@ Thread::Thread(QObject *parent) : QThread(parent) {
 
 void Thread::run() {
 	qInfo () << "Thread is running";
+	// Before mThreadId, so that App::init()'s existing spin-wait on getThreadId() doubles as
+	// the synchronisation point for the handle and no new waiting is needed anywhere.
+	StallMonitor::getInstance()->attachToCurrentThread();
 	mThreadId = new QObject();
 	setlocale(LC_CTYPE, ".UTF8");
 	int toExit = false;
@@ -34,8 +38,13 @@ void Thread::run() {
 		int result = exec();
 		if (result <= 0) toExit = true;
 	}
+	// Joins the watchdog before releasing the thread handle, and runs before this function
+	// returns, so App::clean()'s wait() cannot return while the handle is still in use.
+	StallMonitor::getInstance()->detach();
 }
 Thread::~Thread() {
+	// Idempotent, and covers the case where the thread was never started.
+	StallMonitor::getInstance()->detach();
 	mThreadId->deleteLater();
 }
 

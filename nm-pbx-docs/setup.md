@@ -187,13 +187,20 @@ Make two edits to prevent the build system from searching for and linking the ma
 
 ### Known Issue: `m.lib` and other SDK patches are lost after a submodule update
 
-The `libm` fix above, and a CardDAV authentication fix in liblinphone, live only in the working trees
-of the SDK's nested submodules. Nothing tracks them, so a fresh clone, a
+The `libm` fix above, a CardDAV authentication fix, and a log collection fix in liblinphone live only
+in the working trees of the SDK's nested submodules. Nothing tracks them, so a fresh clone, a
 `git submodule update --force`, or any SDK version bump wipes them.
 
-Both are saved as patch files. See `nm-pbx-docs/sdk-patches/README.md` for how to reapply and how to
-check what is currently applied. Do that before reporting a build failure that looks like one of the
-known issues here.
+They are saved as patch files. Put them back with:
+
+```pwsh
+powershell -ExecutionPolicy Bypass -File nm-pbx-docs\apply-sdk-patches.ps1
+```
+
+It is safe to run more than once, and it tells you which patches were already in place. Do that
+before reporting a build failure that looks like one of the known issues here. See
+`nm-pbx-docs/sdk-patches/README.md` for what each patch does and how to refresh one after an SDK
+bump.
 
 ### Known Issue: `make: command not found` building openh264, vpx or libaom
 
@@ -293,7 +300,14 @@ git -C external\linphone-sdk submodule status --recursive | Select-String '^[-+]
 The second command should print nothing. A leading `+` means the checked-out commit does not match
 what the SDK records, and `-` means the submodule is not initialised at all.
 
-Then reapply the SDK patches, see `nm-pbx-docs/sdk-patches/README.md`.
+Then reapply the SDK patches:
+
+```pwsh
+powershell -ExecutionPolicy Bypass -File nm-pbx-docs\apply-sdk-patches.ps1
+```
+
+If it reports a patch that no longer applies, the SDK has moved under it. See
+`nm-pbx-docs/sdk-patches/README.md` for how to refresh one.
 
 ### Known Issue: gclient reports "You have uncommitted changes"
 
@@ -356,7 +370,7 @@ cd build
 
 First:
 ```cmd
-set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin;%PATH%"
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin;"
 ```
 
 If you have the build working and just need to re-run the whole thing:
@@ -448,14 +462,14 @@ cd C:\Users\sam.driver\Code\linphone-desktop\build
 ```
 
 ```cmd
-set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin;%PATH%"
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%PATH%;C:\msys64\mingw64\bin;C:\msys64\;C:\msys64\usr\bin"
 ```
 
 We'll sign the app in the build tree, after building but before installing, leave the project's built-in signing off, and sign the installer as a separate final step. All signing is interactive with the eToken.
 
 Configure with packaging on (signing vars left unset on purpose)
 ```cmd
-cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON -DENABLE_UPDATE_CHECK=OFF -DENABLE_APP_PACKAGING=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_PARALLEL_LEVEL=10 -DENABLE_WINDOWS_TOOLS_CHECK=ON -DENABLE_UPDATE_CHECK=OFF -DENABLE_APP_PACKAGING=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOXYGEN_EXECUTABLE="C:/Program Files/doxygen/bin/doxygen.exe"
 ```
 
 Build

@@ -150,6 +150,9 @@ public:
 	static constexpr char PathData[] = "/" EXECUTABLE_NAME;
 	static constexpr char PathTools[] = "/tools/";
 	static constexpr char PathLogs[] = "/logs/";
+	// Minidumps written by the stall watchdog. Kept out of the crashpad folder on purpose:
+	// these are not crashes and must never be uploaded as if they were.
+	static constexpr char PathStallDumps[] = "/stalls/";
 	static constexpr char PathVCards[] = "/vcards/";
 	static constexpr char PathMetrics[] = "/metrics/";
 #ifdef APPLE
