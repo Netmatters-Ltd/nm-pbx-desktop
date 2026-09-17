@@ -1,0 +1,164 @@
+diff --git a/coreapi/linphonecore.c b/coreapi/linphonecore.c
+index 3b1514b80..e000cf86e 100644
+--- a/coreapi/linphonecore.c
++++ b/coreapi/linphonecore.c
+@@ -147,6 +147,7 @@
+ #define LOG_COLLECTION_DEFAULT_PATH "."
+ #define LOG_COLLECTION_DEFAULT_PREFIX "linphone"
+ #define LOG_COLLECTION_DEFAULT_MAX_FILE_SIZE (10 * 1024 * 1024)
++#define LOG_COLLECTION_OPEN_RETRY_DELAY 5 /*seconds to wait before retrying a failed open*/
+ 
+ /*#define UNSTANDART_GSM_11K 1*/
+ 
+@@ -183,6 +184,7 @@ static size_t liblinphone_log_collection_max_file_size = LOG_COLLECTION_DEFAULT_
+ static ortp_mutex_t liblinphone_log_collection_mutex;
+ static FILE *liblinphone_log_collection_file = NULL;
+ static size_t liblinphone_log_collection_file_size = 0;
++static time_t liblinphone_log_collection_last_open_attempt = 0;
+ static bool_t liblinphone_serialize_logs = FALSE;
+ static void set_sip_network_reachable(LinphoneCore *lc, bool_t isReachable, time_t curtime);
+ static void set_media_network_reachable(LinphoneCore *lc, bool_t isReachable);
+@@ -873,27 +875,50 @@ unsigned int linphone_core_get_log_level_mask(void) {
+ static int _open_log_collection_file_with_idx(int idx) {
+ 	struct stat statbuf;
+ 	char *log_filename;
++	FILE *log_file;
+ 
+ 	log_filename = ortp_strdup_printf(
+ 	    "%s/%s%d.log", liblinphone_log_collection_path ? liblinphone_log_collection_path : LOG_COLLECTION_DEFAULT_PATH,
+ 	    liblinphone_log_collection_prefix ? liblinphone_log_collection_prefix : LOG_COLLECTION_DEFAULT_PREFIX, idx);
+-	liblinphone_log_collection_file = fopen(log_filename, "a");
++	log_file = fopen(log_filename, "a");
+ 	ortp_free(log_filename);
+-	if (liblinphone_log_collection_file == NULL) return -1;
++	if (log_file == NULL) return -1;
+ 
+-	fstat(fileno(liblinphone_log_collection_file), &statbuf);
++	if (fstat(fileno(log_file), &statbuf) != 0) {
++		fclose(log_file);
++		return -1;
++	}
+ 	if ((size_t)statbuf.st_size > liblinphone_log_collection_max_file_size) {
+-		fclose(liblinphone_log_collection_file);
++		fclose(log_file);
+ 		return -1;
+ 	}
+ 
++	/*only publish the handle once it is known to be usable, so a failure never leaves a dangling FILE* behind*/
++	liblinphone_log_collection_file = log_file;
+ 	liblinphone_log_collection_file_size = (size_t)statbuf.st_size;
+ 	return 0;
+ }
+ 
+-static void _rotate_log_collection_files(void) {
++static int _truncate_log_collection_file_with_idx(int idx) {
++	char *log_filename;
++	FILE *log_file;
++
++	log_filename = ortp_strdup_printf(
++	    "%s/%s%d.log", liblinphone_log_collection_path ? liblinphone_log_collection_path : LOG_COLLECTION_DEFAULT_PATH,
++	    liblinphone_log_collection_prefix ? liblinphone_log_collection_prefix : LOG_COLLECTION_DEFAULT_PREFIX, idx);
++	log_file = fopen(log_filename, "w");
++	ortp_free(log_filename);
++	if (log_file == NULL) return -1;
++
++	liblinphone_log_collection_file = log_file;
++	liblinphone_log_collection_file_size = 0;
++	return 0;
++}
++
++static int _rotate_log_collection_files(void) {
+ 	char *log_filename1;
+ 	char *log_filename2;
++	int err;
+ 
+ 	log_filename1 = ortp_strdup_printf(
+ 	    "%s/%s1.log", liblinphone_log_collection_path ? liblinphone_log_collection_path : LOG_COLLECTION_DEFAULT_PATH,
+@@ -902,18 +927,30 @@ static void _rotate_log_collection_files(void) {
+ 	    "%s/%s2.log", liblinphone_log_collection_path ? liblinphone_log_collection_path : LOG_COLLECTION_DEFAULT_PATH,
+ 	    liblinphone_log_collection_prefix ? liblinphone_log_collection_prefix : LOG_COLLECTION_DEFAULT_PREFIX);
+ 	unlink(log_filename1);
+-	rename(log_filename2, log_filename1);
++	/*rename() fails on Windows when the destination still exists, which is what happens when the unlink above
++	 * was refused because another process holds the file open*/
++	err = rename(log_filename2, log_filename1);
+ 	ortp_free(log_filename1);
+ 	ortp_free(log_filename2);
++	return err;
+ }
+ 
+-static void _open_log_collection_file(void) {
+-	if (_open_log_collection_file_with_idx(1) < 0) {
+-		if (_open_log_collection_file_with_idx(2) < 0) {
+-			_rotate_log_collection_files();
+-			_open_log_collection_file_with_idx(2);
+-		}
++static int _open_log_collection_file(void) {
++	int err = -1;
++
++	if (_open_log_collection_file_with_idx(1) == 0) err = 0;
++	else if (_open_log_collection_file_with_idx(2) == 0) err = 0;
++	else if ((_rotate_log_collection_files() == 0) && (_open_log_collection_file_with_idx(2) == 0)) err = 0;
++	/*rotation was refused: start the second file over rather than giving up on file logging entirely*/
++	else if (_truncate_log_collection_file_with_idx(2) == 0) err = 0;
++
++	if (err == 0) {
++		liblinphone_log_collection_last_open_attempt = 0;
++	} else {
++		liblinphone_log_collection_file = NULL;
++		liblinphone_log_collection_file_size = 0;
+ 	}
++	return err;
+ }
+ 
+ static void _close_log_collection_file(void) {
+@@ -943,6 +980,7 @@ linphone_core_log_collection_handler(const char *domain, OrtpLogLevel level, con
+ 	struct tm *lt;
+ 	time_t tt;
+ 	int ret;
++	long pos;
+ 
+ 	if (liblinphone_user_log_func != NULL && liblinphone_user_log_func != linphone_core_log_collection_handler) {
+ #ifndef _WIN32
+@@ -976,26 +1014,35 @@ linphone_core_log_collection_handler(const char *domain, OrtpLogLevel level, con
+ 	}
+ 	msg = ortp_strdup_vprintf(fmt, args);
+ 
++	ortp_mutex_lock(&liblinphone_log_collection_mutex);
+ 	if (liblinphone_log_collection_file == NULL) {
+-		ortp_mutex_lock(&liblinphone_log_collection_mutex);
+-		_open_log_collection_file();
+-		ortp_mutex_unlock(&liblinphone_log_collection_mutex);
++		/*back off after a failed open, otherwise every line from every thread retries the whole
++		 * open/rotate sequence while holding this mutex. tt may go backwards if the wall clock is
++		 * stepped, so treat that as "retry now".*/
++		if ((tt < liblinphone_log_collection_last_open_attempt) ||
++		    (tt - liblinphone_log_collection_last_open_attempt >= LOG_COLLECTION_OPEN_RETRY_DELAY)) {
++			liblinphone_log_collection_last_open_attempt = tt;
++			_open_log_collection_file();
++		}
+ 	}
+ 	if (liblinphone_log_collection_file) {
+-		ortp_mutex_lock(&liblinphone_log_collection_mutex);
+ 		ret = fprintf(liblinphone_log_collection_file, "%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i [%s/%s] %s %s\n",
+ 		              1900 + lt->tm_year, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec,
+ 		              (int)(tp.tv_usec / 1000), getprogname(), domain, lname, msg);
+ 		fflush(liblinphone_log_collection_file);
+ 		if (ret > 0) {
+-			liblinphone_log_collection_file_size += (size_t)ret;
++			/*fprintf() returns the number of characters formatted, which does not match what lands on
++			 * disk when the stream translates "\n" to "\r\n". Take the real position instead.*/
++			pos = ftell(liblinphone_log_collection_file);
++			if (pos >= 0) liblinphone_log_collection_file_size = (size_t)pos;
++			else liblinphone_log_collection_file_size += (size_t)ret;
+ 			if (liblinphone_log_collection_file_size > liblinphone_log_collection_max_file_size) {
+ 				_close_log_collection_file();
+ 				_open_log_collection_file();
+ 			}
+ 		}
+-		ortp_mutex_unlock(&liblinphone_log_collection_mutex);
+ 	}
++	ortp_mutex_unlock(&liblinphone_log_collection_mutex);
+ 
+ 	ortp_free(msg);
+ }

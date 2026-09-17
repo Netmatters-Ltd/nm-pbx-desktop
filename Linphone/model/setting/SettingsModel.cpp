@@ -776,6 +776,9 @@ void SettingsModel::setLogsUploadUrl(const QString &serverUrl) {
 void SettingsModel::cleanLogs() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
 	CoreModel::getInstance()->getCore()->resetLogCollection();
+	// resetLogCollection() also resets the max file size to the SDK's 10MB default
+	// (linphonecore.c, linphone_core_reset_log_collection). Put ours back.
+	linphone::Core::setLogCollectionMaxFileSize(Constants::MaxLogsCollectionSize);
 }
 
 void SettingsModel::sendLogs() const {
