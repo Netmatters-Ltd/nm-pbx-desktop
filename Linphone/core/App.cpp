@@ -113,6 +113,7 @@
 #include "tool/providers/ThumbnailProvider.hpp"
 #include "tool/request/CallbackHelper.hpp"
 #include "tool/request/RequestDialog.hpp"
+#include "tool/stall/StallMonitor.hpp"
 #include "tool/thread/Thread.hpp"
 #include "tool/ui/DashRectangle.hpp"
 
@@ -971,6 +972,9 @@ void App::clean() {
 	QTimer::singleShot(500, [this]() { exit(0); });
 	exec();
 	if (mLinphoneThread) {
+		// Shutdown blocks the model thread legitimately, so stop watching it before asking it
+		// to leave rather than reporting the teardown as a stall.
+		StallMonitor::getInstance()->disarm();
 		mLinphoneThread->exit();
 		mLinphoneThread->wait();
 		delete mLinphoneThread;

@@ -34,6 +34,7 @@
 #include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
+#include "tool/stall/StallMonitor.hpp"
 
 #if defined(Q_OS_MACOS)
 #include "core/event-count-notifier/EventCountNotifierMacOs.hpp"
@@ -71,6 +72,9 @@ std::shared_ptr<CoreModel> CoreModel::create(const QString &configPath, QThread 
 }
 
 void CoreModel::start() {
+	// Core startup blocks this thread for as long as it takes, so the watchdog stays disarmed
+	// until the end of this function. Time it here instead, so we still have the number.
+	const qint64 startupBegan = StallMonitor::steadyMs();
 	setPathBeforeCreation();
 	mCore =
 	    linphone::Factory::get()->createCore(Utils::appStringToCoreString(Paths::getConfigFilePath(mConfigPath)),
@@ -111,7 +115,8 @@ void CoreModel::start() {
 
 	mIterateTimer = new QTimer(this);
 	mIterateTimer->setInterval(20);
-	connect(mIterateTimer, &QTimer::timeout, [this]() { mCore->iterate(); });
+	mIterateIntervalMs = mIterateTimer->interval();
+	connect(mIterateTimer, &QTimer::timeout, this, [this]() { onIterate(); });
 	mIterateTimer->start();
 
 	// Sync all CardDAV address books on startup and then every 15 minutes so that
@@ -147,6 +152,81 @@ void CoreModel::start() {
 	connect(mMagicSearch.get(), &MagicSearchModel::searchResultsReceived, this,
 	        [this] { emit magicSearchResultReceived(mMagicSearch->mLastSearch); });
 	mStarted = true;
+	lInfo() << log().arg("Core startup took %1ms").arg(StallMonitor::steadyMs() - startupBegan);
+
+	// Armed last, deliberately. The timer is running by now but its callbacks cannot fire
+	// until this function returns and the event loop spins, so arming any earlier would
+	// report the remainder of startup as a stall.
+	mLastSummaryMs = StallMonitor::steadyMs();
+	StallMonitor::getInstance()->arm();
+}
+
+// -----------------------------------------------------------------------------
+// Drives the SIP stack, and measures how available this thread actually is.
+//
+// Two separate numbers, and the distinction is the whole point:
+//   - the gap before this tick is time the thread spent on something other than iterate(),
+//     so work queued from the UI thread, another timer, or a blocking native call;
+//   - the duration of iterate() is time inside SIP processing itself.
+//
+// A long gap with a short iterate() says the block is beside iterate(); the reverse says it
+// is inside. Grepping for one line or the other separates the two cases immediately.
+//
+// The healthy path does no logging at all, which matters: it keeps the cost here to two
+// clock reads and an atomic store, and it keeps a well behaved client from eating into the
+// 50MB log budget.
+// -----------------------------------------------------------------------------
+void CoreModel::onIterate() {
+	const qint64 tickStart = StallMonitor::steadyMs();
+	const qint64 gap = (mLastIterateEndMs < 0) ? 0 : tickStart - mLastIterateEndMs;
+
+	// Published before iterate() rather than after, so that time spent inside iterate() counts
+	// as silence to the watchdog. Call setup can be reached either way and we want both to
+	// trip it.
+	StallMonitor::getInstance()->beat(tickStart);
+
+	mCore->iterate();
+
+	const qint64 tickEnd = StallMonitor::steadyMs();
+	const qint64 duration = tickEnd - tickStart;
+	mLastIterateEndMs = tickEnd;
+	++mIterateTicks;
+
+	const bool gapStalled = gap > StallMonitor::IterateGapWarnMs;
+	const bool iterateStalled = duration > StallMonitor::IterateDurationWarnMs;
+
+	if (gapStalled) {
+		lWarning() << log().arg("Iterate gap %1ms before this tick (interval is %2ms). The model thread was busy "
+		                        "with work other than iterate().")
+		                  .arg(gap)
+		                  .arg(mIterateIntervalMs);
+	}
+	if (iterateStalled) {
+		lWarning() << log().arg("Core::iterate() took %1ms. SIP processing was blocked for that long.").arg(duration);
+	}
+
+	if (gapStalled || iterateStalled) {
+		++mStallCount;
+		mStalledTotalMs += qMax(qint64(0), gap - mIterateIntervalMs) + duration;
+	}
+	if (gap > mWorstGapMs) mWorstGapMs = gap;
+	if (duration > mWorstIterateMs) mWorstIterateMs = duration;
+
+	// Summarised at most once a minute, and only when something has actually happened since
+	// the last summary.
+	if (tickEnd - mLastSummaryMs >= StallMonitor::SummaryIntervalMs) {
+		mLastSummaryMs = tickEnd;
+		if (mStallCount != mSummarisedStallCount) {
+			mSummarisedStallCount = mStallCount;
+			lInfo() << log().arg("Iterate health: %1 ticks, %2 stalls, worst gap %3ms, worst iterate %4ms, %5ms lost "
+			                     "in total")
+			               .arg(mIterateTicks)
+			               .arg(mStallCount)
+			               .arg(mWorstGapMs)
+			               .arg(mWorstIterateMs)
+			               .arg(mStalledTotalMs);
+		}
+	}
 }
 // -----------------------------------------------------------------------------
 
