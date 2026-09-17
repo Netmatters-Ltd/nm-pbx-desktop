@@ -12,7 +12,7 @@ index 3d285cb6..63c1a6e4 100644
  endif()
  if(CpuFeatures_FOUND)
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 0568efe3..df17d746 100644
+index f35e0d27..39c59c7a 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
 @@ -20,7 +20,9 @@

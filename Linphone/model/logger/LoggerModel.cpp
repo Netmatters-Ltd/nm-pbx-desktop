@@ -19,6 +19,9 @@
  */
 
 #include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QLoggingCategory>
 #include <QMessageBox>
 #include <QString>
@@ -33,6 +36,7 @@
 #include "tool/Utils.hpp"
 
 #include "core/logger/QtLogger.hpp"
+#include "core/path/Paths.hpp"
 // -----------------------------------------------------------------------------
 
 LoggerModel::LoggerModel(QObject *parent) : QObject(parent) {
@@ -123,9 +127,51 @@ void LoggerModel::enable(bool status) {
 	                                           : linphone::LogCollectionState::Disabled);
 }
 
+// The SDK refuses to open a log file that is already over the size limit, and if its rotation cannot
+// delete or rename one it stops writing to file for the rest of the session. Clear any oversize file
+// up front so we can never start in that state.
+//
+// Returns what it did rather than logging it, because the caller in init() runs before log collection
+// is enabled and we want this recorded in the log file itself, not just on the console.
+QStringList LoggerModel::pruneOversizeLogs(const QString &folder) {
+	QStringList report;
+	QDir dir(folder);
+	if (!dir.exists()) return report;
+	const auto files =
+	    dir.entryInfoList(QStringList(QStringLiteral(EXECUTABLE_NAME) + "*.log"), QDir::Files | QDir::NoSymLinks);
+	for (const QFileInfo &fileInfo : files) {
+		if (fileInfo.size() <= qint64(Constants::MaxLogsCollectionSize)) continue;
+		const QString filePath = fileInfo.absoluteFilePath();
+		if (QFile::remove(filePath)) {
+			report << QStringLiteral("Removed oversize log file `%1` (%2 bytes).").arg(filePath).arg(fileInfo.size());
+			continue;
+		}
+		// Something else is holding it open. We usually cannot delete it but we can still empty it,
+		// which is enough for the SDK to reopen it.
+		QFile file(filePath);
+		if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+			file.close();
+			report << QStringLiteral("Truncated oversize log file `%1` (%2 bytes).").arg(filePath).arg(fileInfo.size());
+		} else {
+			report << QStringLiteral("Could not clear oversize log file `%1`: %2.")
+			              .arg(filePath)
+			              .arg(file.errorString());
+		}
+	}
+	return report;
+}
+
 void LoggerModel::applyConfig(const std::shared_ptr<linphone::Config> &config) {
 	const QString folder = SettingsModel::getLogsFolder(config);
-	linphone::Core::setLogCollectionPath(Utils::appStringToCoreString(folder));
+	// init() already pointed us at the default folder. Only move if the config names a different one.
+	if (QDir::cleanPath(folder) !=
+	    QDir::cleanPath(Utils::coreStringToAppString(linphone::Core::getLogCollectionPath()))) {
+		for (const QString &line : pruneOversizeLogs(folder))
+			qWarning() << line;
+		linphone::Core::setLogCollectionPath(Utils::appStringToCoreString(folder));
+	}
+	// Re-assert the limit: resetLogCollection() puts the SDK's 10MB default back.
+	linphone::Core::setLogCollectionMaxFileSize(Constants::MaxLogsCollectionSize);
 	enableFullLogs(SettingsModel::getFullLogsEnabled(config));
 	// TODO : uncomment when it is possible to change the config from settings
 	// enable(SettingsModel::getLogsEnabled(config));
@@ -147,8 +193,17 @@ void LoggerModel::init() {
 	}
 	linphone::Core::setLogCollectionPrefix(EXECUTABLE_NAME);
 	linphone::Core::setLogCollectionMaxFileSize(Constants::MaxLogsCollectionSize);
+	// Point the SDK at the real logs folder before enabling collection. Until this is set the SDK writes
+	// to its default path, which is the working directory, and that may not be writable.
+	const QString folder = Paths::getLogsDirPath();
+	const QStringList pruned = pruneOversizeLogs(folder);
+	linphone::Core::setLogCollectionPath(Utils::appStringToCoreString(folder));
 
 	enable(true);
+
+	// Only now is there a log file to write to, so report the prune after enabling.
+	for (const QString &line : pruned)
+		qWarning() << line;
 }
 
 QString LoggerModel::getLogText() const {

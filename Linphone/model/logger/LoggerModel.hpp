@@ -23,6 +23,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <linphone++/linphone.hh>
 
 #include "LoggerListener.hpp"
@@ -59,6 +60,7 @@ signals:
 
 private:
 	static void log(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+	static QStringList pruneOversizeLogs(const QString &folder);
 	bool mVerboseEnabled = false;
 	bool mQtOnlyEnabled = false;
 	std::shared_ptr<LoggerListener> mListener;

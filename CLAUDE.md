@@ -16,6 +16,12 @@ For our use, we're only concerned with the 64-bit Windows build.
 
 [Brand](/nm-pbx-docs/brand.md) has referencing for colours, images, etc., for the NMPBX branding.
 
+[SDK patches](/nm-pbx-docs/sdk-patches/README.md) lists the local fixes we carry inside the
+`external/linphone-sdk` submodules. Those live in untracked working trees, so they are lost by a
+fresh clone, by `git submodule update --force`, and by any SDK version bump. If you change anything
+under `external/linphone-sdk`, capture it as a patch there. Reapply them with
+`nm-pbx-docs/apply-sdk-patches.ps1`.
+
 ## Language
 
 This project supports translation into multiple languages. However we are only concerned with the English version. Use British English. Translate any hardcoded text in other languages that may be user-visible.
