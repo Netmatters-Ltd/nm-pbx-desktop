@@ -133,6 +133,9 @@ public:
 	bool getCreateEndToEndEncryptedMeetingsAndGroupCalls() const;
 	void setCreateEndToEndEncryptedMeetingsAndGroupCalls(bool endtoend);
 
+	int getMaxCallHistory() const;
+	void setMaxCallHistory(int max);
+
 	int getCardDAVMinCharResearch() const;
 	void setCardDAVMinCharResearch(int min);
 	int getCardDAVSyncIntervalSeconds() const;
@@ -204,6 +207,18 @@ public:
 	// account's international prefix, and with no prefix a UK national number never reaches E.164,
 	// so nothing matches. Provisioning wins; a prefix already set is never overwritten.
 	static void applyAccountDialPlanDefault();
+
+	// Bounds the call history the app loads and rebuilds. Left to the SDK's default of unlimited,
+	// every rebuild reads and rebuilds every call the user has ever made, which is what made call
+	// setup stall on the busiest deployments. Only applied when nothing has set the value already,
+	// so provisioning and the user's own choice both win.
+	void applyCallHistoryLimitDefault();
+
+	// Smallest and largest values the setting accepts. The floor matters because the SDK reads
+	// zero and below as unlimited, which is the fault we are fixing.
+	static constexpr int CallHistoryLimitMin = 20;
+	static constexpr int CallHistoryLimitMax = 5000;
+	static constexpr int CallHistoryLimitDefault = 500;
 
 	static QString getDeviceName(const std::shared_ptr<linphone::Config> &config);
 
@@ -296,6 +311,8 @@ signals:
 	void mediaEncryptionChanged();
 	void mediaEncryptionMandatoryChanged();
 	void createEndToEndEncryptedMeetingsAndGroupCallsChanged(bool endtoend);
+
+	void maxCallHistoryChanged(int max);
 
 	void cardDAVMinCharResearchChanged(int min);
 

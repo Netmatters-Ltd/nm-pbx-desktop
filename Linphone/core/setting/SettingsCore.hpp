@@ -276,6 +276,8 @@ public:
 	DECLARE_CORE_GETSET_MEMBER(bool, hideSipAddresses, HideSipAddresses)
 	DECLARE_CORE_GETSET_MEMBER(bool, darkModeAllowed, DarkModeAllowed)
 	DECLARE_CORE_GETSET_MEMBER(int, maxAccount, MaxAccount)
+	// How many call records the history list loads. See SettingsModel::applyCallHistoryLimitDefault.
+	DECLARE_CORE_GETSET_MEMBER(int, maxCallHistory, MaxCallHistory)
 	DECLARE_CORE_GETSET_MEMBER(bool,
 	                           assistantGoDirectlyToThirdPartySipAccountLogin,
 	                           AssistantGoDirectlyToThirdPartySipAccountLogin)

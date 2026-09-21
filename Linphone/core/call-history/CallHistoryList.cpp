@@ -24,6 +24,7 @@
 #include "model/object/VariantObject.hpp"
 #include "model/tool/ToolModel.hpp"
 #include <QSharedPointer>
+#include <QTimer>
 #include <linphone++/linphone.hh>
 
 // =============================================================================
@@ -57,7 +58,21 @@ void CallHistoryList::setSelf(QSharedPointer<CallHistoryList> me) {
 	mModelConnection = SafeConnection<CallHistoryList, CoreModel>::create(me, CoreModel::getInstance());
 
 	mModelConnection->makeConnectToCore(&CallHistoryList::lUpdate, [this]() {
-		clearData();
+		// Rebuilding reads the database and builds an object per row on the linphone thread, which is
+		// the same thread SIP runs on. Letting two rebuilds overlap used to queue that work up behind
+		// itself; wait for the one in flight and run once more instead. Same idiom as ConferenceInfoList.
+		if (mIsUpdating) {
+			connect(this, &CallHistoryList::isUpdatingChanged, this, [this] {
+				if (!mIsUpdating) {
+					disconnect(this, &CallHistoryList::isUpdatingChanged, this, nullptr);
+					lUpdate();
+				}
+			});
+			return;
+		}
+		setIsUpdating(true);
+		// No clearData() here: resetData below already resets the model, and doing both meant two
+		// model resets and two proxy invalidations for one update.
 		emit listAboutToBeReset();
 		mModelConnection->invokeToModel([this]() {
 			mustBeInLinphoneThread(getClassName());
@@ -65,7 +80,13 @@ void CallHistoryList::setSelf(QSharedPointer<CallHistoryList> me) {
 			QList<QSharedPointer<CallHistoryCore>> *callLogs = new QList<QSharedPointer<CallHistoryCore>>();
 			std::list<std::shared_ptr<linphone::CallLog>> linphoneCallLogs;
 			if (auto account = CoreModel::getInstance()->getCore()->getDefaultAccount()) {
-				linphoneCallLogs = account->getCallLogs();
+				if (mModelPeerAddress.isEmpty()) {
+					linphoneCallLogs = account->getCallLogs();
+				} else if (auto peer = ToolModel::interpretUrl(mModelPeerAddress)) {
+					// One address only, so the database does the filtering rather than us loading
+					// everything and throwing most of it away.
+					linphoneCallLogs = account->getCallLogsForAddress(peer);
+				}
 			}
 			for (auto it : linphoneCallLogs) {
 				auto model = createCallHistoryCore(it);
@@ -76,6 +97,7 @@ void CallHistoryList::setSelf(QSharedPointer<CallHistoryList> me) {
 				mustBeInMainThread(getClassName());
 				resetData<CallHistoryCore>(*callLogs);
 				delete callLogs;
+				setIsUpdating(false);
 			});
 		});
 	});
@@ -84,6 +106,13 @@ void CallHistoryList::setSelf(QSharedPointer<CallHistoryList> me) {
 	mModelConnection->makeConnectToModel(
 	    &CoreModel::callLogUpdated,
 	    [this](const std::shared_ptr<linphone::Core> &core, const std::shared_ptr<linphone::CallLog> &callLog) {
+		    // A list bound to one address only wants that address's calls. The whole-history list
+		    // takes everything.
+		    if (!mModelPeerAddress.isEmpty()) {
+			    auto peer = ToolModel::interpretUrl(mModelPeerAddress);
+			    auto remote = callLog ? callLog->getRemoteAddress() : nullptr;
+			    if (!peer || !remote || !remote->weakEqual(peer)) return;
+		    }
 		    QSharedPointer<CallHistoryCore> *callLogs = new QSharedPointer<CallHistoryCore>[1];
 		    auto model = createCallHistoryCore(callLog);
 		    callLogs[0] = model;
@@ -122,7 +151,29 @@ void CallHistoryList::setSelf(QSharedPointer<CallHistoryList> me) {
 			}
 		});
 	});
-	emit lUpdate();
+	scheduleUpdate();
+}
+
+void CallHistoryList::scheduleUpdate() {
+	if (mUpdateScheduled) return;
+	mUpdateScheduled = true;
+	QTimer::singleShot(0, this, [this]() {
+		mUpdateScheduled = false;
+		emit lUpdate();
+	});
+}
+
+QString CallHistoryList::getPeerAddress() const {
+	return mPeerAddress;
+}
+
+void CallHistoryList::setPeerAddress(const QString &address) {
+	mustBeInMainThread(getClassName());
+	if (mPeerAddress == address) return;
+	mPeerAddress = address;
+	// Hand the value over before asking for the rebuild, so the fetch queued behind it sees it.
+	mModelConnection->invokeToModel([this, address]() { mModelPeerAddress = address; });
+	scheduleUpdate();
 }
 
 void CallHistoryList::toConnect(CallHistoryCore *data) {

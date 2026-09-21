@@ -134,6 +134,7 @@ SettingsCore::SettingsCore(QObject *parent) : QObject(parent) {
 	INIT_CORE_MEMBER(HideSipAddresses, settingsModel)
 	INIT_CORE_MEMBER(DarkModeAllowed, settingsModel)
 	INIT_CORE_MEMBER(MaxAccount, settingsModel)
+	INIT_CORE_MEMBER(MaxCallHistory, settingsModel)
 	INIT_CORE_MEMBER(AssistantGoDirectlyToThirdPartySipAccountLogin, settingsModel)
 	INIT_CORE_MEMBER(AssistantThirdPartySipAccountDomain, settingsModel)
 	INIT_CORE_MEMBER(AssistantThirdPartySipAccountTransport, settingsModel)
@@ -214,6 +215,7 @@ SettingsCore::SettingsCore(const SettingsCore &settingsCore) {
 	mHideSipAddresses = settingsCore.mHideSipAddresses;
 	mDarkModeAllowed = settingsCore.mDarkModeAllowed;
 	mMaxAccount = settingsCore.mMaxAccount;
+	mMaxCallHistory = settingsCore.mMaxCallHistory;
 	mAssistantGoDirectlyToThirdPartySipAccountLogin = settingsCore.mAssistantGoDirectlyToThirdPartySipAccountLogin;
 	mAssistantThirdPartySipAccountDomain = settingsCore.mAssistantThirdPartySipAccountDomain;
 	mAssistantThirdPartySipAccountTransport = settingsCore.mAssistantThirdPartySipAccountTransport;
@@ -470,6 +472,8 @@ void SettingsCore::setSelf(QSharedPointer<SettingsCore> me) {
 	                           darkModeAllowed, DarkModeAllowed)
 	DEFINE_CORE_GETSET_CONNECT(mSettingsModelConnection, SettingsCore, SettingsModel, settingsModel, int, maxAccount,
 	                           MaxAccount)
+	DEFINE_CORE_GETSET_CONNECT(mSettingsModelConnection, SettingsCore, SettingsModel, settingsModel, int,
+	                           maxCallHistory, MaxCallHistory)
 	DEFINE_CORE_GETSET_CONNECT(mSettingsModelConnection, SettingsCore, SettingsModel, settingsModel, bool,
 	                           assistantGoDirectlyToThirdPartySipAccountLogin,
 	                           AssistantGoDirectlyToThirdPartySipAccountLogin)
@@ -584,6 +588,7 @@ void SettingsCore::reset(const SettingsCore &settingsCore) {
 	setHideSipAddresses(settingsCore.mHideSipAddresses);
 	setDarkModeAllowed(settingsCore.mDarkModeAllowed);
 	setMaxAccount(settingsCore.mMaxAccount);
+	setMaxCallHistory(settingsCore.mMaxCallHistory);
 	setAssistantGoDirectlyToThirdPartySipAccountLogin(settingsCore.mAssistantGoDirectlyToThirdPartySipAccountLogin);
 	setAssistantThirdPartySipAccountDomain(settingsCore.mAssistantThirdPartySipAccountDomain);
 	setAssistantThirdPartySipAccountTransport(settingsCore.mAssistantThirdPartySipAccountTransport);
@@ -1186,6 +1191,7 @@ void SettingsCore::writeIntoModel(std::shared_ptr<SettingsModel> model) const {
 	model->setHideSipAddresses(mHideSipAddresses);
 	model->setDarkModeAllowed(mDarkModeAllowed);
 	model->setMaxAccount(mMaxAccount);
+	model->setMaxCallHistory(mMaxCallHistory);
 	model->setAssistantGoDirectlyToThirdPartySipAccountLogin(mAssistantGoDirectlyToThirdPartySipAccountLogin);
 	model->setAssistantThirdPartySipAccountDomain(mAssistantThirdPartySipAccountDomain);
 	model->setAssistantThirdPartySipAccountTransport(mAssistantThirdPartySipAccountTransport);
@@ -1268,6 +1274,7 @@ void SettingsCore::writeFromModel(const std::shared_ptr<SettingsModel> &model) {
 	mHideSipAddresses = model->getHideSipAddresses();
 	mDarkModeAllowed = model->getDarkModeAllowed();
 	mMaxAccount = model->getMaxAccount();
+	mMaxCallHistory = model->getMaxCallHistory();
 	mAssistantGoDirectlyToThirdPartySipAccountLogin = model->getAssistantGoDirectlyToThirdPartySipAccountLogin();
 	mAssistantThirdPartySipAccountDomain = model->getAssistantThirdPartySipAccountDomain();
 	mAssistantThirdPartySipAccountTransport = model->getAssistantThirdPartySipAccountTransport();

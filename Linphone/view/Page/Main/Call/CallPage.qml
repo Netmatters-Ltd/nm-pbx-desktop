@@ -50,6 +50,18 @@ AbstractMainPage {
         }
     }
 
+    // model.getAt() hands back a freshly allocated wrapper every time, so assigning it blind made
+    // selectedRowHistoryGui look changed on every count change, and each apparent change tore down
+    // and rebuilt the right-hand panel, including a fresh load of the call history behind it.
+    // Compare the call itself instead.
+    function selectHistoryRow(gui) {
+        var newId = gui && gui.core ? gui.core.callId : ""
+        var oldId = selectedRowHistoryGui && selectedRowHistoryGui.core ? selectedRowHistoryGui.core.callId : ""
+        if (newId === oldId)
+            return
+        selectedRowHistoryGui = gui
+    }
+
     onSelectedRowHistoryGuiChanged: {
         if (selectedRowHistoryGui)
             rightPanelStackView.replace(contactDetailComp,
@@ -264,12 +276,12 @@ AbstractMainPage {
                                     value: false
                                 }
                                 onCurrentIndexChanged: {
-                                    mainItem.selectedRowHistoryGui = model.getAt(
-                                                currentIndex)
+                                    mainItem.selectHistoryRow(model.getAt(
+                                                                  currentIndex))
                                 }
                                 onCountChanged: {
-                                    mainItem.selectedRowHistoryGui = model.getAt(
-                                                currentIndex)
+                                    mainItem.selectHistoryRow(model.getAt(
+                                                                  currentIndex))
                                 }
                             }
                         }
@@ -519,7 +531,7 @@ AbstractMainPage {
                                     target: deleteForUserPopup
                                     function onAccepted() {
                                         detailListView.model.removeEntriesWithFilter(
-                                                    detailListView.searchText)
+                                                    detailListView.peerAddress)
                                         mainItem.listViewUpdated()
                                     }
                                 }
@@ -568,7 +580,7 @@ AbstractMainPage {
                                 Layout.rightMargin: historyScrollBar.width + Utils.getSizeWithScreenRatio(8)
                                 spacing: Utils.getSizeWithScreenRatio(14)
                                 clip: true
-                                searchText: mainItem.selectedRowHistoryGui ? mainItem.selectedRowHistoryGui.core.remoteAddress : ""
+                                peerAddress: mainItem.selectedRowHistoryGui ? mainItem.selectedRowHistoryGui.core.remoteAddress : ""
                                 busyIndicatorSize: Utils.getSizeWithScreenRatio(40)
 
                             delegate: Item {

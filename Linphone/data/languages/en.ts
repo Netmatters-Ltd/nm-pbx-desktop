@@ -1458,6 +1458,18 @@
         <translation>command &quot;https://example.com/?phone=$1&amp;displayName=$2&quot;</translation>
     </message>
     <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="104"/>
+        <source>settings_calls_max_history_title</source>
+        <extracomment>Number of calls to keep in your history</extracomment>
+        <translation>Number of calls to keep in your history</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="106"/>
+        <source>settings_calls_max_history_place_holder</source>
+        <extracomment>Between 20 and 5000. Older calls are hidden once the limit is reached.</extracomment>
+        <translation>Between 20 and 5000</translation>
+    </message>
+    <message>
         <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="97"/>
         <source>settings_calls_change_ringtone_title</source>
         <extracomment>&quot;Change ringtone&quot;</extracomment>
