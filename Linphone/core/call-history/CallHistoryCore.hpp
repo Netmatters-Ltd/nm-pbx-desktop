@@ -37,6 +37,8 @@ class CallHistoryCore : public QObject, public AbstractObject {
 
 	Q_PROPERTY(QString displayName MEMBER mDisplayName NOTIFY displayNameChanged)
 	Q_PROPERTY(QString remoteAddress MEMBER mRemoteAddress CONSTANT)
+	// Exposed so the UI can tell whether two wrappers refer to the same call.
+	Q_PROPERTY(QString callId MEMBER mCallId CONSTANT)
 	Q_PROPERTY(bool isOutgoing MEMBER mIsOutgoing CONSTANT)
 	Q_PROPERTY(bool isConference MEMBER mIsConference CONSTANT)
 	Q_PROPERTY(ConferenceInfoGui *conferenceInfo READ getConferenceInfoGui CONSTANT)

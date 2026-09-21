@@ -83,6 +83,24 @@ AbstractSettingsLayout {
 				useTitleAsPlaceHolder: false
 				toValidate: true
 			}
+			// Bounds how much history the app loads and rebuilds. Left unbounded, every rebuild reads
+			// the user's entire call history, which is slow enough on a busy extension to hold up
+			// call setup. See nm-pbx-docs and task 5214105.
+			DecoratedTextField {
+				Layout.fillWidth: true
+				propertyName: "maxCallHistory"
+				propertyOwner: SettingsCpp
+				validator: RegularExpressionValidator {
+					regularExpression: /[0-9]+/
+				}
+				//: Number of calls to keep in your history
+				title: qsTr("settings_calls_max_history_title")
+				//: Between 20 and 5000. Older calls are hidden once the limit is reached.
+				placeHolder: qsTr("settings_calls_max_history_place_holder")
+				useTitleAsPlaceHolder: false
+				canBeEmpty: false
+				toValidate: true
+			}
 			RowLayout {
 				ColumnLayout {
 					Text {

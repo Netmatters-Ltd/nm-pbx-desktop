@@ -15,6 +15,9 @@ ListView {
     property SearchBar searchBar
     property bool loading: false
     property string searchText: searchBar?.text
+    // Set this instead of searchText to show one correspondent's calls. The database then does the
+    // filtering, rather than the whole history being loaded and filtered here.
+    property string peerAddress: ""
     property real busyIndicatorSize: Utils.getSizeWithScreenRatio(60)
 
     signal resultsReceived
@@ -31,6 +34,7 @@ ListView {
         }
         onListAboutToBeReset: loading = true
         filterText: mainItem.searchText
+        peerAddress: mainItem.peerAddress
         onFilterTextChanged: maxDisplayItems = initialDisplayItems
         initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(56)))
         displayItemsStep: 3 * initialDisplayItems / 2
