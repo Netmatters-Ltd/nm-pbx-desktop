@@ -34,6 +34,10 @@ class CallHistoryProxy : public LimitProxy, public AbstractObject {
 public:
 	DECLARE_SORTFILTER_CLASS()
 
+	// Restricts the list to one correspondent, using the SDK's per-address query. Empty means the
+	// whole history.
+	Q_PROPERTY(QString peerAddress READ getPeerAddress WRITE setPeerAddress NOTIFY peerAddressChanged)
+
 	CallHistoryProxy(QObject *parent = Q_NULLPTR);
 	~CallHistoryProxy();
 
@@ -41,8 +45,12 @@ public:
 	Q_INVOKABLE void removeEntriesWithFilter(QString filter);
 	Q_INVOKABLE void reload();
 
+	QString getPeerAddress() const;
+	void setPeerAddress(const QString &address);
+
 signals:
 	void listAboutToBeReset();
+	void peerAddressChanged();
 
 protected:
 	QSharedPointer<CallHistoryList> mHistoryList;

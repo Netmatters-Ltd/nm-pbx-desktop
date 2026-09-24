@@ -57,7 +57,7 @@ SAMPLE_WIDTH = 2
 
 # Peak level, chosen to match ringback.wav (measured peak -13.9 dBFS). This is the one number
 # to change if the tones turn out too loud or too quiet in practice.
-PEAK_DBFS = -14.0
+PEAK_DBFS = -22.0
 
 # The synthesised tone starts and stops mid-cycle, which clicks. A few milliseconds of
 # raised-cosine fade removes that, and stops the resampler ringing on the discontinuity.

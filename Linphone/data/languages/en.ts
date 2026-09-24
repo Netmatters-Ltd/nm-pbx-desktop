@@ -1007,6 +1007,12 @@
 <context>
     <name>CallHistoryListView</name>
     <message>
+        <location filename="../../view/Control/Display/Call/CallHistoryListView.qml" line="126"/>
+        <source>history_list_display_limit_reached</source>
+        <extracomment>Showing your most recent %1 calls.</extracomment>
+        <translation>Showing your most recent %1 calls.</translation>
+    </message>
+    <message>
         <location filename="../../view/Control/Display/Call/CallHistoryListView.qml" line="206"/>
         <source>call_name_accessible_button</source>
         <extracomment>Call %1</extracomment>
@@ -1456,6 +1462,18 @@
         <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="89"/>
         <source>settings_calls_command_line_title_place_holder</source>
         <translation>command &quot;https://example.com/?phone=$1&amp;displayName=$2&quot;</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="104"/>
+        <source>settings_calls_max_history_title</source>
+        <extracomment>Number of calls to keep in your history</extracomment>
+        <translation>Number of calls to keep in your history</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="106"/>
+        <source>settings_calls_max_history_place_holder</source>
+        <extracomment>Between 20 and 5000. Older calls are hidden once the limit is reached.</extracomment>
+        <translation>Between 20 and 5000</translation>
     </message>
     <message>
         <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="97"/>

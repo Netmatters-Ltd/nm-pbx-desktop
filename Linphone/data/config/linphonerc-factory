@@ -60,6 +60,9 @@ disable_chat_feature=1
 disable_meetings_feature=1
 
 [video]
+# MSQOGL renders into the QML scene. The default on Windows, MSOGL, opens its own
+# window and needs EGL, which Qt 6 no longer ships.
+displaytype=MSQOGL
 auto_resize_preview_to_keep_ratio=1
 max_conference_size=vga
 other_display_mode=Hybrid

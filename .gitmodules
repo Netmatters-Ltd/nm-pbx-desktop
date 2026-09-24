@@ -11,5 +11,3 @@ path = external/linphone-sdk
 [submodule "external/google/chromium-depot-tools"]
 	path = external/google/chromium-depot-tools
 	url = https://gitlab.linphone.org/BC/public/external/chromium-depot-tools.git
-[submodule "external/linphone-sdk"]
-	ignore = dirty

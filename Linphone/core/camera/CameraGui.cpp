@@ -31,6 +31,7 @@
 #include "core/call/CallGui.hpp"
 #include "core/participant/ParticipantDeviceCore.hpp"
 #include "core/participant/ParticipantDeviceGui.hpp"
+#include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
 
 DEFINE_ABSTRACT_OBJECT(CameraGui)
@@ -92,7 +93,7 @@ QQuickFramebufferObject::Renderer *CameraGui::createRenderer() const {
 		case Call: {
 			App::postModelBlock([qmlName = mQmlName, callGui = mCallGui, &renderer]() {
 				auto call = callGui->getCore()->getModel()->getMonitor();
-				if (call) {
+				if (call && ToolModel::qtVideoRendererAvailable()) {
 					lInfo() << "[Camera] (" << qmlName << ") Camera create from CallModel";
 					renderer = (QQuickFramebufferObject::Renderer *)call->createNativeVideoWindowId();
 				}
@@ -101,7 +102,7 @@ QQuickFramebufferObject::Renderer *CameraGui::createRenderer() const {
 		case Device: {
 			App::postModelBlock([qmlName = mQmlName, participantDeviceGui = mParticipantDeviceGui, &renderer]() {
 				auto device = participantDeviceGui->getCore()->getModel()->getMonitor();
-				if (device) {
+				if (device && ToolModel::qtVideoRendererAvailable()) {
 					lInfo() << "[Camera] (" << qmlName << ") Camera create from ParticipantDeviceModel";
 					renderer = (QQuickFramebufferObject::Renderer *)device->createNativeVideoWindowId();
 				}

@@ -1,0 +1,140 @@
+diff --git a/mswasapi.cpp b/mswasapi.cpp
+index a18b584..d1a710d 100644
+--- a/mswasapi.cpp
++++ b/mswasapi.cpp
+@@ -255,10 +255,23 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
+ 	int devicePeriodMs = -1;
+ 	REFERENCE_TIME requestedBufferDuration;
+ 	WaveFormat format;
++	/* NMPBX: diagnostic timing, see nm-pbx-docs/sdk-patches. Declared here, before the first
++	   goto, so no jump crosses an initialisation. */
++	uint64_t tActivateStart = ms_get_cur_time_ms();
++	uint64_t tStep = 0;
++	uint64_t tElapsed = 0;
+ 	if (!mAudioClient) goto error;
+ 	if (mIsActivated) return 0;
++	tStep = ms_get_cur_time_ms();
+ 	if(prepareInitialize(isCapture, audioClient, &flags, &devicePeriodMs, &requestedBufferDuration, &format)) goto error;
++	tElapsed = ms_get_cur_time_ms() - tStep;
++	if (tElapsed >= 50)
++		ms_warning("mswasapi: prepareInitialize for %s took %i ms.", mMediaDirectionStr.c_str(), (int)tElapsed);
++	tStep = ms_get_cur_time_ms();
+ 	HRESULT result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedBufferDuration, 0, format.pUsedWfx, NULL);
++	tElapsed = ms_get_cur_time_ms() - tStep;
++	if (tElapsed >= 50)
++		ms_warning("mswasapi: IAudioClient::Initialize for %s took %i ms.", mMediaDirectionStr.c_str(), (int)tElapsed);
+ 	if( result == AUDCLNT_E_ALREADY_INITIALIZED) {
+ 		// If Initialize() returns an error, then calls to any API will return an error (even if already initialized)
+ 		// Also, we want to be sure that we are using the correct format that can change between 2 activations.
+@@ -271,7 +284,12 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
+ 		// We don't simplify the code with recursivity because it has been decided without any proof that Initialize() could return
+ 		// an already initialized error after a new AudioClient.
+ 		if(prepareInitialize(isCapture, audioClient, &flags, &devicePeriodMs, &requestedBufferDuration, &format)) goto error;
++		tStep = ms_get_cur_time_ms();
+ 		result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedBufferDuration, 0, format.pUsedWfx, NULL);
++		tElapsed = ms_get_cur_time_ms() - tStep;
++		if (tElapsed >= 50)
++			ms_warning("mswasapi: IAudioClient::Initialize (retry) for %s took %i ms.", mMediaDirectionStr.c_str(),
++			           (int)tElapsed);
+ 	}
+ 	if(result != S_OK){
+ 		REPORT_ERROR(
+@@ -315,10 +333,15 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
+ 	           mMediaDirectionStr.c_str(), mDeviceName.c_str(), (int)mTargetRate, (int)mTargetNChannels,
+ 	           (int)mBufferFrameCount, (int)1000 * mBufferFrameCount / mTargetRate, devicePeriodMs,
+ 	           (int)format.pUsedWfx->wBitsPerSample, mNBlockAlign * 8);
++	/* NMPBX: unconditional, so a healthy call still leaves a baseline in the log. Without one
++	   we cannot tell "audio setup was fast" from "the instrumentation did not run". */
++	ms_message("mswasapi: activate of %s [%s] took %i ms total.", mMediaDirectionStr.c_str(), mDeviceName.c_str(),
++	           (int)(ms_get_cur_time_ms() - tActivateStart));
+ 	return 0;
+ 
+ error:
+-	ms_error("mswasapi: failed to initialize %s.", mMediaDirectionStr.c_str());
++	ms_error("mswasapi: failed to initialize %s after %i ms.", mMediaDirectionStr.c_str(),
++	         (int)(ms_get_cur_time_ms() - tActivateStart));
+ 	if (mAudioClient) mAudioClient->Reset();
+ 	return -1;
+ }
+@@ -499,20 +522,32 @@ error:
+ int MSWasapi::createAudioClient() {
+ 	if (mAudioClient != NULL) return -1;
+ 	bool cleanCo = false;
++	/* NMPBX: diagnostic timing, see nm-pbx-docs/sdk-patches. This function, not activate(), is
++	   where the unbounded waits live. Declared before every goto in every configuration. */
++	uint64_t tClientStart = ms_get_cur_time_ms();
++	uint64_t tStep = 0;
++	uint64_t tElapsed = 0;
+ #if defined(MS2_WINDOWS_UNIVERSAL)
+ 	AudioClientProperties properties = {0};
+ 	IActivateAudioInterfaceAsyncOperation *asyncOp;
+ 	HRESULT result = ActivateAudioInterfaceAsync(mDeviceId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
+ 	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+ 	             result);
++	tStep = ms_get_cur_time_ms();
+ 	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
++	tElapsed = ms_get_cur_time_ms() - tStep;
++	ms_message("mswasapi: waited %i ms for ActivateAudioInterfaceAsync on %s.", (int)tElapsed,
++	           mMediaDirectionStr.c_str());
+ 	if (mAudioClient == NULL) {
+ 		ms_error("Could not create the MSWASAPI audio %s interface client", mMediaDirectionStr.c_str());
+ 		goto error;
+ 	}
+ #elif defined(MS2_WINDOWS_PHONE)
+ 	AudioClientProperties properties = {0};
++	tStep = ms_get_cur_time_ms();
+ 	HRESULT result = ActivateAudioInterface(mDeviceId, IID_IAudioClient2, (void **)&mAudioClient);
++	tElapsed = ms_get_cur_time_ms() - tStep;
++	ms_message("mswasapi: ActivateAudioInterface for %s took %i ms.", mMediaDirectionStr.c_str(), (int)tElapsed);
+ 	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+ 	             result);
+ #else
+@@ -527,7 +562,13 @@ int MSWasapi::createAudioClient() {
+ 		HRESULT result = ActivateAudioInterfaceAsync(mDeviceId, __uuidof(IAudioClient2), NULL, this, &asyncOp);
+ 		REPORT_ERROR(("mswasapi: Could not async activate the MSWASAPI audio " + mMediaDirectionStr + " [%x]").c_str(),
+ 		             result);
++		/* NMPBX: this wait has no timeout. If the audio endpoint does not come back, the SIP
++		   thread waits here indefinitely and every SIP message for this client waits with it. */
++		tStep = ms_get_cur_time_ms();
+ 		WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
++		tElapsed = ms_get_cur_time_ms() - tStep;
++		ms_message("mswasapi: waited %i ms for ActivateAudioInterfaceAsync on %s.", (int)tElapsed,
++		           mMediaDirectionStr.c_str());
+ 		SAFE_RELEASE(asyncOp); // If not call, "this" will keep a ref count. This is not documented.
+ 		if (mAudioClient == NULL) {
+ 			ms_error("Could not create the MSWASAPI audio %s interface client", mMediaDirectionStr.c_str());
+@@ -537,6 +578,10 @@ int MSWasapi::createAudioClient() {
+ 	} else { // On win32, ActivateAudioInterfaceAsync doesn't seem to work with specific ID other than default.
+ 		IMMDeviceEnumerator *pEnumerator = NULL;
+ 		IMMDevice *pDevice = NULL;
++		/* NMPBX: the non-default-device path. changePolicies() does its own CoCreateInstance and
++		   two property writes to the endpoint, so this is a plausible multi-second stall of its
++		   own on a machine with a slow audio driver. */
++		tStep = ms_get_cur_time_ms();
+ 		HRESULT result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator,
+ 		                                  (void **)&pEnumerator);
+ 		REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator [%x]", result);
+@@ -546,6 +591,9 @@ int MSWasapi::createAudioClient() {
+ 		changePolicies(pDevice);
+ 		result = pDevice->Activate(__uuidof(IAudioClient2), CLSCTX_ALL, NULL, (void **)&mAudioClient);
+ 		SAFE_RELEASE(pDevice);
++		tElapsed = ms_get_cur_time_ms() - tStep;
++		ms_message("mswasapi: enumerating and activating device for %s took %i ms.", mMediaDirectionStr.c_str(),
++		           (int)tElapsed);
+ 		REPORT_ERROR("mswasapi: Could not activate the device [%x]", result);
+ 	}
+ #endif
+@@ -559,9 +607,13 @@ int MSWasapi::createAudioClient() {
+ 	    result);
+ #endif
+ 	if(cleanCo)	CoUninitialize();
++	ms_message("mswasapi: createAudioClient for %s took %i ms.", mMediaDirectionStr.c_str(),
++	           (int)(ms_get_cur_time_ms() - tClientStart));
+ 	return 0;
+ error:
+ 	if(cleanCo)	CoUninitialize();
++	ms_message("mswasapi: createAudioClient for %s failed after %i ms.", mMediaDirectionStr.c_str(),
++	           (int)(ms_get_cur_time_ms() - tClientStart));
+ 	return -1;
+ }
+ 

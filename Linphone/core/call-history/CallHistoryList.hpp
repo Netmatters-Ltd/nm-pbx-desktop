@@ -43,6 +43,11 @@ public:
 	void setSelf(QSharedPointer<CallHistoryList> me);
 	void toConnect(CallHistoryCore *data);
 
+	// When set, the list holds only the calls exchanged with this address, fetched with the SDK's
+	// per-address query rather than by loading the whole history and filtering it here.
+	QString getPeerAddress() const;
+	void setPeerAddress(const QString &address);
+
 	void removeAllEntries();
 	void removeEntriesWithFilter(QString filter);
 	void remove(const int &row);
@@ -68,7 +73,18 @@ private:
 	// Check the state from CallHistoryCore: sender() must be a CallHistoryCore.
 	void onStatusChanged();
 
+	// Asks for a rebuild on the next turn of the event loop, collapsing several requests made in
+	// the same turn into one. Construction and a peerAddress set by a QML binding arrive together,
+	// and without this the list would load the whole history and then immediately narrow it.
+	void scheduleUpdate();
+	bool mUpdateScheduled = false;
+
 	bool mHaveCallHistory = false;
+	// Main thread only.
+	QString mPeerAddress;
+	// The same value, owned by the linphone thread, because that is where the fetch and the
+	// incremental update read it.
+	QString mModelPeerAddress;
 	QSharedPointer<SafeConnection<CallHistoryList, CoreModel>> mModelConnection;
 	DECLARE_ABSTRACT_OBJECT
 };

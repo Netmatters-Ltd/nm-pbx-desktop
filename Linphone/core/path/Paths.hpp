@@ -43,6 +43,7 @@ QString getFactoryConfigFilePath();
 QString getFriendsListFilePath();
 QString getLimeDatabasePath();
 QString getLogsDirPath();
+QString getStallDumpsDirPath();
 QString getCrashpadDirPath();
 QString getMetricsDirPath();
 QString getMessageHistoryFilePath();

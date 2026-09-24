@@ -46,6 +46,11 @@ public:
 	// Country calling code without the leading '+', e.g. "44". The account's dial plan, else the UK.
 	static QString resolveCountryCallingCode(const std::shared_ptr<linphone::Account> &account = nullptr);
 
+	// True when the core is set up to hand back a QQuickFramebufferObject::Renderer from the
+	// createNative*WindowId calls. Any other display filter returns something else entirely,
+	// and casting that to a renderer crashes the Qt render thread.
+	static bool qtVideoRendererAvailable();
+
 	static std::shared_ptr<linphone::Call> getCallByRemoteAddress(const QString &remoteAddress);
 	static std::shared_ptr<linphone::FriendPhoneNumber> makeLinphoneNumber(const QString &label, const QString &number);
 	static std::shared_ptr<linphone::AudioDevice> findAudioDevice(const QString &id,

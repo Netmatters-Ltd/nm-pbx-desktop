@@ -71,6 +71,7 @@ SettingsModel::SettingsModel() {
 			    notifyConfigReady();
 			    applyCardDAVProvisioning();
 			    applyAccountDialPlanDefault();
+			    applyCallHistoryLimitDefault();
 		    }
 	    });
 	QObject::connect(CoreModel::getInstance().get(), &CoreModel::configuringStatus, this,
@@ -82,6 +83,7 @@ SettingsModel::SettingsModel() {
 			                 notifyConfigReady();
 			                 applyCardDAVProvisioning();
 			                 applyAccountDialPlanDefault();
+			                 applyCallHistoryLimitDefault();
 		                 }
 	                 });
 	QObject::connect(
@@ -95,6 +97,8 @@ SettingsModel::SettingsModel() {
 		    // dial plan of its own.
 		    applyAccountDialPlanDefault();
 	    });
+	applyCallHistoryLimitDefault();
+
 	auto defaultAccount = core->getDefaultAccount();
 	if (!getDisableMeetingsFeature() && defaultAccount &&
 	    !defaultAccount->getParams()->getAudioVideoConferenceFactoryAddress())
@@ -776,6 +780,9 @@ void SettingsModel::setLogsUploadUrl(const QString &serverUrl) {
 void SettingsModel::cleanLogs() const {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
 	CoreModel::getInstance()->getCore()->resetLogCollection();
+	// resetLogCollection() also resets the max file size to the SDK's 10MB default
+	// (linphonecore.c, linphone_core_reset_log_collection). Put ours back.
+	linphone::Core::setLogCollectionMaxFileSize(Constants::MaxLogsCollectionSize);
 }
 
 void SettingsModel::sendLogs() const {
@@ -1072,6 +1079,33 @@ void SettingsModel::applyAccountDialPlanDefault() {
 	        << (isoCountryCode.empty() ? "unknown" : isoCountryCode.c_str());
 }
 
+// Call history size
+
+// How many call records the app loads and keeps in memory. The SDK pushes this straight into the
+// SQL LIMIT, so it bounds the database read as well as the list of objects we build from it.
+int SettingsModel::getMaxCallHistory() const {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return CoreModel::getInstance()->getCore()->getMaxCallLogs();
+}
+
+void SettingsModel::setMaxCallHistory(int max) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	max = std::clamp(max, CallHistoryLimitMin, CallHistoryLimitMax);
+	// The SDK persists this to [misc] history_max_size itself, so there is no separate config write.
+	CoreModel::getInstance()->getCore()->setMaxCallLogs(max);
+	// Emitted even when the value has not moved, so that a request the clamp has corrected is
+	// reflected back to whatever asked for it rather than leaving the UI showing what was typed.
+	emit maxCallHistoryChanged(max);
+}
+
+void SettingsModel::applyCallHistoryLimitDefault() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	if (!mConfig || mConfig->hasEntry("misc", "history_max_size")) return; // Provisioned, or chosen. Leave it be.
+	CoreModel::getInstance()->getCore()->setMaxCallLogs(CallHistoryLimitDefault);
+	lInfo() << log().arg("Applied default call history limit: " + QString::number(CallHistoryLimitDefault));
+	emit maxCallHistoryChanged(CallHistoryLimitDefault);
+}
+
 // CardDAV min characters for research
 
 // A value above 0 keeps the remote CardDAV source out of the wildcard "browse" search and
@@ -1314,6 +1348,7 @@ void SettingsModel::notifyConfigReady(){
 	DEFINE_NOTIFY_CONFIG_READY(shortcuts, Shortcuts)
 	DEFINE_NOTIFY_CONFIG_READY(usernameOnlyForLdapLookupsInCalls, UsernameOnlyForLdapLookupsInCalls)
 	DEFINE_NOTIFY_CONFIG_READY(usernameOnlyForCardDAVLookupsInCalls, UsernameOnlyForCardDAVLookupsInCalls)
+	DEFINE_NOTIFY_CONFIG_READY(maxCallHistory, MaxCallHistory)
 	DEFINE_NOTIFY_CONFIG_READY(commandLine, CommandLine)
 	DEFINE_NOTIFY_CONFIG_READY(disableCommandLine, DisableCommandLine)
 	DEFINE_NOTIFY_CONFIG_READY(themeMainColor, ThemeMainColor)

@@ -31,6 +31,9 @@ public:
 	Q_PROPERTY(int initialDisplayItems READ getInitialDisplayItems WRITE setInitialDisplayItems NOTIFY
 	               initialDisplayItemsChanged)
 	Q_PROPERTY(int maxDisplayItems READ getMaxDisplayItems WRITE setMaxDisplayItems NOTIFY maxDisplayItemsChanged)
+	// An absolute ceiling on the rows this proxy will show, whatever paging or an arriving row asks
+	// for. -1, the default, means no ceiling.
+	Q_PROPERTY(int displayLimit READ getDisplayLimit WRITE setDisplayLimit NOTIFY displayLimitChanged)
 	Q_PROPERTY(int displayItemsStep READ getDisplayItemsStep WRITE setDisplayItemsStep NOTIFY displayItemsStepChanged)
 	Q_PROPERTY(bool haveMore READ getHaveMore NOTIFY haveMoreChanged)
 
@@ -46,6 +49,9 @@ public:
 	void setSourceModels(SortFilterProxy *firstList);
 
 	Q_INVOKABLE virtual void displayMore();
+	// Re-tests every source row against filterAcceptsRow(). Needed because that test is index based,
+	// so rows can move into or out of range without QSortFilterProxyModel ever re-checking them.
+	Q_INVOKABLE void reapplyRowFilter();
 	Q_INVOKABLE QVariant getAt(const int &index) const;
 	Q_INVOKABLE QVariantList getAll() const;
 	virtual int getCount() const;
@@ -71,6 +77,9 @@ public:
 	int getMaxDisplayItems() const;
 	void setMaxDisplayItems(int maxItems);
 
+	int getDisplayLimit() const;
+	void setDisplayLimit(int limit);
+
 	int getDisplayItemsStep() const;
 	void setDisplayItemsStep(int step);
 
@@ -86,15 +95,20 @@ public:
 
 	void onAdded(const QModelIndex &parent, int first, int last);
 	void onRemoved();
+	// Re-runs the row filter, but only for a proxy holding a ceiling and only when the rows on show
+	// no longer match what the cap says they should be.
+	void resyncRowFilter();
 
 	int mInitialDisplayItems = -1;
 	int mMaxDisplayItems = -1;
 	int mDisplayItemsStep = 5;
+	int mDisplayLimit = -1;
 
 signals:
 	void countChanged();
 	void initialDisplayItemsChanged();
 	void maxDisplayItemsChanged();
+	void displayLimitChanged();
 	void displayItemsStepChanged();
 	void haveMoreChanged();
 	//-----------------------------------------------------------------

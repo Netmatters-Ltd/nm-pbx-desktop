@@ -43,6 +43,16 @@ void CallHistoryProxy::removeEntriesWithFilter(QString filter) {
 	mHistoryList->removeEntriesWithFilter(filter);
 }
 
+QString CallHistoryProxy::getPeerAddress() const {
+	return mHistoryList->getPeerAddress();
+}
+
+void CallHistoryProxy::setPeerAddress(const QString &address) {
+	if (mHistoryList->getPeerAddress() == address) return;
+	mHistoryList->setPeerAddress(address);
+	emit peerAddressChanged();
+}
+
 void CallHistoryProxy::reload() {
 	emit mHistoryList->lUpdate();
 }

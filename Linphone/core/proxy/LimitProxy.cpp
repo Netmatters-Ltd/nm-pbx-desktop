@@ -47,6 +47,12 @@ void LimitProxy::setSourceModels(SortFilterProxy *firstList) {
 	}
 	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::filterTextChanged);
 	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::filterTypeChanged);
+	// A filter change in firstList shuffles its rows without touching our cap, and our own row
+	// filter is index based, so rows can move into range without QSortFilterProxyModel ever
+	// re-testing them. Nothing above notices: onAdded and onRemoved are wired to the list beneath
+	// the filter, not to the filter itself. Lists without a ceiling resync by way of the cap moving.
+	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::resyncRowFilter);
+	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::resyncRowFilter);
 
 	// Restore old values
 	auto oldModel = dynamic_cast<SortFilterProxy *>(sourceModel());
@@ -89,6 +95,7 @@ int LimitProxy::getInitialDisplayItems() const {
 }
 
 void LimitProxy::setInitialDisplayItems(int initialItems) {
+	if (mDisplayLimit >= 0 && initialItems > mDisplayLimit) initialItems = mDisplayLimit;
 	if (mInitialDisplayItems != initialItems) {
 		mInitialDisplayItems = initialItems;
 		if (getMaxDisplayItems() <= mInitialDisplayItems) setMaxDisplayItems(initialItems);
@@ -109,6 +116,19 @@ int LimitProxy::getMaxDisplayItems() const {
 	return mMaxDisplayItems;
 }
 void LimitProxy::setMaxDisplayItems(int maxItems) {
+	// Every route that raises the cap lands here: displayMore(), a row arriving in the source
+	// (onAdded), the initial value and QML. Clamping once here holds the ceiling for all of them.
+	if (mDisplayLimit >= 0 && maxItems > mDisplayLimit) {
+		maxItems = mDisplayLimit;
+		if (mMaxDisplayItems == maxItems) {
+			// Already at the ceiling, so the body below would do nothing. Something still asked for
+			// more rows though, which for onAdded() means a row has just been inserted in the
+			// source. filterAcceptsRow() is index based and QSortFilterProxyModel only tests the
+			// newly inserted row, so the row pushed past the ceiling is still mapped. Drop it.
+			resyncRowFilter();
+			return;
+		}
+	}
 	if (mMaxDisplayItems != maxItems) {
 		auto model = sourceModel();
 		int modelCount = model ? model->rowCount() : 0;
@@ -122,6 +142,42 @@ void LimitProxy::setMaxDisplayItems(int maxItems) {
 			invalidate();
 		}
 	}
+}
+
+int LimitProxy::getDisplayLimit() const {
+	return mDisplayLimit;
+}
+
+void LimitProxy::setDisplayLimit(int limit) {
+	if (mDisplayLimit == limit) return;
+	mDisplayLimit = limit;
+	emit displayLimitChanged();
+	// QML may bind initialDisplayItems before displayLimit, so the cap can already be above the
+	// ceiling by the time we get here.
+	if (mDisplayLimit >= 0 && (mMaxDisplayItems < 0 || mMaxDisplayItems > mDisplayLimit))
+		setMaxDisplayItems(mDisplayLimit);
+}
+
+void LimitProxy::resyncRowFilter() {
+	if (mDisplayLimit < 0) return;
+	auto model = sourceModel();
+	if (!model) return;
+	// Cheap: rowCount() is O(1) once the mapping exists. Skipping the re-filter when nothing is out
+	// of place keeps the row signals, and the work they fan out to, down to real changes.
+	if (rowCount() != getDisplayCount(model->rowCount())) reapplyRowFilter();
+}
+
+// Deliberately not invalidate(): that emits layoutChanged with no hint, which the QML delegate model
+// treats as a full reset and which sends the view back to the top. This emits row insert and remove
+// signals instead, so the scroll position survives. Same version guard as
+// SortFilterProxy::invalidateFilter().
+void LimitProxy::reapplyRowFilter() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+	beginFilterChange();
+	endFilterChange(QSortFilterProxyModel::Direction::Rows);
+#else
+	invalidateRowsFilter();
+#endif
 }
 
 int LimitProxy::getDisplayItemsStep() const {
@@ -162,6 +218,7 @@ void LimitProxy::setFilterType(int filter) {
 //--------------------------------------------------------------------------------------------------
 
 void LimitProxy::displayMore() {
+	if (mDisplayLimit >= 0 && mMaxDisplayItems >= mDisplayLimit) return;
 	int oldCount = rowCount();
 	auto model = sourceModel();
 	int newCount = getDisplayCount(model ? model->rowCount() : 0, mMaxDisplayItems + mDisplayItemsStep);
