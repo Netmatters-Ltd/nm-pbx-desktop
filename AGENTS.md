@@ -16,6 +16,10 @@ For our use, we're only concerned with the 64-bit Windows build.
 
 [Brand](/nm-pbx-docs/brand.md) has referencing for colours, images, etc., for the NMPBX branding.
 
+[Call history](/nm-pbx-docs/call-history.md) explains how the call list is loaded, filtered and
+bounded, the difference between the two limits that apply to it, and a known Qt defect that resets
+the scroll position on every paging list in the app.
+
 ## Language
 
 This project supports translation into multiple languages. However we are only concerned with the English version. Use British English. Translate any hardcoded text in other languages that may be user-visible.
