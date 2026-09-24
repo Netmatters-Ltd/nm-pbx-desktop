@@ -85,7 +85,7 @@ AbstractSettingsLayout {
 			}
 			// Bounds how much history the app loads and rebuilds. Left unbounded, every rebuild reads
 			// the user's entire call history, which is slow enough on a busy extension to hold up
-			// call setup. See nm-pbx-docs and task 5214105.
+			// call setup. See nm-pbx-docs/call-history.md and task 5214105.
 			DecoratedTextField {
 				Layout.fillWidth: true
 				propertyName: "maxCallHistory"

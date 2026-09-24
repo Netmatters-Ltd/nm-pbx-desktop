@@ -18,6 +18,12 @@ ListView {
     // Set this instead of searchText to show one correspondent's calls. The database then does the
     // filtering, rather than the whole history being loaded and filtered here.
     property string peerAddress: ""
+    // How many calls the list shows at once. The database read is bounded separately by the
+    // maxCallHistory setting, and the search filter sits below this cap, so searching still reaches
+    // every call that has been loaded. See nm-pbx-docs/call-history.md.
+    property int displayLimit: 100
+    // The notice only helps where the user can act on it, so it follows the search bar.
+    property bool showLimitNotice: searchBar !== null
     property real busyIndicatorSize: Utils.getSizeWithScreenRatio(60)
 
     signal resultsReceived
@@ -35,9 +41,8 @@ ListView {
         onListAboutToBeReset: loading = true
         filterText: mainItem.searchText
         peerAddress: mainItem.peerAddress
-        onFilterTextChanged: maxDisplayItems = initialDisplayItems
-        initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(56)))
-        displayItemsStep: 3 * initialDisplayItems / 2
+        displayLimit: mainItem.displayLimit
+        initialDisplayItems: mainItem.displayLimit
         onModelReset: {
             mainItem.resultsReceived()
         }
@@ -76,11 +81,6 @@ ListView {
         }
     }
 
-    onAtYEndChanged: {
-        if (atYEnd && count > 0) {
-            callHistoryProxy.displayMore()
-        }
-    }
     //----------------------------------------------------------------
     function moveToCurrentItem() {
         if (mainItem.currentIndex >= 0)
@@ -107,6 +107,19 @@ ListView {
     onVisibleChanged: {
 //        if (!visible)
 //            currentIndex = -1
+    }
+
+    footer: Text {
+        width: mainItem.width
+        visible: mainItem.showLimitNotice && callHistoryProxy.haveMore
+        height: visible ? implicitHeight + Utils.getSizeWithScreenRatio(16) : 0
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignBottom
+        wrapMode: Text.WordWrap
+        color: DefaultStyle.main2_500_main
+        font: Typography.p3
+        //: Showing your most recent %1 calls.
+        text: qsTr("history_list_display_limit_reached").arg(mainItem.displayLimit)
     }
 
     BusyIndicator {

@@ -1007,6 +1007,12 @@
 <context>
     <name>CallHistoryListView</name>
     <message>
+        <location filename="../../view/Control/Display/Call/CallHistoryListView.qml" line="126"/>
+        <source>history_list_display_limit_reached</source>
+        <extracomment>Showing your most recent %1 calls.</extracomment>
+        <translation>Showing your most recent %1 calls.</translation>
+    </message>
+    <message>
         <location filename="../../view/Control/Display/Call/CallHistoryListView.qml" line="206"/>
         <source>call_name_accessible_button</source>
         <extracomment>Call %1</extracomment>
