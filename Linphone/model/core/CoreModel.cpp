@@ -310,22 +310,41 @@ void CoreModel::setCustomTones() {
 	// the level becomes whatever we recorded. See Linphone/data/sound/generate-tones.py.
 	// These are not persisted anywhere by the SDK, so they must be registered on every start.
 	// Passing an empty path instead would restore the synthesised tone.
+	// A tone the user has turned off gets a short silent file instead. The SDK cannot switch off
+	// one tone on its own: its tone indications setting silences the call-ended and busy tones too.
 	struct CustomTone {
 		linphone::ToneID id;
 		const char *fileName;
+		bool enabled;
 	};
+	auto config = mCore->getConfig();
 	const CustomTone tones[] = {
-	    {linphone::ToneID::CallWaiting, Constants::CallWaitingToneFile},
-	    {linphone::ToneID::CallOnHold, Constants::CallOnHoldToneFile},
+	    {linphone::ToneID::CallWaiting, Constants::CallWaitingToneFile,
+	     SettingsModel::isCallWaitingToneEnabled(config)},
+	    {linphone::ToneID::CallOnHold, Constants::CallOnHoldToneFile, SettingsModel::isCallOnHoldToneEnabled(config)},
 	};
 	const QDir soundsDir(Paths::getPackageSoundsResourcesDirPath());
+	const auto silentPath = QDir::toNativeSeparators(soundsDir.filePath(Constants::SilentToneFile));
 	for (const auto &tone : tones) {
+		if (!tone.enabled) {
+			if (Paths::filePathExists(silentPath)) {
+				lInfo() << log().arg("Tone turned off in settings, using silence instead of: %1").arg(tone.fileName);
+				mCore->setTone(tone.id, Utils::appStringToCoreString(silentPath));
+				continue;
+			}
+			// Fall through and register the audible tone, so the setting failing to apply is at
+			// least visible to the user rather than leaving them wondering where their tone went.
+			lWarning()
+			    << log().arg("Silent tone file not found, cannot turn off %1: %2").arg(tone.fileName).arg(silentPath);
+		}
 		auto path = QDir::toNativeSeparators(soundsDir.filePath(tone.fileName));
 		if (!Paths::filePathExists(path)) {
-			// Deliberately leave the tone unset rather than registering a path that does not
-			// resolve: playFile has no fallback to the synthesised tone, so the user would get
-			// silence. The louder built-in tone is the better failure.
-			lWarning() << log().arg("Custom tone file not found, keeping the built-in tone: %1").arg(path);
+			// Deliberately fall back to the built-in tone rather than registering a path that
+			// does not resolve: playFile has no fallback to the synthesised tone, so the user
+			// would get silence. The louder built-in tone is the better failure. The empty path
+			// matters when this runs again at runtime, as it clears any file registered earlier.
+			lWarning() << log().arg("Custom tone file not found, using the built-in tone: %1").arg(path);
+			mCore->setTone(tone.id, "");
 			continue;
 		}
 		lInfo() << log().arg("Using custom tone: %1").arg(path);
