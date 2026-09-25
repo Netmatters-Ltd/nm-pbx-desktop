@@ -34,6 +34,13 @@ consistently with the other audio the app plays.
 Output is byte-for-byte deterministic, so re-running this without changing the constants
 below leaves the committed files untouched. Regenerate and commit only when the spec changes.
 
+Muting a tone
+-------------
+The SDK has no switch for an individual tone: its only control, the tone indications
+setting, silences every tone at once, including the call-ended and busy tones. So when the
+user turns off one of these tones in settings, the app registers nmpbx-silence.wav for it
+instead. It is short on purpose, since the player is simply opened and run to the end.
+
 Usage: python generate-tones.py
 """
 
@@ -70,6 +77,10 @@ TONES = {
     "nmpbx-call-waiting.wav": 15,
     "nmpbx-call-on-hold.wav": 3,
 }
+
+# Registered in place of a tone the user has turned off. See "Muting a tone" above.
+SILENCE_FILE = "nmpbx-silence.wav"
+SILENCE_MS = 100
 
 
 def ms_to_samples(milliseconds):
@@ -135,6 +146,10 @@ def main():
                 20.0 * math.log10(peak / 32768.0),
             )
         )
+
+    silence_path = output_dir / SILENCE_FILE
+    write_wav(silence_path, [0] * ms_to_samples(SILENCE_MS))
+    print("%s: %d ms, %d bytes" % (SILENCE_FILE, SILENCE_MS, silence_path.stat().st_size))
 
 
 if __name__ == "__main__":

@@ -52,6 +52,8 @@ SettingsCore::SettingsCore(QObject *parent) : QObject(parent) {
 	mEchoCancellationEnabled = settingsModel->getEchoCancellationEnabled();
 	mAutoDownloadReceivedFiles = settingsModel->getAutoDownloadReceivedFiles();
 	mAutomaticallyRecordCallsEnabled = settingsModel->getAutomaticallyRecordCallsEnabled();
+	mCallWaitingToneEnabled = settingsModel->getCallWaitingToneEnabled();
+	mCallOnHoldToneEnabled = settingsModel->getCallOnHoldToneEnabled();
 	mRingtonePath = settingsModel->getRingtone();
 	QFileInfo ringtone(mRingtonePath);
 	if (ringtone.exists()) {
@@ -168,6 +170,8 @@ SettingsCore::SettingsCore(const SettingsCore &settingsCore) {
 	mEchoCancellationEnabled = settingsCore.mEchoCancellationEnabled;
 	mAutoDownloadReceivedFiles = settingsCore.mAutoDownloadReceivedFiles;
 	mAutomaticallyRecordCallsEnabled = settingsCore.mAutomaticallyRecordCallsEnabled;
+	mCallWaitingToneEnabled = settingsCore.mCallWaitingToneEnabled;
+	mCallOnHoldToneEnabled = settingsCore.mCallOnHoldToneEnabled;
 
 	// Audio
 	mCaptureDevices = settingsCore.mCaptureDevices;
@@ -304,6 +308,16 @@ void SettingsCore::setSelf(QSharedPointer<SettingsCore> me) {
 	mSettingsModelConnection->makeConnectToModel(
 	    &SettingsModel::automaticallyRecordCallsEnabledChanged, [this](const bool enabled) {
 		    mSettingsModelConnection->invokeToCore([this, enabled]() { setAutomaticallyRecordCallsEnabled(enabled); });
+	    });
+
+	// Call waiting and call on hold tones
+	mSettingsModelConnection->makeConnectToModel(
+	    &SettingsModel::callWaitingToneEnabledChanged, [this](const bool enabled) {
+		    mSettingsModelConnection->invokeToCore([this, enabled]() { setCallWaitingToneEnabled(enabled); });
+	    });
+	mSettingsModelConnection->makeConnectToModel(
+	    &SettingsModel::callOnHoldToneEnabledChanged, [this](const bool enabled) {
+		    mSettingsModelConnection->invokeToCore([this, enabled]() { setCallOnHoldToneEnabled(enabled); });
 	    });
 
 	// Audio device(s)
@@ -538,6 +552,8 @@ void SettingsCore::reset(const SettingsCore &settingsCore) {
 	setVideoEnabled(settingsCore.mVideoEnabled);
 	setEchoCancellationEnabled(settingsCore.mEchoCancellationEnabled);
 	setAutomaticallyRecordCallsEnabled(settingsCore.mAutomaticallyRecordCallsEnabled);
+	setCallWaitingToneEnabled(settingsCore.mCallWaitingToneEnabled);
+	setCallOnHoldToneEnabled(settingsCore.mCallOnHoldToneEnabled);
 
 	setAutoDownloadReceivedFiles(settingsCore.mAutoDownloadReceivedFiles);
 	// Audio
@@ -700,6 +716,22 @@ void SettingsCore::setAutomaticallyRecordCallsEnabled(bool enabled) {
 	if (mAutomaticallyRecordCallsEnabled != enabled) {
 		mAutomaticallyRecordCallsEnabled = enabled;
 		emit automaticallyRecordCallsEnabledChanged();
+		setIsSaved(false);
+	}
+}
+
+void SettingsCore::setCallWaitingToneEnabled(bool enabled) {
+	if (mCallWaitingToneEnabled != enabled) {
+		mCallWaitingToneEnabled = enabled;
+		emit callWaitingToneEnabledChanged();
+		setIsSaved(false);
+	}
+}
+
+void SettingsCore::setCallOnHoldToneEnabled(bool enabled) {
+	if (mCallOnHoldToneEnabled != enabled) {
+		mCallOnHoldToneEnabled = enabled;
+		emit callOnHoldToneEnabledChanged();
 		setIsSaved(false);
 	}
 }
@@ -1144,6 +1176,8 @@ void SettingsCore::writeIntoModel(std::shared_ptr<SettingsModel> model) const {
 	model->setVideoEnabled(mVideoEnabled);
 	model->setEchoCancellationEnabled(mEchoCancellationEnabled);
 	model->setAutomaticallyRecordCallsEnabled(mAutomaticallyRecordCallsEnabled);
+	model->setCallWaitingToneEnabled(mCallWaitingToneEnabled);
+	model->setCallOnHoldToneEnabled(mCallOnHoldToneEnabled);
 
 	// Chat
 	model->setAutoDownloadReceivedFiles(mAutoDownloadReceivedFiles);
@@ -1214,6 +1248,8 @@ void SettingsCore::writeFromModel(const std::shared_ptr<SettingsModel> &model) {
 	mVideoEnabled = model->getVideoEnabled();
 	mEchoCancellationEnabled = model->getEchoCancellationEnabled();
 	mAutomaticallyRecordCallsEnabled = model->getAutomaticallyRecordCallsEnabled();
+	mCallWaitingToneEnabled = model->getCallWaitingToneEnabled();
+	mCallOnHoldToneEnabled = model->getCallOnHoldToneEnabled();
 	mRingtonePath = model->getRingtone();
 	QFileInfo ringtone(mRingtonePath);
 	mRingtoneFolder = ringtone.exists() ? ringtone.absolutePath() : "";

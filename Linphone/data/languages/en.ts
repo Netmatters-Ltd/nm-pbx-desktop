@@ -1447,6 +1447,30 @@
         <translation>Enable tones</translation>
     </message>
     <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="72"/>
+        <source>settings_calls_call_waiting_tone_title</source>
+        <extracomment>Call waiting tone</extracomment>
+        <translation>Call waiting tone</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="74"/>
+        <source>settings_calls_call_waiting_tone_subtitle</source>
+        <extracomment>Beep during a call when someone else is calling you</extracomment>
+        <translation>Beep during a call when someone else is calling you</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="81"/>
+        <source>settings_calls_call_on_hold_tone_title</source>
+        <extracomment>Call on hold tone</extracomment>
+        <translation>Call on hold tone</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="83"/>
+        <source>settings_calls_call_on_hold_tone_subtitle</source>
+        <extracomment>Beep when you put a call on hold</extracomment>
+        <translation>Beep when you put a call on hold</translation>
+    </message>
+    <message>
         <location filename="../../view/Page/Layout/Settings/CallSettingsLayout.qml" line="78"/>
         <source>settings_calls_enable_video_title</source>
         <extracomment>&quot;Autoriser la vidéo&quot;</extracomment>

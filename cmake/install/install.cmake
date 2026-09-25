@@ -74,6 +74,7 @@ install(FILES "${CMAKE_SOURCE_DIR}/Linphone/data/config/linphonerc-factory" DEST
 install(FILES
 	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-waiting.wav"
 	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-call-on-hold.wav"
+	"${CMAKE_SOURCE_DIR}/Linphone/data/sound/nmpbx-silence.wav"
 	DESTINATION "${CMAKE_INSTALL_DATADIR}/sounds/linphone")
 
 set(LINPHONE_QML_DIR "${CMAKE_SOURCE_DIR}/Linphone/view")
