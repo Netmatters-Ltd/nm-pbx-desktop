@@ -59,6 +59,8 @@ Loader{
 	
 	property bool securityBreach: securityLevel === LinphoneEnums.SecurityLevel.Unsafe
 	property bool displayPresence: true
+	// Set while the server's call-state bridge reports this contact on a call. Adds a ring as well as the badge.
+	readonly property bool onCall: displayPresence && contact?.core?.presence === LinphoneEnums.Presence.OnCall
 	// When set (used for the user's own avatar), the fallback shows the account's
 	// extension number instead of the display name initials.
 	property bool showExtension: false
@@ -108,6 +110,21 @@ Loader{
 						imageSource: mainItem.secured ? AppIcons.trusted : AppIcons.notTrusted
 						fillMode: Image.PreserveAspectFit
 						
+					}
+				}
+
+				// Outline for photos, or the on-call ring. A plain Rectangle border so the width is even all the way
+				// round; the security ring above takes its place when that is shown.
+				Rectangle {
+					readonly property bool isSecurityRingShown: mainItem.secured || mainItem.securityBreach
+					visible: !isSecurityRingShown && (mainItem.onCall || mainItem.haveAvatar)
+					anchors.fill: stackView.currentItem
+					radius: width / 2
+					z: 1
+					color: "transparent"
+					border {
+						width: Utils.getSizeWithScreenRatio(mainItem.onCall ? 2 : 1)
+						color: mainItem.onCall ? DefaultStyle.presence_on_call : DefaultStyle.main2_300
 					}
 				}
 				
@@ -205,7 +222,6 @@ Loader{
 					width: height
 					Image {
 						id: image
-						z: 200
 						visible: false
 						width: parent.width
 						height: parent.height
@@ -219,18 +235,28 @@ Loader{
 								? mainItem.contact.core.pictureUri
 								: computedAvatarUri
 						mipmap: true
-						layer.enabled: true
 					}
-					ShaderEffect {
-						id: roundEffect
-						property variant src: image
-						property real edge: 0.9
-						property real edgeSoftness: 0.9
-						property real radius: width / 2.0
-						property real shadowSoftness: 0.5
-						property real shadowOffset: 0.01
+					// Circular clip. This used to be roundEffect.frag, whose built-in edge ring was uneven on a
+					// circle (clipped at top, bottom, left and right). The outline is now drawn in the stack view.
+					Item {
+						id: circleMask
 						anchors.fill: parent
-						fragmentShader: 'qrc:/data/shaders/roundEffect.frag.qsb'
+						visible: false
+						layer.enabled: true
+						layer.smooth: true
+						Rectangle {
+							anchors.fill: parent
+							radius: width / 2
+							color: "black"
+						}
+					}
+					MultiEffect {
+						anchors.fill: parent
+						source: image
+						maskEnabled: true
+						maskSource: circleMask
+						maskThresholdMin: 0.5
+						maskSpreadAtMin: 1.0
 					}
 				}
 			}
