@@ -117,6 +117,9 @@ FocusScope {
                     // New call and transfer lists open often, including mid-call, so read the
                     // address book the app already holds rather than searching it afresh each time.
                     useSharedContacts: true
+                    // Favourites are not used in NMPBX. Extensions are listed ahead of contacts.
+                    showFavorites: false
+                    separateExtensions: true
                     searchBarText: searchBar.text
                     onContactSelected: (contact) => {
                         mainItem.contactClicked(contact)

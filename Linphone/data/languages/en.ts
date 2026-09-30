@@ -646,6 +646,12 @@
         <translation>Contacts</translation>
     </message>
     <message>
+        <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="350"/>
+        <source>generic_address_picker_extensions_list_title</source>
+        <extracomment>&quot;Extensions&quot;</extracomment>
+        <translation>Extensions</translation>
+    </message>
+    <message>
         <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="374"/>
         <source>generic_address_picker_suggestions_list_title</source>
         <extracomment>&quot;Suggestions&quot;</extracomment>

@@ -40,6 +40,12 @@ Flickable {
     // Set once at creation. searchOnEmpty and pauseSearch do not apply in this mode.
     property bool useSharedContacts: false
 
+    // When set, and extensionFilter is All, extensions get their own section above contacts rather
+    // than being mixed in with them.
+    property bool separateExtensions: false
+    readonly property bool _splitExtensions: separateExtensions
+                                             && extensionFilter === MagicSearchProxy.ExtensionFilter.All
+
     property bool searchOnEmpty: true
     // In shared mode the only wait is for the app's first load of the address book.
     property bool loading: useSharedContacts && !ContactsCpp.initialLoadComplete
@@ -61,7 +67,7 @@ Flickable {
     property real busyIndicatorSize: Utils.getSizeWithScreenRatio(60)
 
     property real itemsRightMargin: Utils.getSizeWithScreenRatio(39)
-    property int count: contactsList.count + suggestionsList.count + favoritesList.count
+    property int count: extensionsList.count + contactsList.count + suggestionsList.count + favoritesList.count
 
     contentHeight: contentsLayout.height
     rightMargin: itemsRightMargin
@@ -110,31 +116,24 @@ Flickable {
     function resetSelections() {
         mainItem.highlightedContact = null
         favoritesList.currentIndex = -1
+        extensionsList.currentIndex = -1
         contactsList.currentIndex = -1
         suggestionsList.currentIndex = -1
     }
 
-    function findNextList(item, count, direction) {
-        if (count == 3)
+    // Lists in display order. Moving past either end wraps round, and a list can come back to
+    // itself when every other list is empty.
+    function findNextList(item, direction) {
+        var lists = [favoritesList, extensionsList, contactsList, suggestionsList]
+        var index = lists.indexOf(item)
+        if (index == -1)
             return null
-        var nextItem
-        switch (item) {
-        case suggestionsList:
-            nextItem = (direction > 0 ? favoritesList : contactsList)
-            break
-        case contactsList:
-            nextItem = (direction > 0 ? suggestionsList : favoritesList)
-            break
-        case favoritesList:
-            nextItem = (direction > 0 ? contactsList : suggestionsList)
-            break
-        default:
-            return null
+        for (var i = 1; i <= lists.length; ++i) {
+            var nextItem = lists[(index + direction * i + lists.length) % lists.length]
+            if (nextItem.model.count > 0)
+                return nextItem
         }
-        if (nextItem.model.count > 0)
-            return nextItem
-        else
-            return findNextList(nextItem, count + 1, direction)
+        return null
     }
 
     function updatePosition(list) {
@@ -143,6 +142,7 @@ Flickable {
 
     onHighlightedContactChanged: {
         favoritesList.highlightedContact = highlightedContact
+        extensionsList.highlightedContact = highlightedContact
         contactsList.highlightedContact = highlightedContact
         suggestionsList.highlightedContact = highlightedContact
     }
@@ -172,17 +172,15 @@ Flickable {
                 var newItem
                 var direction = (event.key == Qt.Key_Up ? -1 : 1)
                 if (suggestionsList.activeFocus)
-                newItem = findNextList(suggestionsList, 0,
-                                       direction)
+                newItem = findNextList(suggestionsList, direction)
                 else if (contactsList.activeFocus)
-                newItem = findNextList(contactsList, 0,
-                                       direction)
+                newItem = findNextList(contactsList, direction)
+                else if (extensionsList.activeFocus)
+                newItem = findNextList(extensionsList, direction)
                 else if (favoritesList.activeFocus)
-                newItem = findNextList(favoritesList, 0,
-                                       direction)
+                newItem = findNextList(favoritesList, direction)
                 else
-                newItem = findNextList(suggestionsList, 0,
-                                       direction)
+                newItem = findNextList(suggestionsList, direction)
                 if (newItem) {
                     newItem.selectIndex(
                         direction > 0 ? -1 : newItem.model.count - 1)
@@ -240,6 +238,8 @@ Flickable {
     onAtYEndChanged: if (atYEnd) {
         if (favoritesProxy.haveMore && favoritesList.expanded && mainItem.showFavorites)
             favoritesProxy.displayMore()
+        else if (mainItem._splitExtensions && extensionsProxy.haveMore && extensionsList.expanded)
+            extensionsProxy.displayMore()
         else if (contactsProxy.haveMore && contactsList.expanded) {
             contactsProxy.displayMore()
         }
@@ -331,11 +331,63 @@ Flickable {
         }
 
         ContactListView {
-            id: contactsList
+            id: extensionsList
             visible: contentHeight > 0
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             Layout.topMargin: favoritesList.height > 0 ? Utils.getSizeWithScreenRatio(4) : 0
+            interactive: false
+            highlightText: mainItem.highlightText
+            showActions: mainItem.showActions
+            showInitials: mainItem.showInitials
+            showContactMenu: mainItem.showContactMenu
+            showDefaultAddress: false
+            selectionEnabled: mainItem.selectionEnabled
+            multiSelectionEnabled: mainItem.multiSelectionEnabled
+            selectedContacts: mainItem.selectedContacts
+            itemsRightMargin: mainItem.itemsRightMargin
+            //: "Extensions"
+            title: qsTr("generic_address_picker_extensions_list_title")
+
+            onHighlightedContactChanged: mainItem.highlightedContact = highlightedContact
+            onContactSelected: contactGui => {
+                                   mainItem.contactSelected(contactGui)
+                               }
+            onUpdatePosition: mainItem.updatePosition(extensionsList)
+            onContactDeletionRequested: contact => {
+                                            mainItem.contactDeletionRequested(
+                                                contact)
+                                        }
+            onAddContactToSelection: address => {
+                                         mainItem.addContactToSelection(address)
+                                     }
+            onRemoveContactFromSelection: index => {
+                                              mainItem.removeContactFromSelection(
+                                                  index)
+                                          }
+
+            // Same sources as the contacts section below, limited to extensions.
+            property MagicSearchProxy proxy: MagicSearchProxy {
+                id: extensionsProxy
+                parentProxy: mainItem.useSharedContacts ? ContactsCpp.rootProxy : mainItem.mainModel
+                extensionFilter: MagicSearchProxy.ExtensionFilter.Extensions
+                filterText: contactsProxy.filterText
+                filterType: contactsProxy.filterType
+                initialDisplayItems: contactsProxy.initialDisplayItems
+                displayItemsStep: contactsProxy.displayItemsStep
+                onLocalFriendCreated: (index) => {
+                    extensionsList.selectIndex(index)
+                }
+            }
+            model: mainItem._splitExtensions ? proxy : []
+        }
+
+        ContactListView {
+            id: contactsList
+            visible: contentHeight > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: implicitHeight
+            Layout.topMargin: (extensionsList.height + favoritesList.height) > 0 ? Utils.getSizeWithScreenRatio(4) : 0
             interactive: false
             highlightText: mainItem.highlightText
             showActions: mainItem.showActions
@@ -369,7 +421,8 @@ Flickable {
             model: MagicSearchProxy {
                 id: contactsProxy
                 parentProxy: mainItem.useSharedContacts ? ContactsCpp.rootProxy : mainItem.mainModel
-                extensionFilter: mainItem.extensionFilter
+                extensionFilter: mainItem._splitExtensions ? MagicSearchProxy.ExtensionFilter.Contacts
+                                                           : mainItem.extensionFilter
                 filterText: mainItem.useSharedContacts ? mainItem.searchBarText : ""
                 // The shared list holds the whole synced address book, so CardDAV and LDAP contacts
                 // always belong here, as on the Contacts page.
@@ -390,7 +443,7 @@ Flickable {
             visible: contentHeight > 0
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
-            Layout.topMargin: (contactsList.height + favoritesList.height) > 0 ? Utils.getSizeWithScreenRatio(4) : 0
+            Layout.topMargin: (contactsList.height + extensionsList.height + favoritesList.height) > 0 ? Utils.getSizeWithScreenRatio(4) : 0
             interactive: false
             showInitials: false
             highlightText: mainItem.highlightText
@@ -426,8 +479,10 @@ Flickable {
                 parentProxy: mainItem.mainModel
                 extensionFilter: mainItem.extensionFilter
                 filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
-                initialDisplayItems: contactsProxy.haveMore && contactsList.expanded 
-                    ? 0 
+                // Hold suggestions back while either section above still has more to page in.
+                initialDisplayItems: (contactsProxy.haveMore && contactsList.expanded)
+                                     || (mainItem._splitExtensions && extensionsProxy.haveMore && extensionsList.expanded)
+                    ? 0
                     : Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
                 onInitialDisplayItemsChanged: maxDisplayItems = initialDisplayItems
                 displayItemsStep: 3 * initialDisplayItems / 2
