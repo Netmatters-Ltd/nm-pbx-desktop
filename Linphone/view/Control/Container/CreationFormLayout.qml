@@ -114,6 +114,9 @@ FocusScope {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     showContactMenu: false
+                    // New call and transfer lists open often, including mid-call, so read the
+                    // address book the app already holds rather than searching it afresh each time.
+                    useSharedContacts: true
                     searchBarText: searchBar.text
                     onContactSelected: (contact) => {
                         mainItem.contactClicked(contact)

@@ -6,6 +6,7 @@ import Linphone
 import UtilsCpp 1.0
 import ConstantsCpp 1.0
 import SettingsCpp
+import ContactsCpp
 import "qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js" as Utils
 
 Flickable {
@@ -32,8 +33,16 @@ Flickable {
     //property FriendGui selectedContact//: model.getAt(currentIndex) || null
     property FriendGui highlightedContact
 
+    // When set, favourites and contacts come from the address book ContactsCpp already holds in
+    // memory and are filtered locally, so the list appears at once instead of waiting on a fresh
+    // search. Only suggestions (addresses that are not saved contacts, such as numbers from call
+    // history) still need a live search, and that runs only once something has been typed.
+    // Set once at creation. searchOnEmpty and pauseSearch do not apply in this mode.
+    property bool useSharedContacts: false
+
     property bool searchOnEmpty: true
-    property bool loading: false
+    // In shared mode the only wait is for the app's first load of the address book.
+    property bool loading: useSharedContacts && !ContactsCpp.initialLoadComplete
     property bool pauseSearch: false // true = don't search on text change
 
     // Model properties
@@ -94,7 +103,7 @@ Flickable {
         }
     }
     function haveAddress(address) {
-        var index = magicSearchProxy.findFriendIndexByAddress(address)
+        var index = (mainItem.useSharedContacts ? ContactsCpp.rootProxy : magicSearchProxy).findFriendIndexByAddress(address)
         return index != -1
     }
 
@@ -142,6 +151,9 @@ Flickable {
         if (!pauseSearch && (mainItem.searchOnEmpty || searchBarText != '')) {
             searchText = searchBarText.length === 0 ? "*" : searchBarText
         }
+        // Local filtering is synchronous, so there is no result callback to scroll back on.
+        if (mainItem.useSharedContacts)
+            mainItem.contentY = 0
     }
     onPauseSearchChanged: {
         if (!pauseSearch && (mainItem.searchOnEmpty || searchBarText != '')) {
@@ -149,7 +161,8 @@ Flickable {
         }
     }
     onSearchTextChanged: {
-        loading = true
+        if (!mainItem.useSharedContacts)
+            loading = true
     }
 
     Keys.onPressed: event => {
@@ -190,26 +203,34 @@ Flickable {
     Connections {
         target: SettingsCpp
         onLdapConfigChanged: {
-            if (SettingsCpp.syncLdapContacts)
+            if (SettingsCpp.syncLdapContacts
+                && (!mainItem.useSharedContacts || magicSearchProxy.searchText != ''))
                 magicSearchProxy.forceUpdate()
         }
     }
 
     property MagicSearchProxy mainModel: MagicSearchProxy {
         id: magicSearchProxy
-        searchText: mainItem.searchText
+        // In shared mode this search only feeds suggestions, so an empty search box means no
+        // search at all: an empty search text clears the list rather than fetching everything.
+        searchText: mainItem.useSharedContacts ? mainItem.searchBarText : mainItem.searchText
         aggregationFlag: LinphoneEnums.MagicSearchAggregation.Friend
         sourceFlags: mainItem.sourceFlags
         onModelReset: {
             mainItem.resetSelections()
         }
         onResultsProcessed: {
+            if (mainItem.useSharedContacts)
+                return
             mainItem.loading = false
             mainItem.contentY = 0
         }
 
         onInitialized: {
-            if (mainItem.searchOnEmpty || searchText != '') {
+            if (mainItem.useSharedContacts) {
+                if (searchText != '')
+                    forceUpdate()
+            } else if (mainItem.searchOnEmpty || searchText != '') {
                 mainItem.loading = true
                 forceUpdate()
             }
@@ -296,9 +317,12 @@ Flickable {
 
             property MagicSearchProxy proxy: MagicSearchProxy {
                 id: favoritesProxy
-                parentProxy: mainItem.mainModel
-                showMe: mainItem.showMe
+                parentProxy: mainItem.useSharedContacts ? ContactsCpp.rootProxy : mainItem.mainModel
+                // showMe is set on the underlying list, so in shared mode it would change what every
+                // other view sees. Match the Contacts page, which always shows it.
+                showMe: mainItem.useSharedContacts || mainItem.showMe
                 extensionFilter: mainItem.extensionFilter
+                filterText: mainItem.useSharedContacts ? mainItem.searchBarText : ""
                 filterType: MagicSearchProxy.FilteringTypes.Favorites
             }
             model: mainItem.showFavorites
@@ -344,10 +368,14 @@ Flickable {
 
             model: MagicSearchProxy {
                 id: contactsProxy
-                parentProxy: mainItem.mainModel
+                parentProxy: mainItem.useSharedContacts ? ContactsCpp.rootProxy : mainItem.mainModel
                 extensionFilter: mainItem.extensionFilter
+                filterText: mainItem.useSharedContacts ? mainItem.searchBarText : ""
+                // The shared list holds the whole synced address book, so CardDAV and LDAP contacts
+                // always belong here, as on the Contacts page.
                 filterType: MagicSearchProxy.FilteringTypes.App
-                            | (mainItem.searchText != '*'
+                            | (mainItem.useSharedContacts
+                               || mainItem.searchText != '*'
                                && mainItem.searchText != ''
                                || SettingsCpp.syncLdapContacts ? MagicSearchProxy.FilteringTypes.Ldap | MagicSearchProxy.FilteringTypes.CardDAV : 0)
                 initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))

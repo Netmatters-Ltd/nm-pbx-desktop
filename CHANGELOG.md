@@ -44,3 +44,4 @@ Group changes to describe their impact on the project, as follows:
 
 ### Changed
 - Improved appearance of avatar borders.
+- Removed delay before contacts are shown when starting a new call or transfer during a call.
