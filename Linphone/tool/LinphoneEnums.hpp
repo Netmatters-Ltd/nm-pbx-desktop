@@ -254,7 +254,9 @@ linphone::ConferenceScheduler::State toLinphone(const LinphoneEnums::ConferenceS
 LinphoneEnums::ConferenceSchedulerState fromLinphone(const linphone::ConferenceScheduler::State &state);
 
 // App Presence
-enum class Presence { Undefined, Online, Busy, DoNotDisturb, Offline, Away };
+// OnCall is inbound only: it comes from the server's call-state bridge and is never published or persisted.
+// Keep it last so no existing integer value moves.
+enum class Presence { Undefined, Online, Busy, DoNotDisturb, Offline, Away, OnCall };
 Q_ENUM_NS(Presence);
 
 QString toString(Presence presence);

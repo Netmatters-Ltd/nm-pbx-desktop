@@ -50,6 +50,7 @@ QtObject {
 
     property var presence_online: "#4FAE80"
     property var presence_away: "#FFA645"
+    property var presence_on_call: "#F0BE00"
 
     property var vue_meter_light_green: "#6FF88D"
     property var vue_meter_dark_green: "#00D916"

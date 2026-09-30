@@ -1785,6 +1785,9 @@ QColor Utils::getPresenceColor(LinphoneEnums::Presence presence) {
 		case LinphoneEnums::Presence::Offline:
 			presenceColor = Utils::getDefaultStyleColor("main2_400");
 			break;
+		case LinphoneEnums::Presence::OnCall:
+			presenceColor = Utils::getDefaultStyleColor("presence_on_call");
+			break;
 		case LinphoneEnums::Presence::Undefined:
 			presenceColor = Utils::getDefaultStyleColor("transparent");
 			break;
@@ -1810,6 +1813,9 @@ QUrl Utils::getPresenceIcon(LinphoneEnums::Presence presence) {
 			break;
 		case LinphoneEnums::Presence::Offline:
 			presenceIcon = Utils::getAppIcon("presenceOffline");
+			break;
+		case LinphoneEnums::Presence::OnCall:
+			presenceIcon = Utils::getAppIcon("presenceOnCall");
 			break;
 		case LinphoneEnums::Presence::Undefined:
 			presenceIcon = QUrl("");
@@ -1861,6 +1867,9 @@ QString Utils::getPresenceStatus(LinphoneEnums::Presence presence) {
 			break;
 		case LinphoneEnums::Presence::Offline:
 			presenceStatus = tr("contact_presence_status_offline");
+			break;
+		case LinphoneEnums::Presence::OnCall:
+			presenceStatus = tr("contact_presence_status_on_call");
 			break;
 		case LinphoneEnums::Presence::Undefined:
 			presenceStatus = "";

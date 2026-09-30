@@ -6104,6 +6104,11 @@ To enable them in a commercial project, please contact us.</translation>
         <translation>Offline</translation>
     </message>
     <message>
+        <location filename="../../tool/Utils.cpp" line="1872"/>
+        <source>contact_presence_status_on_call</source>
+        <translation>On a call</translation>
+    </message>
+    <message>
         <location filename="../../tool/Utils.cpp" line="1846"/>
         <source>contact_presence_status_away</source>
         <translation>Away</translation>

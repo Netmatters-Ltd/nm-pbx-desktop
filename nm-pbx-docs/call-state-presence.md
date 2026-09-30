@@ -9,6 +9,27 @@ anything here disagrees with it.
 Written by AI 24 September 2026, based on a larger plan for implementing the call state handling
 on the server. Line numbers were checked against this repository on that date.
 
+## As implemented
+
+Implemented 30 September 2026. Where it differs from, or adds to, the brief below:
+
+- The decision is `PresenceMapping::toAppPresence()` in `Linphone/model/tool/PresenceMapping.hpp`,
+  a header-only pure function over the basic status and the list of activity types.
+  `ToolModel::corePresenceModelToAppPresence()` is a thin adaptor that collects every activity and
+  calls it. There is no test target yet, so the header has no dependencies beyond
+  `LinphoneEnums.hpp` to make one easy to add.
+- The enum value is `LinphoneEnums::Presence::OnCall`, label "On a call"
+  (`contact_presence_status_on_call`), icon `presence_on_call.svg` (`AppIcons.presenceOnCall`),
+  colour token `presence_on_call` in `DefaultStyle.qml`, `#F0BE00`. That is a golden yellow, well
+  clear of Away's orange (`#FFA645`), and dark enough to read as label text on white.
+- `ToolModel::appPresenceToCorePresenceModel()` and `AccountModel::setPresence()` both refuse
+  `OnCall`, so it is never published or written to `explicit_presence`.
+- Nothing in the app blocks calling a contact based on presence, so an extension on a call can
+  still be called.
+- Images in `Linphone/data/image/` are picked up by a CMake `GLOB`, which only runs at configure
+  time. `Linphone/model/CMakeLists.txt` was changed too, which triggers a reconfigure on the next
+  build, but if the badge does not appear, reconfigure CMake by hand.
+
 ## Where things stand
 
 The server side is assumed to be working before this work starts:

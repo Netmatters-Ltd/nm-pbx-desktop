@@ -543,6 +543,13 @@ void AccountModel::setPresence(LinphoneEnums::Presence presence,
 		return;
 	}
 
+	// OnCall comes from the server's call-state bridge. Refuse it before anything reaches config, so it can never be
+	// persisted as explicit_presence or published.
+	if (presence == LinphoneEnums::Presence::OnCall) {
+		lWarning() << log().arg("Unable to set OnCall presence, it is reported by the server only");
+		return;
+	}
+
 	auto accountSection = ToolModel::configAccountSection(mMonitor);
 
 	if (!resetToAuto && !userInitiated &&
