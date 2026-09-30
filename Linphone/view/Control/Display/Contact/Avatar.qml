@@ -60,7 +60,7 @@ Loader{
 	property bool securityBreach: securityLevel === LinphoneEnums.SecurityLevel.Unsafe
 	property bool displayPresence: true
 	// Set while the server's call-state bridge reports this contact on a call. Adds a ring as well as the badge.
-	readonly property bool onCall: displayPresence && contact?.core?.presence === LinphoneEnums.Presence.OnCall
+	readonly property bool isOnCall: displayPresence && contact?.core?.presence === LinphoneEnums.Presence.OnCall
 	// When set (used for the user's own avatar), the fallback shows the account's
 	// extension number instead of the display name initials.
 	property bool showExtension: false
@@ -117,14 +117,14 @@ Loader{
 				// round; the security ring above takes its place when that is shown.
 				Rectangle {
 					readonly property bool isSecurityRingShown: mainItem.secured || mainItem.securityBreach
-					visible: !isSecurityRingShown && (mainItem.onCall || mainItem.haveAvatar)
+					visible: !isSecurityRingShown && (mainItem.isOnCall || mainItem.haveAvatar)
 					anchors.fill: stackView.currentItem
 					radius: width / 2
 					z: 1
 					color: "transparent"
 					border {
-						width: Utils.getSizeWithScreenRatio(mainItem.onCall ? 2 : 1)
-						color: mainItem.onCall ? DefaultStyle.presence_on_call : DefaultStyle.main2_300
+						width: Utils.getSizeWithScreenRatio(mainItem.isOnCall ? 2 : 1)
+						color: mainItem.isOnCall ? DefaultStyle.presence_on_call : DefaultStyle.main2_300
 					}
 				}
 				
