@@ -65,6 +65,9 @@ public:
 	void useFetchConfig(QString filePath);
 	bool setFetchConfig(QString filePath);
 	void migrate();
+	// Registers our call-waiting and call-on-hold tones with the SDK, honouring the user's choice
+	// to turn either one off. Called on start, and again whenever that choice changes.
+	void setCustomTones();
 
 	void searchInMagicSearch(QString filter,
 	                         int sourceFlags,
@@ -119,7 +122,6 @@ private:
 	void setPathBeforeCreation();
 	void setPathsAfterCreation();
 	void setPathAfterStart();
-	void setCustomTones();
 	void onIterate();
 
 	static std::shared_ptr<CoreModel> gCoreModel;

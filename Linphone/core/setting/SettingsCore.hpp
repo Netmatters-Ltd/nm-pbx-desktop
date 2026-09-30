@@ -46,6 +46,10 @@ public:
 	    int echoCancellationCalibration READ getEchoCancellationCalibration NOTIFY echoCancellationCalibrationChanged)
 	Q_PROPERTY(bool automaticallyRecordCallsEnabled READ getAutomaticallyRecordCallsEnabled WRITE
 	               setAutomaticallyRecordCallsEnabled NOTIFY automaticallyRecordCallsEnabledChanged)
+	Q_PROPERTY(bool callWaitingToneEnabled READ getCallWaitingToneEnabled WRITE setCallWaitingToneEnabled NOTIFY
+	               callWaitingToneEnabledChanged)
+	Q_PROPERTY(bool callOnHoldToneEnabled READ getCallOnHoldToneEnabled WRITE setCallOnHoldToneEnabled NOTIFY
+	               callOnHoldToneEnabledChanged)
 
 	Q_PROPERTY(bool captureGraphRunning READ getCaptureGraphRunning NOTIFY captureGraphRunningChanged)
 
@@ -153,6 +157,16 @@ public:
 		return mAutomaticallyRecordCallsEnabled;
 	}
 	void setAutomaticallyRecordCallsEnabled(bool enabled);
+
+	bool getCallWaitingToneEnabled() {
+		return mCallWaitingToneEnabled;
+	}
+	void setCallWaitingToneEnabled(bool enabled);
+
+	bool getCallOnHoldToneEnabled() {
+		return mCallOnHoldToneEnabled;
+	}
+	void setCallOnHoldToneEnabled(bool enabled);
 
 	float getPlaybackGain() const;
 	void setPlaybackGain(float gain);
@@ -311,6 +325,8 @@ signals:
 	void autoDownloadReceivedFilesChanged();
 
 	void automaticallyRecordCallsEnabledChanged();
+	void callWaitingToneEnabledChanged();
+	void callOnHoldToneEnabledChanged();
 
 	void captureGraphRunningChanged(bool running);
 
@@ -407,6 +423,8 @@ private:
 	bool mEchoCancellationEnabled;
 	bool mAutoDownloadReceivedFiles;
 	bool mAutomaticallyRecordCallsEnabled;
+	bool mCallWaitingToneEnabled;
+	bool mCallOnHoldToneEnabled;
 
 	// Audio
 	QVariantList mCaptureDevices;

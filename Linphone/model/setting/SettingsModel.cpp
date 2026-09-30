@@ -48,6 +48,8 @@ const std::string SettingsModel::CardDAVSection("carddav_0");
 const std::string SettingsModel::AudioGainSectionPrefix("nmpbx_audio_gain_");
 const char *SettingsModel::CaptureGainKey = "mic_gain";
 const char *SettingsModel::PlaybackGainKey = "spk_gain";
+const char *SettingsModel::CallWaitingToneKey = "call_waiting_tone_enabled";
+const char *SettingsModel::CallOnHoldToneKey = "call_on_hold_tone_enabled";
 std::shared_ptr<SettingsModel> SettingsModel::gSettingsModel;
 std::optional<std::string> SettingsModel::sAppliedCardDAVProvisioning;
 
@@ -647,6 +649,42 @@ void SettingsModel::setCallToneIndicationsEnabled(bool enabled) {
 		CoreModel::getInstance()->getCore()->enableCallToneIndications(enabled);
 		emit callToneIndicationsEnabledChanged(enabled);
 	}
+}
+
+// Both tones default to on, so nothing changes for anyone who has not been into settings.
+bool SettingsModel::isCallWaitingToneEnabled(const shared_ptr<linphone::Config> &config) {
+	return config ? config->getBool(UiSection, CallWaitingToneKey, true) : true;
+}
+
+bool SettingsModel::isCallOnHoldToneEnabled(const shared_ptr<linphone::Config> &config) {
+	return config ? config->getBool(UiSection, CallOnHoldToneKey, true) : true;
+}
+
+bool SettingsModel::getCallWaitingToneEnabled() const {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return isCallWaitingToneEnabled(mConfig);
+}
+
+void SettingsModel::setCallWaitingToneEnabled(bool enabled) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	if (enabled == getCallWaitingToneEnabled()) return;
+	mConfig->setBool(UiSection, CallWaitingToneKey, enabled);
+	// Takes effect from the next time the tone starts. One already playing runs to its end.
+	CoreModel::getInstance()->setCustomTones();
+	emit callWaitingToneEnabledChanged(enabled);
+}
+
+bool SettingsModel::getCallOnHoldToneEnabled() const {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return isCallOnHoldToneEnabled(mConfig);
+}
+
+void SettingsModel::setCallOnHoldToneEnabled(bool enabled) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	if (enabled == getCallOnHoldToneEnabled()) return;
+	mConfig->setBool(UiSection, CallOnHoldToneKey, enabled);
+	CoreModel::getInstance()->setCustomTones();
+	emit callOnHoldToneEnabledChanged(enabled);
 }
 
 // =============================================================================
