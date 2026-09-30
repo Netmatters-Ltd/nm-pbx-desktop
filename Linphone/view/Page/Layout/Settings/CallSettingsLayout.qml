@@ -65,6 +65,26 @@ AbstractSettingsLayout {
                 propertyName: "callToneIndicationsEnabled"
                 propertyOwner: SettingsCpp
             }
+            // Our own per-tone switches. The one above silences every tone, including call ended
+            // and busy, so these only mean something while it is on.
+            SwitchSetting {
+                //: Call waiting tone
+                titleText: qsTr("settings_calls_call_waiting_tone_title")
+                //: Beep during a call when someone else is calling you
+                subTitleText: qsTr("settings_calls_call_waiting_tone_subtitle")
+                propertyName: "callWaitingToneEnabled"
+                propertyOwner: SettingsCpp
+                enabled: SettingsCpp.callToneIndicationsEnabled
+            }
+            SwitchSetting {
+                //: Call on hold tone
+                titleText: qsTr("settings_calls_call_on_hold_tone_title")
+                //: Beep when you put a call on hold
+                subTitleText: qsTr("settings_calls_call_on_hold_tone_subtitle")
+                propertyName: "callOnHoldToneEnabled"
+                propertyOwner: SettingsCpp
+                enabled: SettingsCpp.callToneIndicationsEnabled
+            }
             SwitchSetting {
                 visible: false // Hidden - video feature disabled
                 //: "Autoriser la vidéo"

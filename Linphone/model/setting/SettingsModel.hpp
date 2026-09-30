@@ -159,6 +159,18 @@ public:
 	bool getCallToneIndicationsEnabled() const;
 	void setCallToneIndicationsEnabled(bool enabled);
 
+	// Our own switches for the two in-call tones, independent of the SDK's tone indications, which
+	// cover every tone at once. Stored in [ui]. The static forms exist for CoreModel::start(), which
+	// registers the tones before this class is created.
+	static const char *CallWaitingToneKey;
+	static const char *CallOnHoldToneKey;
+	static bool isCallWaitingToneEnabled(const std::shared_ptr<linphone::Config> &config);
+	static bool isCallOnHoldToneEnabled(const std::shared_ptr<linphone::Config> &config);
+	bool getCallWaitingToneEnabled() const;
+	void setCallWaitingToneEnabled(bool enabled);
+	bool getCallOnHoldToneEnabled() const;
+	void setCallOnHoldToneEnabled(bool enabled);
+
 	//------------------------------------------------------------------------------------------------------------
 
 	bool getLogsEnabled() const;
@@ -320,6 +332,8 @@ signals:
 	void automaticallyRecordCallsEnabledChanged(bool enabled);
 
 	void callToneIndicationsEnabledChanged(bool enabled);
+	void callWaitingToneEnabledChanged(bool enabled);
+	void callOnHoldToneEnabledChanged(bool enabled);
 
 	void showAudioCodecsChanged(bool status);
 
