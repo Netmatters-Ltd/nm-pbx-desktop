@@ -607,7 +607,9 @@ FunctionEnd
 @CPACK_NSIS_INSTALLER_MUI_ICON_CODE@
 @CPACK_NSIS_INSTALLER_ICON_CODE@
 @CPACK_NSIS_INSTALLER_MUI_COMPONENTS_DESC@
-@CPACK_NSIS_INSTALLER_MUI_FINISHPAGE_RUN_CODE@
+; NMPBX: no "Run NMPBX" checkbox on the finish page. The installer is usually run elevated, so
+; launching from here would start the app as the administrator and use their %LOCALAPPDATA% config.
+; CPACK_NSIS_MUI_FINISHPAGE_RUN is still set because the running-process checks above rely on it.
 
 ;--------------------------------
 ;Pages
