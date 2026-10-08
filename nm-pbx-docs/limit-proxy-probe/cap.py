@@ -4,8 +4,8 @@
 Background in nm-pbx-docs/call-history.md.
 
 Mirrors the current Linphone/core/proxy/LimitProxy.cpp, including displayLimit, the clamp in
-setMaxDisplayItems(), resyncRowFilter() and the onAdded/onRemoved wiring, over a 500 row source
-behind a text filter. Drives the same shape of view as the capped CallHistoryListView and checks:
+setMaxDisplayItems(), resyncRowFilter(), onSourceFilterChanged() and the onAdded/onRemoved
+wiring, over a 500 row source behind a text filter. Drives the same shape of view as the capped CallHistoryListView and checks:
 
   - the cap holds at 100 on load and after scrolling to the bottom
   - an arriving call does not push the count past the cap, and does not reset the scroll
@@ -101,7 +101,7 @@ class LimitProxy(QSortFilterProxyModel):
             second.rowsInserted.connect(self.onAdded)
             second.rowsRemoved.connect(self.onRemoved)
             second.modelReset.connect(self.invalidate)
-        first.filterTextChanged.connect(self.resyncRowFilter)
+        first.filterTextChanged.connect(self.onSourceFilterChanged)
         self.setSourceModel(first)
 
     @Slot()
@@ -191,6 +191,11 @@ class LimitProxy(QSortFilterProxyModel):
         if not model:
             return
         if self.rowCount() != self._displayCount(model.rowCount()):
+            self.reapplyRowFilter()
+
+    @Slot()
+    def onSourceFilterChanged(self):
+        if self._max >= 0 and self.sourceModel():
             self.reapplyRowFilter()
 
     @Slot()

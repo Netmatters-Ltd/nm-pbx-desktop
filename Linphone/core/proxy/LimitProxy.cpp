@@ -50,9 +50,9 @@ void LimitProxy::setSourceModels(SortFilterProxy *firstList) {
 	// A filter change in firstList shuffles its rows without touching our cap, and our own row
 	// filter is index based, so rows can move into range without QSortFilterProxyModel ever
 	// re-testing them. Nothing above notices: onAdded and onRemoved are wired to the list beneath
-	// the filter, not to the filter itself. Lists without a ceiling resync by way of the cap moving.
-	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::resyncRowFilter);
-	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::resyncRowFilter);
+	// the filter, not to the filter itself.
+	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::onSourceFilterChanged);
+	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::onSourceFilterChanged);
 
 	// Restore old values
 	auto oldModel = dynamic_cast<SortFilterProxy *>(sourceModel());
@@ -165,6 +165,13 @@ void LimitProxy::resyncRowFilter() {
 	// Cheap: rowCount() is O(1) once the mapping exists. Skipping the re-filter when nothing is out
 	// of place keeps the row signals, and the work they fan out to, down to real changes.
 	if (rowCount() != getDisplayCount(model->rowCount())) reapplyRowFilter();
+}
+
+void LimitProxy::onSourceFilterChanged() {
+	// Every capped list, paging or not. A row count check like resyncRowFilter()'s isn't enough
+	// here: one filter change can hide some rows and bring back others, leaving the count right
+	// and the rows wrong. Re-testing is one integer compare per filtered row.
+	if (mMaxDisplayItems >= 0 && sourceModel()) reapplyRowFilter();
 }
 
 // Deliberately not invalidate(): that emits layoutChanged with no hint, which the QML delegate model

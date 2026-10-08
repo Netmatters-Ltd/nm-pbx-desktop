@@ -29,6 +29,9 @@ fresh clone, by `git submodule update --force`, and by any SDK version bump. If 
 under `external/linphone-sdk`, capture it as a patch there. Reapply them with
 `nm-pbx-docs/apply-sdk-patches.ps1`.
 
+[Tests](/nm-pbx-docs/tests.md) covers our Qt Test unit tests in `Linphone/tests`: what they cover,
+and how to build and run them. Running them needs a build, so ask the user to run them.
+
 ## Language
 
 This project supports translation into multiple languages. However we are only concerned with the English version. Use British English. Translate any hardcoded text in other languages that may be user-visible.

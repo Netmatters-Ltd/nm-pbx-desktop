@@ -96,8 +96,10 @@ public:
 	void onAdded(const QModelIndex &parent, int first, int last);
 	void onRemoved();
 	// Re-runs the row filter, but only for a proxy holding a ceiling and only when the rows on show
-	// no longer match what the cap says they should be.
+	// no longer match what the cap says they should be. Enough when rows have only been inserted.
 	void resyncRowFilter();
+	// Re-runs the row filter after the search text or filter type changes underneath us.
+	void onSourceFilterChanged();
 
 	int mInitialDisplayItems = -1;
 	int mMaxDisplayItems = -1;

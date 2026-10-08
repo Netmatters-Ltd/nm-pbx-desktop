@@ -71,16 +71,19 @@ with `invalidate()` would reintroduce the scroll reset, so the helper uses
 `beginFilterChange()`/`endFilterChange(Direction::Rows)` instead, which emits granular row signals.
 Same version guard as `SortFilterProxy::invalidateFilter()`.
 
-**Two things trigger a re-apply**, and `resyncRowFilter()` runs the re-filter only when the rows on
-show actually disagree with the cap:
+**Two things trigger a re-apply:**
 
 - A call log is prepended. `QSortFilterProxyModel` tests only the newly inserted row and renumbers
   the rest, so the row pushed past the ceiling stays mapped and the count creeps to 101, 102, and so
-  on.
-- The search text changes. `onAdded`/`onRemoved` are wired to the list *beneath* the search filter,
-  not to the filter itself, so nothing else notices when the filter reshuffles rows underneath the
-  cap. Without this, searching returns only the matches that happened to sit inside the cap before
-  the user typed.
+  on. `resyncRowFilter()` handles this, and only re-filters when the row count disagrees with the
+  cap. That check is enough here because rows have only been added.
+- The search text or filter type changes. `onAdded`/`onRemoved` are wired to the list *beneath* the
+  search filter, not to the filter itself, so nothing else notices when the filter reshuffles rows
+  underneath the cap. Without this, searching returns only the matches that happened to sit inside
+  the cap before the user typed. `onSourceFilterChanged()` handles this, and always re-filters,
+  for every capped list and not just the call history. A row count check isn't enough: one change
+  can hide some rows and bring back others, so the count comes out right with the wrong rows on
+  show. This was the truncated contact list in the new call window (task 5243983).
 
 When there are more matches than the cap allows, the list shows a footer saying so. It is gated on
 `showLimitNotice`, which follows the search bar, so it appears on the main list and not on the
@@ -146,6 +149,14 @@ two differ only in the signal emitted, which makes the change lower risk than it
 mapping while the source still has more rows, so without a re-apply the visible count would ratchet
 down permanently.
 
+The same `invalidate()` also leaves QML out of date. `invalidate()` emits no row signals, and
+`LimitProxy` only emits `countChanged`, and with it `haveMoreChanged`, on row signals. So paging
+changes `count` and `haveMore` without QML being told, and anything bound to them keeps the old
+value. In the new call window, suggestions are held back while `contactsProxy.haveMore` is true,
+so they may not appear after paging to the end of the contacts. That hasn't been checked in the
+app. The main Contacts page hides suggestions, so it isn't affected. Switching to
+`reapplyRowFilter()` fixes this as well, because it emits row signals.
+
 Prove it with `nm-pbx-docs/limit-proxy-probe/`, which reproduces the reset and shows the fix holding
 the scroll position. Its README has the expected before and after output. Then check by hand that
 each of the four views above still pages correctly, since the granular row signals reach the view
@@ -154,5 +165,7 @@ differently from a reset.
 **Index-based row filtering can silently drop rows.** The same root cause as above, in a different
 guise. Because `LimitProxy::filterAcceptsRow()` tests the source row *index*, any list whose source
 filters underneath it can end up showing an arbitrary subset, since `QSortFilterProxyModel` never
-re-tests a row it has already rejected. The call history handles this through `resyncRowFilter()`.
-The other views have not been checked for the same shape, and should be when the fix above is done.
+re-tests a row it has already rejected. Search and filter type changes are now covered for every
+`LimitProxy` by `onSourceFilterChanged()`, with tests in `Linphone/tests` (see [tests.md](tests.md)).
+Anything else that reorders rows underneath the cap without inserting or removing them, such as a
+sort change, is still not covered.

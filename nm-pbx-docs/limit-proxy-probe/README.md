@@ -95,8 +95,8 @@ Expected, against a 500 row source with the cap at 100:
 
 Steps 3 and 4 are the ones worth watching. Without `resyncRowFilter()` the count creeps to 101 then
 102, because `filterAcceptsRow()` is index based and `QSortFilterProxyModel` only tests the newly
-inserted row. Step 5 is the other one: without the resync on a source filter change, the search
-returns only the matches that happened to sit inside the cap before you typed.
+inserted row. Step 5 is the other one: without the re-filter on a source filter change, the
+search returns only the matches that happened to sit inside the cap before you typed.
 
 The small `contentY` drift in steps 3 and 4 is one row per arriving call while pinned at the bottom.
 That is the view re-anchoring, not the reset this directory exists to catch.
