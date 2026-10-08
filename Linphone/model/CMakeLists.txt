@@ -47,6 +47,7 @@ list(APPEND _LINPHONEAPP_SOURCES
 	model/recorder/RecorderModel.cpp
 	
 	model/tool/ToolModel.cpp
+	model/tool/PresenceMapping.hpp
 	model/tool/VfsUtils.cpp
 
 	model/videoSource/VideoSourceDescriptorModel.cpp

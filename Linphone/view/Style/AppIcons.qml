@@ -151,6 +151,7 @@ QtObject {
 	property string presenceBusy: "image://internal/presence_busy.svg"
 	property string presenceDoNotDisturb: "image://internal/presence_do_not_disturb.svg"
 	property string presenceOffline: "image://internal/presence_offline.svg"
+	property string presenceOnCall: "image://internal/presence_on_call.svg"
 	property string presenceNote: "image://internal/presence-note.svg"
 	property string clockCountDown: "image://internal/clock-countdown.svg"
 	property string reply: "image://internal/reply.svg"

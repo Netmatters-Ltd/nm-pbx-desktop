@@ -32,8 +32,18 @@ Group changes to describe their impact on the project, as follows:
 - Minimum supported Qt version is now 6.5.3
 - Some settings have changed name and/or section in linphonerc file.
 
-
-## [6.1.0] - XXXX-XX-XX
+## [6.2.0]
 
 ### Changed
 - Minimum supported Qt version is now 6.10.0
+
+## [6.3.0] - 2026-09-30
+
+### Added
+- Indicate extensions that are on a call.
+
+### Changed
+- Improved appearance of avatar borders.
+- Removed delay before contacts are shown when starting a new call or transfer during a call.
+- When starting a new call or transfer, extensions are listed before contacts.
+- The call window defaults to a smaller size.

@@ -646,6 +646,12 @@
         <translation>Contacts</translation>
     </message>
     <message>
+        <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="350"/>
+        <source>generic_address_picker_extensions_list_title</source>
+        <extracomment>&quot;Extensions&quot;</extracomment>
+        <translation>Extensions</translation>
+    </message>
+    <message>
         <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="374"/>
         <source>generic_address_picker_suggestions_list_title</source>
         <extracomment>&quot;Suggestions&quot;</extracomment>
@@ -6102,6 +6108,11 @@ To enable them in a commercial project, please contact us.</translation>
         <location filename="../../tool/Utils.cpp" line="1855"/>
         <source>contact_presence_status_offline</source>
         <translation>Offline</translation>
+    </message>
+    <message>
+        <location filename="../../tool/Utils.cpp" line="1872"/>
+        <source>contact_presence_status_on_call</source>
+        <translation>On a call</translation>
     </message>
     <message>
         <location filename="../../tool/Utils.cpp" line="1846"/>

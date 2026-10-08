@@ -20,6 +20,9 @@ For our use, we're only concerned with the 64-bit Windows build.
 bounded, the difference between the two limits that apply to it, and a known Qt defect that resets
 the scroll position on every paging list in the app.
 
+[Call state presence](/nm-pbx-docs/call-state-presence.md) explains the inbound-only "On a call"
+presence state, which comes from a call-state bridge on the server and must never be published.
+
 [SDK patches](/nm-pbx-docs/sdk-patches/README.md) lists the local fixes we carry inside the
 `external/linphone-sdk` submodules. Those live in untracked working trees, so they are lost by a
 fresh clone, by `git submodule update --force`, and by any SDK version bump. If you change anything
