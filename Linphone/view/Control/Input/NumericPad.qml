@@ -14,6 +14,7 @@ FocusScope {
 
 	property var currentCall
 	property bool lastRowVisible: true
+	property string launchCallIcon: AppIcons.phone
 
 	onButtonPressed: (text) => {
 		if (currentCall) currentCall.core.lSendDtmf(text)
@@ -195,7 +196,8 @@ FocusScope {
             icon.height: Utils.getSizeWithScreenRatio(32)
             radius: Utils.getSizeWithScreenRatio(71)
 			style: ButtonStyle.phoneGreen
-			
+			icon.source: mainItem.launchCallIcon
+
 			onClicked: mainItem.launchCall()
 			
 			KeyNavigation.left: eraseButton

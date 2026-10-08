@@ -862,12 +862,27 @@ AbstractWindow {
                             parent: numericPadContainer
                             width: parent.width
                             roundedBottom: true
-                            lastRowVisible: false
+                            launchCallIcon: AppIcons.transferCall
                             visible: false
                             leftPadding: Utils.getSizeWithScreenRatio(40)
                             rightPadding: Utils.getSizeWithScreenRatio(40)
                             topPadding: Utils.getSizeWithScreenRatio(41)
                             bottomPadding: Utils.getSizeWithScreenRatio(18)
+                            // Blind transfer to whatever number has been typed, for numbers that
+                            // are not in the contact list.
+                            onLaunchCall: {
+                                var dest = newCallForm.searchBar.text.trim()
+                                if (dest.length === 0) return
+                                var callsWin = UtilsCpp.getOrCreateCallsWindow()
+                                callsWin.showConfirmationLambdaPopup(qsTr("call_transfer_confirm_dialog_tittle"),
+                                                                    qsTr("call_transfer_confirm_dialog_message").arg(mainWindow.call.core.remoteName).arg(dest), "",
+                                    function (confirmed) {
+                                        if (confirmed) {
+                                            mainWindow.beginTransfer(mainWindow.call)
+                                            mainWindow.call.core.lTransferCall(dest)
+                                        }
+                                    })
+                            }
                             Component.onCompleted: parent.height = height
                         }
                     }
