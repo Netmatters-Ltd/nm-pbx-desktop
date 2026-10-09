@@ -634,7 +634,7 @@
 <context>
     <name>AllContactGridView</name>
     <message>
-        <location filename="../../view/Control/Display/Contact/AllContactGridView.qml" line="187"/>
+        <location filename="../../view/Control/Display/Contact/AllContactGridView.qml" line="207"/>
         <source>contact_list_limit_reached</source>
         <extracomment>&quot;Additional contacts hidden, search to find them.&quot;</extracomment>
         <translation>Additional contacts hidden, search to find them.</translation>
@@ -667,7 +667,7 @@
         <translation>Suggestions</translation>
     </message>
     <message>
-        <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="460"/>
+        <location filename="../../view/Control/Display/Contact/AllContactListView.qml" line="531"/>
         <source>contact_list_limit_reached</source>
         <extracomment>&quot;Additional contacts hidden, search to find them.&quot;</extracomment>
         <translation>Additional contacts hidden, search to find them.</translation>

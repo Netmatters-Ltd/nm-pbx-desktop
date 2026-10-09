@@ -130,6 +130,14 @@ int ContactsCore::getContactDisplayLimit() const {
 	return ContactDisplayLimit;
 }
 
+int ContactsCore::getCallFormContactDisplayLimit() const {
+	return CallFormContactDisplayLimit;
+}
+
+int ContactsCore::getSuggestionDisplayLimit() const {
+	return SuggestionDisplayLimit;
+}
+
 void ContactsCore::setInitialLoadComplete(bool complete) {
 	if (mInitialLoadComplete == complete) return;
 	mInitialLoadComplete = complete;

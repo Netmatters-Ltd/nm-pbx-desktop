@@ -49,10 +49,16 @@ class ContactsCore : public QObject, public AbstractObject {
 	Q_PROPERTY(bool syncing READ getSyncing NOTIFY syncingChanged)
 	Q_PROPERTY(QDateTime lastSyncTime READ getLastSyncTime NOTIFY lastSyncTimeChanged)
 	Q_PROPERTY(bool lastSyncFailed READ getLastSyncFailed NOTIFY lastSyncFailedChanged)
-	// The most contacts any one view will show. The views build an item per row with no recycling,
-	// so a large address book made the app unusable. Searching still covers the whole address book,
-	// because the search filter sits below the limit. Extensions are never limited.
+	// Limits on how many rows the contact views show. The views build an item per row with no
+	// recycling, so a large address book made the app unusable. Searching still covers the whole
+	// address book, because the search filter sits below the limits. Extensions are never limited.
+	// See nm-pbx-docs/contacts-list.md.
+	// Contacts, in the Contacts tab and anywhere without a tighter limit.
 	Q_PROPERTY(int contactDisplayLimit READ getContactDisplayLimit CONSTANT)
+	// Contacts in the new call and transfer lists, which also hold every extension and suggestions.
+	Q_PROPERTY(int callFormContactDisplayLimit READ getCallFormContactDisplayLimit CONSTANT)
+	// Suggestions, the unsaved addresses (mostly call history) that a typed search turns up.
+	Q_PROPERTY(int suggestionDisplayLimit READ getSuggestionDisplayLimit CONSTANT)
 
 public:
 	static ContactsCore *getInstance();
@@ -66,6 +72,8 @@ public:
 	QDateTime getLastSyncTime() const;
 	bool getLastSyncFailed() const;
 	int getContactDisplayLimit() const;
+	int getCallFormContactDisplayLimit() const;
+	int getSuggestionDisplayLimit() const;
 
 	// Syncs every CardDAV address book, then re-runs the search so the list picks up any changes.
 	// Safe to call at any time: a call made while a sync is already running is ignored.
@@ -91,6 +99,8 @@ private:
 	// spinner.
 	static constexpr int InitialLoadWatchdogMs = 15000;
 	static constexpr int ContactDisplayLimit = 100;
+	static constexpr int CallFormContactDisplayLimit = 50;
+	static constexpr int SuggestionDisplayLimit = 20;
 
 	MagicSearchProxy *mRootProxy = nullptr;
 	QTimer mPeriodicTimer;

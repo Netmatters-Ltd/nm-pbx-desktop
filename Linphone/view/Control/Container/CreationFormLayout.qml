@@ -6,6 +6,7 @@ import QtQuick.Effects
 import Linphone
 import UtilsCpp
 import SettingsCpp
+import ContactsCpp
 import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
 
 FocusScope {
@@ -120,6 +121,9 @@ FocusScope {
                     // Favourites are not used in NMPBX. Extensions are always listed in full ahead
                     // of contacts, which AllContactListView does by itself.
                     showFavorites: false
+                    // Tighter than the Contacts tab, since this list also holds every extension and
+                    // the suggestions. Extensions themselves are never limited.
+                    contactLimit: ContactsCpp.callFormContactDisplayLimit
                     searchBarText: searchBar.text
                     onContactSelected: (contact) => {
                         mainItem.contactClicked(contact)

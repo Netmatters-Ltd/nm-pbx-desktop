@@ -11,7 +11,9 @@ for those we test the generic piece underneath and stand in for the rest with a 
 ## Building
 
 The tests are built with everything else by `cmake --build`. To turn them off, configure with
-`-DENABLE_APP_TESTS=OFF`. They have no install rule, so they never reach `OUTPUT` or the installer.
+`-DENABLE_APP_TESTS=OFF`. They build into `bin\RelWithDebInfo` beside the app, but they have no
+install rule, so they never reach `OUTPUT` or the installer. Install copies named targets, not the
+whole folder.
 
 Adding or changing a `CMakeLists.txt` needs a configure. The Visual Studio generator re-runs it for
 you at the start of the next build, so the usual commands in [setup.md](setup.md) are enough.
@@ -37,8 +39,8 @@ Test's full output and lets you pick single test functions, `qtenv2.bat` must ha
 prompt:
 
 ```cmd
-Linphone\tests\RelWithDebInfo\LimitProxyTest.exe
-Linphone\tests\RelWithDebInfo\LimitProxyTest.exe narrowingTheSearchShowsMatchesFromLowerDown
+bin\RelWithDebInfo\LimitProxyTest.exe
+bin\RelWithDebInfo\LimitProxyTest.exe narrowingTheSearchShowsMatchesFromLowerDown
 ```
 
 ## What is covered
@@ -70,6 +72,10 @@ list tests failed (task 5243983).
 | `mainListSearchAfterPagingShowsAFullPageOfMatches` | Main contacts list: after scrolling has raised the cap, a search fills it. |
 | `mainListPagingDuringASearchDoesNotShrinkTheList` | Main contacts list: a search with few matches makes the grid ask for another page at once. That mustn't leave the cap lowered once the search is cleared. |
 | `mainListHaveMoreIsFalseOnceEveryMatchIsShown` | `haveMore`, which decides whether the grid asks for another page, is right after a search. |
+| `addressBookArrivingInOneBatchStopsAtTheLimit` | The whole address book arriving at once stops at the 100 contact limit. Without the limit, this is what drew all 3,000 contacts (see [contacts-list.md](contacts-list.md)). |
+| `limitIsNotReachedWhilePaging` | `limitReached`, which shows the "contacts hidden" note, stays false while the list is still paging in. |
+| `searchingBelowTheLimitClearsLimitReached` | A search still finds a contact past the limit, and the note goes once every match is on show. |
+| `unlimitedListShowsEverything` | A list with no limit, as extensions use, shows every row and never the note. |
 
 `displayMorePagesIn`, `arrivingRowIsShownOnAPagingList` and `ceilingHoldsWhenRowsArrive` describe
 behaviour that already works and must keep working.

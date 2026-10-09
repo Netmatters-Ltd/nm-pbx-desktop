@@ -42,15 +42,22 @@ Flickable {
 
     // When extensionFilter is All, extensions get their own section above contacts rather than
     // being mixed in with them. This is not optional: the contacts section stops at
-    // ContactsCpp.contactDisplayLimit, and extensions must always be shown in full, so they cannot
+    // contactLimit, and extensions must always be shown in full, so they cannot
     // share a section with contacts.
     readonly property bool _splitExtensions: extensionFilter === MagicSearchProxy.ExtensionFilter.All
+    // The most contacts this list shows, not counting extensions, which are never limited.
+    property int contactLimit: ContactsCpp.contactDisplayLimit
+    // The most suggestions this list shows. Suggestions are unsaved addresses, so this never
+    // hides an extension: the SDK drops any address that belongs to a saved contact.
+    property int suggestionLimit: ContactsCpp.suggestionDisplayLimit
     // Only an extensions-only list goes unlimited, since every other contacts section now holds
     // no extensions.
     readonly property int _displayLimit: extensionFilter === MagicSearchProxy.ExtensionFilter.Extensions
-                                         ? -1 : ContactsCpp.contactDisplayLimit
-    readonly property bool limitReached: contactsProxy.limitReached
-                                         || (favoritesList.model === favoritesProxy && favoritesProxy.limitReached)
+                                         ? -1 : contactLimit
+    readonly property bool limitReached: (contactsList.expanded && contactsProxy.limitReached)
+                                         || (suggestionsList.expanded && suggestionsProxy.limitReached)
+                                         || (favoritesList.model === favoritesProxy && favoritesList.expanded
+                                             && favoritesProxy.limitReached)
 
     property bool searchOnEmpty: true
     // In shared mode the only wait is for the app's first load of the address book.
@@ -204,20 +211,29 @@ Flickable {
         }
     }
 
+    // Re-runs this view's own search, once, when the address book changes underneath it. The only
+    // place that does: the ContactListView sections used to do it too, once each. forceUpdate does
+    // nothing while the search text is empty, so a view with nothing typed stays empty.
     Connections {
         target: SettingsCpp
-        onLdapConfigChanged: {
-            if (SettingsCpp.syncLdapContacts
-                && (!mainItem.useSharedContacts || magicSearchProxy.searchText != ''))
+        function onLdapConfigChanged() {
+            if (SettingsCpp.syncLdapContacts)
                 magicSearchProxy.forceUpdate()
+        }
+        function onCardDAVAddressBookSynchronized() {
+            magicSearchProxy.forceUpdate()
         }
     }
 
     property MagicSearchProxy mainModel: MagicSearchProxy {
         id: magicSearchProxy
-        // In shared mode this search only feeds suggestions, so an empty search box means no
-        // search at all: an empty search text clears the list rather than fetching everything.
-        searchText: mainItem.useSharedContacts ? mainItem.searchBarText : mainItem.searchText
+        // An empty search text means no search at all: it clears the list rather than fetching
+        // everything. In shared mode this search only feeds suggestions, so that is what we want
+        // while nothing is typed. A view that lists everything on an empty box (searchOnEmpty) asks
+        // for it explicitly with "*".
+        searchText: mainItem.useSharedContacts ? mainItem.searchBarText
+                    : mainItem.searchText === '' && mainItem.searchOnEmpty ? "*"
+                    : mainItem.searchText
         aggregationFlag: LinphoneEnums.MagicSearchAggregation.Friend
         sourceFlags: mainItem.sourceFlags
         onModelReset: {
@@ -234,7 +250,7 @@ Flickable {
             if (mainItem.useSharedContacts) {
                 if (searchText != '')
                     forceUpdate()
-            } else if (mainItem.searchOnEmpty || searchText != '') {
+            } else if (searchText != '') {
                 mainItem.loading = true
                 forceUpdate()
             }
@@ -448,22 +464,6 @@ Flickable {
                 }
             }
         }
-        Text {
-            visible: mainItem.limitReached && contactsList.expanded
-            Layout.fillWidth: true
-            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
-            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
-            Layout.rightMargin: mainItem.itemsRightMargin
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            //: "Additional contacts hidden, search to find them."
-            text: qsTr("contact_list_limit_reached")
-            color: DefaultStyle.main2_500_main
-            font {
-                pixelSize: Typography.p2.pixelSize
-                weight: Typography.p2.weight
-            }
-        }
         ContactListView {
             id: suggestionsList
             visible: contentHeight > 0
@@ -513,6 +513,26 @@ Flickable {
                 onInitialDisplayItemsChanged: maxDisplayItems = initialDisplayItems
                 displayItemsStep: 3 * initialDisplayItems / 2
                 onModelReset: maxDisplayItems = initialDisplayItems
+                // Without a ceiling, widening a search or scrolling to the end could show every
+                // matching call history address at once.
+                displayLimit: mainItem.suggestionLimit
+            }
+        }
+        // At the very bottom, so one note covers whichever section ran out of room.
+        Text {
+            visible: mainItem.limitReached
+            Layout.fillWidth: true
+            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.rightMargin: mainItem.itemsRightMargin
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            //: "Additional contacts hidden, search to find them."
+            text: qsTr("contact_list_limit_reached")
+            color: DefaultStyle.main2_500_main
+            font {
+                pixelSize: Typography.p2.pixelSize
+                weight: Typography.p2.weight
             }
         }
     }

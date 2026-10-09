@@ -33,6 +33,7 @@ Flickable {
     readonly property bool _limitContacts: extensionFilter === MagicSearchProxy.ExtensionFilter.Contacts
     readonly property int _displayLimit: _limitContacts ? ContactsCpp.contactDisplayLimit : -1
     readonly property bool limitReached: contactsProxy.limitReached
+                                         || suggestionsProxy.limitReached
                                          || (favoritesSection.model === favoritesProxy && favoritesProxy.limitReached)
 
     property bool haveContacts: count > 0
@@ -124,6 +125,7 @@ Flickable {
         onInitialDisplayItemsChanged: maxDisplayItems = initialDisplayItems
         displayItemsStep: 3 * initialDisplayItems / 2
         onModelReset: maxDisplayItems = initialDisplayItems
+        displayLimit: ContactsCpp.suggestionDisplayLimit
     }
 
     ColumnLayout {
@@ -176,22 +178,6 @@ Flickable {
             }
         }
 
-        Text {
-            visible: mainItem.limitReached
-            Layout.fillWidth: true
-            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
-            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            //: "Additional contacts hidden, search to find them."
-            text: qsTr("contact_list_limit_reached")
-            color: DefaultStyle.main2_500_main
-            font {
-                pixelSize: Typography.p2.pixelSize
-                weight: Typography.p2.weight
-            }
-        }
-
         ContactGridSection {
             id: suggestionsSection
             visible: model && model.count > 0
@@ -206,6 +192,23 @@ Flickable {
             }
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
+            }
+        }
+
+        // At the very bottom, so one note covers whichever section ran out of room.
+        Text {
+            visible: mainItem.limitReached
+            Layout.fillWidth: true
+            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            //: "Additional contacts hidden, search to find them."
+            text: qsTr("contact_list_limit_reached")
+            color: DefaultStyle.main2_500_main
+            font {
+                pixelSize: Typography.p2.pixelSize
+                weight: Typography.p2.weight
             }
         }
     }
