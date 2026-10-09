@@ -40,11 +40,17 @@ Flickable {
     // Set once at creation. searchOnEmpty and pauseSearch do not apply in this mode.
     property bool useSharedContacts: false
 
-    // When set, and extensionFilter is All, extensions get their own section above contacts rather
-    // than being mixed in with them.
-    property bool separateExtensions: false
-    readonly property bool _splitExtensions: separateExtensions
-                                             && extensionFilter === MagicSearchProxy.ExtensionFilter.All
+    // When extensionFilter is All, extensions get their own section above contacts rather than
+    // being mixed in with them. This is not optional: the contacts section stops at
+    // ContactsCpp.contactDisplayLimit, and extensions must always be shown in full, so they cannot
+    // share a section with contacts.
+    readonly property bool _splitExtensions: extensionFilter === MagicSearchProxy.ExtensionFilter.All
+    // Only an extensions-only list goes unlimited, since every other contacts section now holds
+    // no extensions.
+    readonly property int _displayLimit: extensionFilter === MagicSearchProxy.ExtensionFilter.Extensions
+                                         ? -1 : ContactsCpp.contactDisplayLimit
+    readonly property bool limitReached: contactsProxy.limitReached
+                                         || (favoritesList.model === favoritesProxy && favoritesProxy.limitReached)
 
     property bool searchOnEmpty: true
     // In shared mode the only wait is for the app's first load of the address book.
@@ -236,11 +242,9 @@ Flickable {
     }
 
     onAtYEndChanged: if (atYEnd) {
-        if (favoritesProxy.haveMore && favoritesList.expanded && mainItem.showFavorites)
+        if (favoritesProxy.haveMore && !favoritesProxy.limitReached && favoritesList.expanded && mainItem.showFavorites)
             favoritesProxy.displayMore()
-        else if (mainItem._splitExtensions && extensionsProxy.haveMore && extensionsList.expanded)
-            extensionsProxy.displayMore()
-        else if (contactsProxy.haveMore && contactsList.expanded) {
+        else if (contactsProxy.haveMore && !contactsProxy.limitReached && contactsList.expanded) {
             contactsProxy.displayMore()
         }
         else
@@ -324,6 +328,9 @@ Flickable {
                 extensionFilter: mainItem.extensionFilter
                 filterText: mainItem.useSharedContacts ? mainItem.searchBarText : ""
                 filterType: MagicSearchProxy.FilteringTypes.Favorites
+                // Favourites can include extensions, but every extension is also listed in full in
+                // its own section, so none is ever hidden by this.
+                displayLimit: mainItem._displayLimit
             }
             model: mainItem.showFavorites
                    && (mainItem.searchBarText == ''
@@ -366,15 +373,14 @@ Flickable {
                                                   index)
                                           }
 
-            // Same sources as the contacts section below, limited to extensions.
+            // Same sources as the contacts section below, limited to extensions. Deliberately no
+            // paging and no limit: extensions are always shown in full, and there are never many.
             property MagicSearchProxy proxy: MagicSearchProxy {
                 id: extensionsProxy
                 parentProxy: mainItem.useSharedContacts ? ContactsCpp.rootProxy : mainItem.mainModel
                 extensionFilter: MagicSearchProxy.ExtensionFilter.Extensions
                 filterText: contactsProxy.filterText
                 filterType: contactsProxy.filterType
-                initialDisplayItems: contactsProxy.initialDisplayItems
-                displayItemsStep: contactsProxy.displayItemsStep
                 onLocalFriendCreated: (index) => {
                     extensionsList.selectIndex(index)
                 }
@@ -431,11 +437,31 @@ Flickable {
                                || mainItem.searchText != '*'
                                && mainItem.searchText != ''
                                || SettingsCpp.syncLdapContacts ? MagicSearchProxy.FilteringTypes.Ldap | MagicSearchProxy.FilteringTypes.CardDAV : 0)
-                initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
+                // An extensions-only list skips paging as well as the limit.
+                initialDisplayItems: mainItem._displayLimit < 0
+                                     ? -1
+                                     : Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
                 displayItemsStep: 3 * initialDisplayItems / 2
+                displayLimit: mainItem._displayLimit
                 onLocalFriendCreated: (index) => {
                     contactsList.selectIndex(index)
                 }
+            }
+        }
+        Text {
+            visible: mainItem.limitReached && contactsList.expanded
+            Layout.fillWidth: true
+            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.rightMargin: mainItem.itemsRightMargin
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            //: "Additional contacts hidden, search to find them."
+            text: qsTr("contact_list_limit_reached")
+            color: DefaultStyle.main2_500_main
+            font {
+                pixelSize: Typography.p2.pixelSize
+                weight: Typography.p2.weight
             }
         }
         ContactListView {
@@ -479,9 +505,9 @@ Flickable {
                 parentProxy: mainItem.mainModel
                 extensionFilter: mainItem.extensionFilter
                 filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
-                // Hold suggestions back while either section above still has more to page in.
-                initialDisplayItems: (contactsProxy.haveMore && contactsList.expanded)
-                                     || (mainItem._splitExtensions && extensionsProxy.haveMore && extensionsList.expanded)
+                // Hold suggestions back while contacts still have more to page in. Once contacts hit
+                // the limit there is nothing more to page, so suggestions follow.
+                initialDisplayItems: contactsProxy.haveMore && !contactsProxy.limitReached && contactsList.expanded
                     ? 0
                     : Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
                 onInitialDisplayItemsChanged: maxDisplayItems = initialDisplayItems

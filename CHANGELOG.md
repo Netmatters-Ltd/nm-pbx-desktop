@@ -52,3 +52,5 @@ Group changes to describe their impact on the project, as follows:
 
 ### Changed
 - Dial pad when performing a blind transfer on a call now supports entering any number manually.
+- Some contacts or extensions are now always available from the lists when searching.
+- The lists no longer try to load in all contacts when there's a large number. Searching will still find those that are past the limit.

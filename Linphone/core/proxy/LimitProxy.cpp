@@ -25,6 +25,9 @@ LimitProxy::LimitProxy(QObject *parent) : QSortFilterProxyModel(parent) {
 	connect(this, &LimitProxy::rowsRemoved, this, &LimitProxy::countChanged);
 	connect(this, &LimitProxy::modelReset, this, &LimitProxy::countChanged);
 	connect(this, &LimitProxy::countChanged, this, &LimitProxy::haveMoreChanged);
+	// limitReached depends on the cap as well as the rows, and the cap can reach the ceiling
+	// without the row count changing.
+	connect(this, &LimitProxy::maxDisplayItemsChanged, this, &LimitProxy::haveMoreChanged);
 }
 /*
 LimitProxy::LimitProxy(QAbstractItemModel *sortFilterProxy, QObject *parent) : QSortFilterProxyModel(parent) {
@@ -53,6 +56,13 @@ void LimitProxy::setSourceModels(SortFilterProxy *firstList) {
 	// the filter, not to the filter itself.
 	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::onSourceFilterChanged);
 	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::onSourceFilterChanged);
+	// haveMore and limitReached compare our rows with the filtered rows. Once we are at the ceiling
+	// our own count stops changing, so a search that takes the matches from 150 to 50 or back would
+	// otherwise never tell the view.
+	connect(firstList, &QAbstractItemModel::rowsInserted, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::rowsRemoved, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::modelReset, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::layoutChanged, this, &LimitProxy::haveMoreChanged);
 
 	// Restore old values
 	auto oldModel = dynamic_cast<SortFilterProxy *>(sourceModel());
@@ -202,6 +212,10 @@ bool LimitProxy::getHaveMore() const {
 	auto model = sourceModel();
 	int modelCount = model ? model->rowCount() : 0;
 	return getCount() < modelCount;
+}
+
+bool LimitProxy::getLimitReached() const {
+	return mDisplayLimit >= 0 && mMaxDisplayItems >= mDisplayLimit && getHaveMore();
 }
 
 //--------------------------------------------------------------------------------------------------

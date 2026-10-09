@@ -126,6 +126,10 @@ bool ContactsCore::getLastSyncFailed() const {
 	return mLastSyncFailed;
 }
 
+int ContactsCore::getContactDisplayLimit() const {
+	return ContactDisplayLimit;
+}
+
 void ContactsCore::setInitialLoadComplete(bool complete) {
 	if (mInitialLoadComplete == complete) return;
 	mInitialLoadComplete = complete;

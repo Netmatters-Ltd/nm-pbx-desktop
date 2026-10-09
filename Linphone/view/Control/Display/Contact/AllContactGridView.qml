@@ -27,6 +27,14 @@ Flickable {
     property string searchBarText
     readonly property string searchText: searchBarText
 
+    // Contacts stop at ContactsCpp.contactDisplayLimit, with a note that the rest are hidden.
+    // Extensions are always shown in full, and an unfiltered grid mixes them in with contacts, so
+    // only a contacts-only grid is limited. Extensions are few enough that they also skip paging.
+    readonly property bool _limitContacts: extensionFilter === MagicSearchProxy.ExtensionFilter.Contacts
+    readonly property int _displayLimit: _limitContacts ? ContactsCpp.contactDisplayLimit : -1
+    readonly property bool limitReached: contactsProxy.limitReached
+                                         || (favoritesSection.model === favoritesProxy && favoritesProxy.limitReached)
+
     property bool haveContacts: count > 0
     property int count: (favoritesSection.model ? favoritesSection.model.count || 0 : 0)
                         + (contactsProxy ? contactsProxy.count || 0 : 0)
@@ -69,7 +77,7 @@ Flickable {
     }
 
     onAtYEndChanged: if (atYEnd) {
-        if (contactsProxy.haveMore)
+        if (contactsProxy.haveMore && !contactsProxy.limitReached)
             contactsProxy.displayMore()
         else if (suggestionsProxy.count > 0)
             suggestionsProxy.displayMore()
@@ -82,6 +90,7 @@ Flickable {
         extensionFilter: mainItem.extensionFilter
         filterText: mainItem.searchText
         filterType: MagicSearchProxy.FilteringTypes.Favorites
+        displayLimit: mainItem._displayLimit
     }
 
     MagicSearchProxy {
@@ -94,8 +103,11 @@ Flickable {
         filterType: MagicSearchProxy.FilteringTypes.App
                     | MagicSearchProxy.FilteringTypes.Ldap
                     | MagicSearchProxy.FilteringTypes.CardDAV
-        initialDisplayItems: Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
+        initialDisplayItems: mainItem._limitContacts
+                             ? Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
+                             : -1
         displayItemsStep: 3 * initialDisplayItems / 2
+        displayLimit: mainItem._displayLimit
     }
 
     MagicSearchProxy {
@@ -104,7 +116,9 @@ Flickable {
         extensionFilter: mainItem.extensionFilter
         filterText: mainItem.searchText
         filterType: mainItem.hideSuggestions ? MagicSearchProxy.FilteringTypes.None : MagicSearchProxy.FilteringTypes.Other
-        initialDisplayItems: contactsProxy.haveMore
+        // Held back while contacts are still paging in. Once they hit the limit there is nothing
+        // more to page, so suggestions follow.
+        initialDisplayItems: contactsProxy.haveMore && !contactsProxy.limitReached
             ? 0
             : Math.max(20, Math.round(2 * mainItem.height / Utils.getSizeWithScreenRatio(63)))
         onInitialDisplayItemsChanged: maxDisplayItems = initialDisplayItems
@@ -159,6 +173,22 @@ Flickable {
             }
             onContactSelected: contact => {
                 mainItem.contactSelected(contact)
+            }
+        }
+
+        Text {
+            visible: mainItem.limitReached
+            Layout.fillWidth: true
+            Layout.topMargin: Utils.getSizeWithScreenRatio(8)
+            Layout.bottomMargin: Utils.getSizeWithScreenRatio(8)
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            //: "Additional contacts hidden, search to find them."
+            text: qsTr("contact_list_limit_reached")
+            color: DefaultStyle.main2_500_main
+            font {
+                pixelSize: Typography.p2.pixelSize
+                weight: Typography.p2.weight
             }
         }
 

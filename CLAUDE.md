@@ -20,6 +20,9 @@ For our use, we're only concerned with the 64-bit Windows build.
 bounded, the difference between the two limits that apply to it, and a known Qt defect that resets
 the scroll position on every paging list in the app.
 
+[Contacts list](/nm-pbx-docs/contacts-list.md) explains the 100 contact limit on every contact view,
+why extensions are exempt from it, and why a large address book made the app unusable without it.
+
 [Call state presence](/nm-pbx-docs/call-state-presence.md) explains the inbound-only "On a call"
 presence state, which comes from a call-state bridge on the server and must never be published.
 

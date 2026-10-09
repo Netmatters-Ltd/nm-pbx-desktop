@@ -49,6 +49,10 @@ class ContactsCore : public QObject, public AbstractObject {
 	Q_PROPERTY(bool syncing READ getSyncing NOTIFY syncingChanged)
 	Q_PROPERTY(QDateTime lastSyncTime READ getLastSyncTime NOTIFY lastSyncTimeChanged)
 	Q_PROPERTY(bool lastSyncFailed READ getLastSyncFailed NOTIFY lastSyncFailedChanged)
+	// The most contacts any one view will show. The views build an item per row with no recycling,
+	// so a large address book made the app unusable. Searching still covers the whole address book,
+	// because the search filter sits below the limit. Extensions are never limited.
+	Q_PROPERTY(int contactDisplayLimit READ getContactDisplayLimit CONSTANT)
 
 public:
 	static ContactsCore *getInstance();
@@ -61,6 +65,7 @@ public:
 	bool getSyncing() const;
 	QDateTime getLastSyncTime() const;
 	bool getLastSyncFailed() const;
+	int getContactDisplayLimit() const;
 
 	// Syncs every CardDAV address book, then re-runs the search so the list picks up any changes.
 	// Safe to call at any time: a call made while a sync is already running is ignored.
@@ -85,6 +90,7 @@ private:
 	// How long to wait for the very first search before showing the empty state instead of a
 	// spinner.
 	static constexpr int InitialLoadWatchdogMs = 15000;
+	static constexpr int ContactDisplayLimit = 100;
 
 	MagicSearchProxy *mRootProxy = nullptr;
 	QTimer mPeriodicTimer;

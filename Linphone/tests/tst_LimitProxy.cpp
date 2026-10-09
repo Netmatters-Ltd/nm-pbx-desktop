@@ -58,6 +58,13 @@ public:
 		endInsertRows();
 	}
 
+	// One batch, as MagicSearchList delivers a freshly synced address book.
+	void append(const QStringList &names) {
+		beginInsertRows(QModelIndex(), mNames.size(), mNames.size() + names.size() - 1);
+		mNames.append(names);
+		endInsertRows();
+	}
+
 private:
 	QStringList mNames;
 };
@@ -105,6 +112,8 @@ struct Lists {
 // starts at max(20, 2 * height / 63) and each page adds half as much again.
 constexpr int MainListPage = 22;
 constexpr int MainListStep = 33;
+// ContactsCore::ContactDisplayLimit, the most contacts any view shows.
+constexpr int ContactLimit = 100;
 
 QStringList rows(const QAbstractItemModel &model, int count = -1) {
 	const int total = model.rowCount();
@@ -184,6 +193,10 @@ private slots:
 	void mainListSearchAfterPagingShowsAFullPageOfMatches();
 	void mainListPagingDuringASearchDoesNotShrinkTheList();
 	void mainListHaveMoreIsFalseOnceEveryMatchIsShown();
+	void addressBookArrivingInOneBatchStopsAtTheLimit();
+	void limitIsNotReachedWhilePaging();
+	void searchingBelowTheLimitClearsLimitReached();
+	void unlimitedListShowsEverything();
 };
 
 // The reported fault: matches outside the first rows of the unfiltered list never appear.
@@ -336,6 +349,73 @@ void tst_LimitProxy::mainListHaveMoreIsFalseOnceEveryMatchIsShown() {
 	lists.limit.setFilterText("zoe");
 	QCOMPARE(rows(lists.limit), QStringList{"Zoe Walker"});
 	QVERIFY(!lists.limit.getHaveMore());
+}
+
+// The fault behind the 3,000 contact slowdown. A paging list grows its cap by however many rows
+// arrive, so the whole address book landing in one batch took the cap from about 20 to over 3,000
+// and every contact got a delegate. The limit has to hold against that, whatever order QML sets
+// the cap and the limit in.
+void tst_LimitProxy::addressBookArrivingInOneBatchStopsAtTheLimit() {
+	Lists lists(QStringList(), MainListPage);
+	lists.limit.setDisplayItemsStep(MainListStep);
+	lists.limit.setDisplayLimit(ContactLimit);
+	lists.source.append(addressBook());
+
+	QCOMPARE(lists.limit.rowCount(), ContactLimit);
+	QVERIFY(lists.limit.getHaveMore());
+	QVERIFY(lists.limit.getLimitReached());
+	const QString problem = problemWith(lists, "after the address book arrives");
+	QVERIFY2(problem.isEmpty(), qPrintable(problem));
+}
+
+// haveMore is true while the list is still paging in, but the "contacts hidden" note should only
+// show once paging can go no further.
+void tst_LimitProxy::limitIsNotReachedWhilePaging() {
+	Lists lists(addressBook(), MainListPage);
+	lists.limit.setDisplayItemsStep(MainListStep);
+	lists.limit.setDisplayLimit(ContactLimit);
+	QVERIFY(lists.limit.getHaveMore());
+	QVERIFY(!lists.limit.getLimitReached());
+
+	while (lists.limit.getMaxDisplayItems() < ContactLimit) {
+		QVERIFY(!lists.limit.getLimitReached());
+		lists.limit.displayMore();
+	}
+	QCOMPARE(lists.limit.rowCount(), ContactLimit);
+	QVERIFY(lists.limit.getLimitReached());
+
+	// Asking for more at the limit changes nothing.
+	lists.limit.displayMore();
+	QCOMPARE(lists.limit.rowCount(), ContactLimit);
+}
+
+// Search runs below the limit, so it still finds a contact that sorts well past it, and the note
+// goes away once every match is on show.
+void tst_LimitProxy::searchingBelowTheLimitClearsLimitReached() {
+	Lists lists(addressBook(), MainListPage, ContactLimit);
+	QVERIFY(!rows(lists.limit).contains("Zoe Walker"));
+	QVERIFY(lists.limit.getLimitReached());
+
+	QSignalSpy notified(&lists.limit, &LimitProxy::haveMoreChanged);
+	lists.limit.setFilterText("zoe");
+	QCOMPARE(rows(lists.limit), QStringList{"Zoe Walker"});
+	QVERIFY(!lists.limit.getLimitReached());
+	QVERIFY(notified.count() > 0);
+
+	notified.clear();
+	lists.limit.setFilterText("");
+	QCOMPARE(lists.limit.rowCount(), ContactLimit);
+	QVERIFY(lists.limit.getLimitReached());
+	QVERIFY(notified.count() > 0);
+}
+
+// Extensions: no paging and no limit, so everything shows and the note never does.
+void tst_LimitProxy::unlimitedListShowsEverything() {
+	Lists lists(QStringList(), -1);
+	lists.source.append(addressBook());
+	QCOMPARE(lists.limit.rowCount(), 300);
+	QVERIFY(!lists.limit.getHaveMore());
+	QVERIFY(!lists.limit.getLimitReached());
 }
 
 QTEST_GUILESS_MAIN(tst_LimitProxy)
