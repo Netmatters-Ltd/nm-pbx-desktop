@@ -21,12 +21,16 @@
 #ifndef FRIENDS_MANAGER_H_
 #define FRIENDS_MANAGER_H_
 
+#include "PhoneNumberIndex.hpp"
 #include "tool/AbstractObject.hpp"
 #include <QObject>
 #include <QSharedPointer>
 #include <QThread>
 #include <QVariantMap>
 #include <linphone++/linphone.hh>
+#include <list>
+#include <map>
+#include <string>
 
 class FriendsManager : public QObject, public AbstractObject {
 	Q_OBJECT
@@ -66,11 +70,36 @@ public:
 	// keys, one per address, so forgetting only the first would leave a stale name behind.
 	void forgetFriend(const std::shared_ptr<linphone::Friend> &f);
 
+	// Same answer as Core::findFriendByPhoneNumber, from an index rather than a scan of every
+	// contact. See PhoneNumberIndex.
+	std::shared_ptr<linphone::Friend> findFriendByPhoneNumber(const std::string &number);
+
+	// Catches the changes nothing signals: a friend list added or removed, or an account whose dial
+	// plan or domain has changed. Either can turn a remembered miss into a match. Cheap, so it is
+	// meant to run before every lookup.
+	void checkAddressBook();
+
+	// The address book has changed, so anything we concluded from it may be wrong. Forgets every
+	// remembered miss and the phone number index. Known friends are forgotten one by one, by
+	// forgetFriend, since a change to one contact does not affect the others.
+	void onAddressBookChanged();
+
 private:
+	class FriendListWatcher;
+
 	static std::shared_ptr<FriendsManager> gFriendsManager;
 	QVariantMap mKnownFriends;
 	QVariantMap mUnknownFriends;
+	// Addresses we looked up and found no contact for. Also marks that a remote directory search
+	// has been asked for, so it is only asked once.
 	QStringList mOtherAddresses;
+
+	// One per account, keyed on its identity, as the SDK normalises with each account in turn.
+	std::map<std::string, PhoneNumberIndex<std::shared_ptr<linphone::Friend>>> mPhoneNumberIndexes;
+	std::shared_ptr<FriendListWatcher> mFriendListWatcher;
+	// Dropped by checkAddressBook once a list is no longer in the core.
+	std::list<std::shared_ptr<linphone::FriendList>> mWatchedFriendLists;
+	std::string mLookupContext;
 	DECLARE_ABSTRACT_OBJECT
 };
 

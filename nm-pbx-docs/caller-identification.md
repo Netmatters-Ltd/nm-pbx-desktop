@@ -70,13 +70,15 @@ would apply a second, different transform on top of ours.
 `Notifier`, `ParticipantDeviceCore` and `ToolModel::getDisplayName`. It runs on the linphone thread
 and has four tiers.
 
-1. **Cache.** `FriendsManager`'s known and unknown maps, keyed by `FriendsManager::addressKey`.
+1. **Cache.** `FriendsManager`'s known and unknown maps, keyed by `FriendsManager::addressKey`,
+   then its negative cache of addresses already looked up and not found (see below).
 2. **Local friends.** `core->findFriend()`, which covers everything the CardDAV sync has pulled
    down, plus locally created contacts.
 3. **Phone number.** If the username looks like a phone number,
-   `core->findFriendByPhoneNumber()`. The SDK normalises both the inbound number and each
-   contact's stored numbers through the account's dial plan, so `07771514661` matches a contact
-   holding `+447771514661`.
+   `FriendsManager::findFriendByPhoneNumber()`. This gives the same answer as the SDK's
+   `core->findFriendByPhoneNumber()`: both sides go through the account's dial plan, so
+   `07771514661` matches a contact holding `+447771514661`. It answers from an index rather than
+   asking the SDK, for the reason under "Lookup cost" below.
 4. **The account's own domain.** The same username rewritten onto the default account's domain,
    for the host mismatch described below.
 
@@ -86,9 +88,34 @@ address book is synced locally and no remote contact directory is registered. We
 than delete it, but we do not rely on it, and `CallCore::findRemoteFriend` is likewise left as it
 is.
 
-The synchronous tiers run **before** the negative cache is consulted. That ordering matters:
-the negative cache is written before the async search returns, so a phone tier placed after it
-would be short-circuited on the second lookup of the same address.
+The negative cache is consulted **before** the synchronous tiers. This used to be the other way
+round, because nothing cleared a miss when the dial plan arrived or a sync brought a contact in,
+so a miss recorded early would have hidden the phone tier for the rest of the session. Every
+change that can turn a miss into a match now clears all misses (see "Cache invalidation"), which
+is what makes it safe to check first.
+
+### Lookup cost
+
+The SDK's phone number search puts every number of every contact through the dial plan on every
+call. With 5,000 contacts that is roughly 55ms a lookup. The call history looks up every row it
+loads, 500 by default, on the linphone thread, and most of those rows are external numbers nobody
+has saved. Opening the Calls page held the linphone thread for about 28 seconds, and since SIP runs
+on the same thread, a call placed in that time waited for it to finish.
+
+Two things fix it, and both are needed:
+
+- **`PhoneNumberIndex`** (`Linphone/model/friend/PhoneNumberIndex.hpp`) puts each stored number
+  through the dial plan once and keeps a map from normalised number to contact. A lookup is then
+  one normalisation and a hash lookup. `FriendsManager` keeps one per account and searches them in
+  the SDK's order, first match wins, so it picks the same contact the SDK would when two share a
+  number. It rebuilds by itself if the account's international prefix or escape-plus setting
+  changes, since every key depends on them.
+- **The negative cache is checked first**, so an unknown number costs one hash lookup the second
+  time rather than running every tier again.
+
+`PhoneNumberIndex` has no SDK dependency, so it is covered by `PhoneNumberIndexTest` (see
+[tests.md](tests.md)). The negative cache and its invalidation live in `FriendsManager` and need
+the SDK, so they are not.
 
 ### Address cleaning
 
@@ -135,9 +162,28 @@ would for a bare address.
 ### Cache invalidation
 
 A contact is cached under one key per address, so eviction iterates rather than removing the first
-match, and clears every one of the contact's addresses from the negative cache. Without this, a
-contact added or edited mid-session kept showing its old name, or stayed unidentified, on any
-address but the first.
+match. Without this, a contact edited mid-session kept showing its old name on any address but
+the first.
+
+Misses and the phone number index are a different matter. A contact can match a number through
+its phone numbers, under an address that has nothing to do with its own, so clearing just that
+contact's addresses is not enough. `FriendsManager::onAddressBookChanged` forgets every miss and
+invalidates every index. It runs on:
+
+- `CoreModel::friendCreated`, `friendUpdated` and `friendRemoved`, which cover contacts created,
+  edited or deleted in the app, and remote directory results.
+- The SDK's own friend list callbacks, which cover a CardDAV sync: a contact created, updated or
+  deleted on the server, and the sync finishing. On an update or delete the old contact is also
+  evicted from the known map, because the SDK replaces the contact object rather than changing it.
+- `FriendsManager::checkAddressBook`, called before every lookup, for the changes nothing signals:
+  a friend list added or removed, an account's dial plan changing, or the default account or its
+  domain changing. It is cheap, a walk over the friend lists and accounts rather than the
+  contacts.
+
+`checkAddressBook` also attaches the watcher to friend lists as they appear. It holds the lists
+strongly on purpose: the C++ wrapper only hands back the same object for a list while something
+holds it, so with weak references every list would look new on every lookup and nothing would
+stay cached.
 
 ## Dependency: the account must carry a dial plan
 

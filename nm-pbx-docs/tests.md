@@ -91,6 +91,38 @@ once, and again after every layout change or reset. A test that doesn't ask can 
 change before any mapping exists, so there is nothing to go wrong and the test passes by accident.
 `Lists` in the test file asks the same way a view does, so keep that in place.
 
+### `tst_PhoneNumberIndex.cpp`
+
+`PhoneNumberIndex` finds the contact holding a phone number, in place of the SDK's
+`Core::findFriendByPhoneNumber`. The SDK puts every number of every contact through the dial plan
+on every lookup. With 5,000 contacts, loading the call history held the linphone thread for about
+28 seconds (see "Lookup cost" in [caller-identification.md](caller-identification.md)).
+
+The index is templated on the contact, so the tests use a small stand-in address book and a rough
+UK dial plan instead of the SDK. The address book counts how often it is read and how many numbers
+are normalised, which is how the tests see the cost.
+
+| Test | Checks |
+| --- | --- |
+| `findsANumberWrittenAnotherWay` | `07...`, `0044...` and `+44...` all find a contact stored as `+44 ...`. |
+| `unknownNumberFindsNothing` | A number nobody holds finds nobody. |
+| `numbersTheDialPlanRejectsMatchNothing` | A number the dial plan can't read never matches, even another unreadable one. |
+| `firstContactHoldingANumberWins` | When two contacts share a number, the one the SDK would find is the one returned. |
+| `nothingIsReadUntilTheFirstLookup` | The address book isn't read until something asks. |
+| `addressBookIsReadOnceForManyLookups` | The fault at the size it was seen: 5,000 contacts and 500 lookups read the address book once, and normalise each stored number once. |
+| `invalidatePicksUpChangesOnTheNextLookup` | After `invalidate()`, added and removed contacts are reflected. Without it, the old answers stand. |
+| `dialPlanChangeRebuilds` | A change of dial plan rebuilds on its own, and only once. |
+| `agreesWithAScanOfEveryContact` | 50 random address books with shared numbers, mixed formats, short numbers and unreadable numbers. Every lookup gives exactly what a scan of every contact gives. |
+
+Not covered here: the negative cache in `FriendsManager`, and the signals that clear it and the
+index. Both need the SDK. Check them by hand as described in
+[caller-identification.md](caller-identification.md). Open the Calls page so an unknown number is
+looked up and remembered as a miss. Then add a contact holding that number in a different form
+(`+44...` for a `07...` caller), either in the app or on the CardDAV server followed by a sync.
+Leave the Calls page and come back: the row should now show the contact's name. The page is
+rebuilt each time it opens, so this tests the lookup, not a live refresh. An open row only
+refreshes by itself when the new contact holds the caller's SIP address, not a phone number.
+
 ## Relationship to `limit-proxy-probe`
 
 [limit-proxy-probe](limit-proxy-probe/README.md) holds PySide6 copies of `LimitProxy` driving real

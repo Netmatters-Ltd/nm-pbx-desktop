@@ -45,6 +45,13 @@ still built on the linphone thread on every rebuild, each with its own friend lo
 `CoreModel` connections. If the complaint is "opening the Calls page is slow", the cap addresses the
 delegate half of that only. The other half is `maxCallHistory`.
 
+The friend lookup was by far the larger cost. With 5,000 contacts and a history of external
+numbers, it held the linphone thread for about 28 seconds every time the Calls page opened, and
+any call placed meanwhile queued behind it. The size of the `conference_call` table had nothing
+to do with it: the SQL `LIMIT` held and the query took 17ms. See "Lookup cost" in
+[caller-identification.md](caller-identification.md) for the cause and the fix, and treat any
+return of that symptom as a lookup problem before reaching for `maxCallHistory`.
+
 ## The display ceiling
 
 `LimitProxy` was written to page: show a screenful, then add more as the user scrolls. That paging
