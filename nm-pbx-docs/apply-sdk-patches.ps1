@@ -37,6 +37,7 @@ $patches = @(
     @{ Submodule = "external\linphone-sdk\mediastreamer2"; Patch = "mediastreamer2-msvc-libm.patch" }
     @{ Submodule = "external\linphone-sdk\liblinphone";    Patch = "liblinphone-carddav-auth-username.patch" }
     @{ Submodule = "external\linphone-sdk\liblinphone";    Patch = "liblinphone-log-collection.patch" }
+    @{ Submodule = "external\linphone-sdk\liblinphone";    Patch = "liblinphone-rls-exclude-phone-numbers.patch" }
     @{ Submodule = "external\linphone-sdk\mediastreamer2"; Patch = "mediastreamer2-preprocess-timing.patch" }
     @{ Submodule = "external\linphone-sdk\mswasapi";       Patch = "mswasapi-activate-timing.patch" }
 )

@@ -51,6 +51,15 @@ resource-list subscription **receives** the on-call activity today. It shows not
 `ToolModel::corePresenceModelToAppPresence()` has no case for it and falls through to `Undefined`.
 The work below is the whole of what stands between the server working and the user seeing it.
 
+### What the subscription covers
+
+The resource-list subscription holds extensions only. Upstream also adds every phone number of
+every contact, which on a large address book meant thousands of entries the presence server tracked
+for nothing. We carry an SDK patch that leaves them out (see
+`liblinphone-rls-exclude-phone-numbers.patch` in [sdk-patches](sdk-patches/README.md)). If an
+extension shows no presence at all, check first that the SUBSCRIBE body in the log lists it as a
+plain SIP address, and that the patch is applied.
+
 ## What the app receives
 
 The bridge publishes this for an extension on a call:

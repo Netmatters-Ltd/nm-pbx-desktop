@@ -1,0 +1,43 @@
+diff --git a/src/friend/friend-list.cpp b/src/friend/friend-list.cpp
+index bafa36a38..37936b83d 100644
+--- a/src/friend/friend-list.cpp
++++ b/src/friend/friend-list.cpp
+@@ -553,18 +553,37 @@ std::string FriendList::createResourceListXml() const {
+ 		err = xmlTextWriterStartElement(writer, (const xmlChar *)"list");
+ 	}
+ 
++	// NMPBX: leave contacts' phone numbers out of the list. Only extensions publish presence, and
++	// they are stored as SIP addresses. Every phone number becomes a "sip:<number>@<domain>;user=phone"
++	// entry (see Friend::phoneNumberToSipUri) that the presence server tracks and reports back on in
++	// full, for nothing. With a 5,000 contact address book that was 8,352 of 8,370 entries.
++	// [sip] rls_include_phone_numbers=1 restores upstream behaviour.
++	const bool includePhoneNumbers =
++	    !!linphone_config_get_int(getCore()->getCCore()->config, "sip", "rls_include_phone_numbers", 0);
++	int entryCount = 0;
++
+ 	std::string previousEntry;
+ 	for (const auto &entry : mFriendsMapByUri) {
+ 		// Map is sorted, prevent duplicates
+-		if (previousEntry.empty() || (previousEntry != entry.first)) {
++		if ((previousEntry.empty() || (previousEntry != entry.first)) &&
++		    (includePhoneNumbers || entry.first.find(";user=phone") == std::string::npos)) {
+ 			if (err >= 0) err = xmlTextWriterStartElement(writer, (const xmlChar *)"entry");
+ 			if (err >= 0)
+ 				err = xmlTextWriterWriteAttribute(writer, (const xmlChar *)"uri", (const xmlChar *)entry.first.c_str());
+ 			if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "entry" element.
++			entryCount++;
+ 		}
+ 		previousEntry = entry.first;
+ 	}
+ 
++	if (entryCount == 0) {
++		// Nothing left to subscribe to, so behave as upstream does for an empty list: send nothing.
++		lInfo() << __FUNCTION__ << ": No entries left once phone numbers are excluded, subscription ignored.";
++		xmlFreeTextWriter(writer);
++		xmlBufferFree(buf);
++		return std::string();
++	}
++
+ 	if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "list" element.
+ 	if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "resource-lists" element.
+ 	if (err >= 0) err = xmlTextWriterEndDocument(writer);
