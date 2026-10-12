@@ -101,6 +101,11 @@ SettingsModel::SettingsModel() {
 		    applyAccountDialPlanDefault();
 	    });
 	applyCallHistoryLimitDefault();
+	// The core reaches GlobalState::On inside CoreModel::start(), before this model exists to hear
+	// it, so on a normal launch applyCardDAVProvisioning only runs after a remote provisioning
+	// fetch. The provisioned rls_uri has to take effect every launch, so apply it here as well.
+	// It does nothing once applied.
+	applyProvisionedRlsUri(core, mConfig->getString("carddav_provision", "rls_uri", ""));
 
 	auto defaultAccount = core->getDefaultAccount();
 	if (!getDisableMeetingsFeature() && defaultAccount &&
