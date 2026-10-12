@@ -24,6 +24,7 @@
 #include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/core/CoreModel.hpp"
 #include "model/tool/ToolModel.hpp"
+#include "tool/Constants.hpp"
 // #include "model/tool/VfsUtils.hpp"
 #include "tool/Utils.hpp"
 #ifdef HAVE_CRASH_HANDLER
@@ -974,6 +975,46 @@ std::string SettingsModel::getAvailableCardDAVDisplayName(const std::shared_ptr<
 	return candidate;
 }
 
+void SettingsModel::applyProvisionedRlsUri(const std::shared_ptr<linphone::Core> &core, const std::string &rlsUri) {
+	auto config = core->getConfig();
+	// What we last wrote to [sip] rls_uri, so that a value provisioned there directly, or set by
+	// hand, is never mistaken for ours.
+	const std::string appliedKey("rls_provision_applied_uri");
+	auto applied = config->getString(UiSection, appliedKey, "");
+	auto before = config->getString("sip", "rls_uri", "");
+
+	if (!rlsUri.empty()) {
+		if (!linphone::Factory::get()->createAddress(rlsUri)) {
+			lWarning() << sLog().arg("Presence: provisioned rls_uri is not a valid address, ignored:") << rlsUri;
+			return;
+		}
+		if (before == rlsUri && applied == rlsUri) return;
+		config->setString("sip", "rls_uri", rlsUri);
+		config->setString(UiSection, appliedKey, rlsUri);
+	} else {
+		// No longer provisioned. Put back the factory default, but only over our own value.
+		// Cleaning the entry instead would leave no address at all until the next launch, when the
+		// factory file is read again.
+		if (applied.empty()) return;
+		if (before == applied) config->setString("sip", "rls_uri", Constants::DefaultRlsUri);
+		config->cleanEntry(UiSection, appliedKey);
+	}
+	config->sync();
+
+	auto after = config->getString("sip", "rls_uri", "");
+	if (after == before) return;
+	lInfo() << sLog().arg("Presence: resource list server changed from") << before << "to" << after;
+
+	// A list already subscribed would otherwise keep using the old server. The SDK only renews the
+	// existing subscription when the list's contents are unchanged, without looking at the address,
+	// so close it and let it start again. Lists with their own address do not use [sip] rls_uri.
+	for (auto &friendList : core->getFriendsLists()) {
+		if (friendList->getRlsAddress() || !friendList->subscriptionsEnabled()) continue;
+		friendList->enableSubscriptions(false);
+		friendList->enableSubscriptions(true);
+	}
+}
+
 void SettingsModel::applyCardDAVProvisioning() {
 	mustBeInLinphoneThread(sLog().arg(Q_FUNC_INFO));
 	auto core = CoreModel::getInstance()->getCore();
@@ -985,12 +1026,17 @@ void SettingsModel::applyCardDAVProvisioning() {
 	auto username = config->getString(provSection, "username", "");
 	auto password = config->getString(provSection, "password", "");
 	auto displayName = config->getString(provSection, "display_name", "");
+	auto rlsUri = config->getString(provSection, "rls_uri", "");
 
 	// We are notified that the config is ready more than once per launch. There is nothing to
 	// redo while the provisioned details are unchanged, and repeating it would fire a second
 	// pointless sync.
-	auto signature = serverUrl + '\n' + username + '\n' + password + '\n' + displayName;
+	auto signature = serverUrl + '\n' + username + '\n' + password + '\n' + displayName + '\n' + rlsUri;
 	if (sAppliedCardDAVProvisioning && *sAppliedCardDAVProvisioning == signature) return;
+
+	// Before the early return below: an instance with no address book can still have had an
+	// rls_uri applied by the one before it, and that needs undoing.
+	applyProvisionedRlsUri(core, rlsUri);
 
 	// Derive a display name from the server hostname if one isn't provided.
 	if (displayName.empty() && !serverUrl.empty()) {

@@ -60,6 +60,24 @@ for nothing. We carry an SDK patch that leaves them out (see
 extension shows no presence at all, check first that the SUBSCRIBE body in the log lists it as a
 plain SIP address, and that the patch is applied.
 
+The subscription goes to the resource list server named by `rls_uri` in the provisioning file's
+`[carddav_provision]` section, for example `sip:rls@nm-test.nmpbx.uk`.
+`SettingsModel::applyProvisionedRlsUri` copies it to `[sip] rls_uri`, the value every friend list
+falls back to. That covers the CardDAV address book and the app's own local list, since the
+presence server belongs to the deployment rather than to one address book. A list given its own
+address keeps it. If the value changes while the app is running, lists already subscribed are
+closed and subscribed again, because the SDK would otherwise carry on renewing the old
+subscription.
+
+`[ui] rls_provision_applied_uri` records what we wrote, so that if provisioning stops sending
+`rls_uri`, we put back the factory default (`sips:rls@sip.linphone.org`) without touching a value
+somebody else set. A provisioned `[carddav_provision] rls_uri` takes precedence over a
+`[sip] rls_uri` provisioned directly.
+
+Before this, the app ignored `[carddav_provision] rls_uri` and every subscription went to the
+factory default. That still worked, because the request is routed through our own proxy, and
+Flexisip's presence server evidently handles a list subscription whatever address it carries.
+
 ## What the app receives
 
 The bridge publishes this for an extension on a call:
