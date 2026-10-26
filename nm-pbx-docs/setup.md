@@ -428,14 +428,16 @@ The final executable to actually run should be: `build\OUTPUT\bin\nmpbx.exe`
 ### Regenerating the call tones
 
 We ship our own WAV files for the call-waiting and call-on-hold tones, because the SDK generates
-them far too loud. They live in `Linphone/data/sound/` alongside the script that produces them:
+them far too loud. There is also a short silent file, which the app registers in place of either
+tone when a user turns it off under Settings > Calls. They live in `Linphone/data/sound/` alongside
+the script that produces them:
 
 ```cmd
 python Linphone\data\sound\generate-tones.py
 ```
 
 The script is deterministic, so re-running it without changing anything leaves the files untouched.
-Adjust `PEAK_DBFS` at the top of the script to change the loudness, then regenerate and commit both
+Adjust `PEAK_DBFS` at the top of the script to change the loudness, then regenerate and commit the
 WAV files. The script's header explains the constraints the SDK imposes on these files, which are
 worth reading before changing the format.
 

@@ -48,7 +48,7 @@ Group changes to describe their impact on the project, as follows:
 - When starting a new call or transfer, extensions are listed before contacts.
 - The call window defaults to a smaller size.
 
-## [6.3.1] - 2026-10-08
+## [6.3.2] - 2026-10-12
 
 ### Changed
 - Dial pad when performing a blind transfer on a call now supports entering any number manually.
@@ -56,3 +56,4 @@ Group changes to describe their impact on the project, as follows:
 - The lists no longer try to load in all contacts when there's a large number. Searching will still find those that are past the limit.
 - Call history performance improved with a large contact list, with matches against contacts now being cached.
 - No longer attempt to track presence status for external phone numbers.
+- The Contacts and Extensions tabs say they are fetching while the address book is first downloaded, rather than appearing empty.
