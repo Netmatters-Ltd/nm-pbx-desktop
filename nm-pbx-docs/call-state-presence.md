@@ -63,7 +63,9 @@ plain SIP address, and that the patch is applied.
 The subscription goes to the resource list server named by `rls_uri` in the provisioning file's
 `[carddav_provision]` section, for example `sip:rls@nm-test.nmpbx.uk`.
 `SettingsModel::applyProvisionedRlsUri` copies it to `[sip] rls_uri`, the value every friend list
-falls back to. That covers the CardDAV address book and the app's own local list, since the
+falls back to. It runs when `SettingsModel` is created and whenever provisioning is applied. The
+first matters: the core reaches `GlobalState::On` before `SettingsModel` exists, so without a
+remote provisioning fetch, `applyCardDAVProvisioning` does not run on a normal launch. That covers the CardDAV address book and the app's own local list, since the
 presence server belongs to the deployment rather than to one address book. A list given its own
 address keeps it. If the value changes while the app is running, lists already subscribed are
 closed and subscribed again, because the SDK would otherwise carry on renewing the old

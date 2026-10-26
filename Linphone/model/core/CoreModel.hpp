@@ -77,6 +77,12 @@ public:
 	void checkForUpdate(const std::string &applicationVersion, bool requestedByUser = false);
 	bool isCheckVersionRequestedByUser() const;
 
+	// Address books being fetched for the first time, which have nothing to show until the fetch
+	// completes. CardDAVSyncAgent reports these. Linphone thread only.
+	void addressBookFetchStarted();
+	void addressBookFetchFinished();
+	bool isFetchingAddressBook() const;
+
 	bool mEnd = false;
 	linphone::ConfiguringState mConfigStatus;
 	QString mConfigMessage;
@@ -96,11 +102,13 @@ signals:
 	void enabledLdapAddressBookSaved();
 	void magicSearchResultReceived(QString filter);
 	void messageReadInChatRoom(std::shared_ptr<linphone::ChatRoom> chatRoom);
+	void fetchingAddressBookChanged(bool fetching);
 
 private:
 	QString mConfigPath;
 	QTimer *mIterateTimer = nullptr;
 	QTimer *mCardDAVSyncTimer = nullptr;
+	int mAddressBookFetches = 0;
 
 	// Stall instrumentation. Thresholds live in tool/stall/StallMonitor.hpp.
 	// mIterateIntervalMs caches the timer interval so the hot path does not read it back off

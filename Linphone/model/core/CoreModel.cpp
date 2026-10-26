@@ -533,6 +533,29 @@ bool CoreModel::isCheckVersionRequestedByUser() const {
 	return mCheckVersionRequestedByUser;
 }
 
+// A count rather than a flag, as each address book fetches separately and the views only care
+// whether any of them still has nothing to show.
+void CoreModel::addressBookFetchStarted() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	if (mAddressBookFetches++ == 0) {
+		lInfo() << log().arg("Fetching the address book for the first time");
+		emit fetchingAddressBookChanged(true);
+	}
+}
+
+void CoreModel::addressBookFetchFinished() {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	if (mAddressBookFetches == 0) return;
+	if (--mAddressBookFetches == 0) {
+		lInfo() << log().arg("First address book fetch finished");
+		emit fetchingAddressBookChanged(false);
+	}
+}
+
+bool CoreModel::isFetchingAddressBook() const {
+	return mAddressBookFetches > 0;
+}
+
 //---------------------------------------------------------------------------------------------------------------------------
 
 void CoreModel::onAccountAdded(const std::shared_ptr<linphone::Core> &core,

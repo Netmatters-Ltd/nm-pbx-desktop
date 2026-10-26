@@ -37,6 +37,29 @@ contacts section, they would be cut off by the limit along with everything else.
 `AllContactGridView` only limits a contacts-only grid. An unfiltered grid would mix extensions in,
 so it is left unlimited. Nothing uses one at the moment.
 
+## The first fetch
+
+Straight after provisioning, the address book has to be downloaded before anything can be shown,
+and with a large one that takes a while. 1,600 contacts took around 25 seconds, most of it the SDK
+saving each contact to the database in turn on the linphone thread. The first search runs before
+any of that arrives and comes back empty.
+
+So that this does not look like an empty address book, `ContactsCpp.fetching` is true while it is
+under way. The Contacts and Extensions tabs show "Fetching Contacts..." or "Fetching Extensions..."
+with a spinner in place of the empty state, and the refresh button is held off.
+
+- `CardDAVSyncAgent` counts a sync as a first fetch when its list holds no contacts as it starts.
+  The syncs from provisioning, at launch, on a timer and from the refresh button all go through it.
+  An address book added by hand in the settings syncs its own way and is not counted.
+- `CoreModel` keeps a count of first fetches on the linphone thread and signals when it goes
+  between none and some.
+- `ContactsCore` clears `fetching` only once the search that follows the fetch has landed, so the
+  empty state does not flash up in between. If a fetch has not finished after five minutes it
+  gives up and shows the list as it is.
+
+An address book that is genuinely empty on the server shows "Fetching" briefly on every sync,
+before settling on the empty state.
+
 ## Why there is a limit
 
 Neither layout recycles rows. The grid is a `Flow` with a `Repeater`, and the list is a `ListView`
