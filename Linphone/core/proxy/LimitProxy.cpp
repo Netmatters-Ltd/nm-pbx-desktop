@@ -25,6 +25,9 @@ LimitProxy::LimitProxy(QObject *parent) : QSortFilterProxyModel(parent) {
 	connect(this, &LimitProxy::rowsRemoved, this, &LimitProxy::countChanged);
 	connect(this, &LimitProxy::modelReset, this, &LimitProxy::countChanged);
 	connect(this, &LimitProxy::countChanged, this, &LimitProxy::haveMoreChanged);
+	// limitReached depends on the cap as well as the rows, and the cap can reach the ceiling
+	// without the row count changing.
+	connect(this, &LimitProxy::maxDisplayItemsChanged, this, &LimitProxy::haveMoreChanged);
 }
 /*
 LimitProxy::LimitProxy(QAbstractItemModel *sortFilterProxy, QObject *parent) : QSortFilterProxyModel(parent) {
@@ -50,9 +53,16 @@ void LimitProxy::setSourceModels(SortFilterProxy *firstList) {
 	// A filter change in firstList shuffles its rows without touching our cap, and our own row
 	// filter is index based, so rows can move into range without QSortFilterProxyModel ever
 	// re-testing them. Nothing above notices: onAdded and onRemoved are wired to the list beneath
-	// the filter, not to the filter itself. Lists without a ceiling resync by way of the cap moving.
-	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::resyncRowFilter);
-	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::resyncRowFilter);
+	// the filter, not to the filter itself.
+	connect(firstList, &SortFilterProxy::filterTextChanged, this, &LimitProxy::onSourceFilterChanged);
+	connect(firstList, &SortFilterProxy::filterTypeChanged, this, &LimitProxy::onSourceFilterChanged);
+	// haveMore and limitReached compare our rows with the filtered rows. Once we are at the ceiling
+	// our own count stops changing, so a search that takes the matches from 150 to 50 or back would
+	// otherwise never tell the view.
+	connect(firstList, &QAbstractItemModel::rowsInserted, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::rowsRemoved, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::modelReset, this, &LimitProxy::haveMoreChanged);
+	connect(firstList, &QAbstractItemModel::layoutChanged, this, &LimitProxy::haveMoreChanged);
 
 	// Restore old values
 	auto oldModel = dynamic_cast<SortFilterProxy *>(sourceModel());
@@ -167,6 +177,13 @@ void LimitProxy::resyncRowFilter() {
 	if (rowCount() != getDisplayCount(model->rowCount())) reapplyRowFilter();
 }
 
+void LimitProxy::onSourceFilterChanged() {
+	// Every capped list, paging or not. A row count check like resyncRowFilter()'s isn't enough
+	// here: one filter change can hide some rows and bring back others, leaving the count right
+	// and the rows wrong. Re-testing is one integer compare per filtered row.
+	if (mMaxDisplayItems >= 0 && sourceModel()) reapplyRowFilter();
+}
+
 // Deliberately not invalidate(): that emits layoutChanged with no hint, which the QML delegate model
 // treats as a full reset and which sends the view back to the top. This emits row insert and remove
 // signals instead, so the scroll position survives. Same version guard as
@@ -195,6 +212,10 @@ bool LimitProxy::getHaveMore() const {
 	auto model = sourceModel();
 	int modelCount = model ? model->rowCount() : 0;
 	return getCount() < modelCount;
+}
+
+bool LimitProxy::getLimitReached() const {
+	return mDisplayLimit >= 0 && mMaxDisplayItems >= mDisplayLimit && getHaveMore();
 }
 
 //--------------------------------------------------------------------------------------------------

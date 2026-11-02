@@ -6,6 +6,7 @@ import QtQuick.Effects
 import Linphone
 import UtilsCpp
 import SettingsCpp
+import ContactsCpp
 import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
 
 FocusScope {
@@ -117,9 +118,12 @@ FocusScope {
                     // New call and transfer lists open often, including mid-call, so read the
                     // address book the app already holds rather than searching it afresh each time.
                     useSharedContacts: true
-                    // Favourites are not used in NMPBX. Extensions are listed ahead of contacts.
+                    // Favourites are not used in NMPBX. Extensions are always listed in full ahead
+                    // of contacts, which AllContactListView does by itself.
                     showFavorites: false
-                    separateExtensions: true
+                    // Tighter than the Contacts tab, since this list also holds every extension and
+                    // the suggestions. Extensions themselves are never limited.
+                    contactLimit: ContactsCpp.callFormContactDisplayLimit
                     searchBarText: searchBar.text
                     onContactSelected: (contact) => {
                         mainItem.contactClicked(contact)

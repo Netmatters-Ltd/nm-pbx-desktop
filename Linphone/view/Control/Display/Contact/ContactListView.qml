@@ -116,17 +116,9 @@ ListView {
 		}
 	}
 	
-	Connections {
-		target: SettingsCpp
-		function onLdapConfigChanged() {
-			if (SettingsCpp.syncLdapContacts)
-				magicSearchProxy.forceUpdate()
-		}
-		function onCardDAVAddressBookSynchronized() {
-			console.log("card dav synchro update")
-			magicSearchProxy.forceUpdate()
-		}
-	}
+	// No refresh on LDAP or CardDAV changes here. This view is only ever a section of
+	// AllContactListView, so magicSearchProxy here meant the parent's search, run once per section
+	// with no regard for what was typed. AllContactListView refreshes it once, itself.
 	// Workaround: itemAtIndex and count are decorellated and are not enough to know when the ListView has load all its children.
 	// So when itemAtIndex is not available, start this timer along count changed signal.
 	Timer{

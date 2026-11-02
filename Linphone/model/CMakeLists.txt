@@ -28,6 +28,7 @@ list(APPEND _LINPHONEAPP_SOURCES
 	
 	model/friend/FriendModel.cpp
 	model/friend/FriendsManager.cpp
+	model/friend/PhoneNumberIndex.hpp
 
 	model/listener/Listener.hpp
 	

@@ -20,6 +20,10 @@ For our use, we're only concerned with the 64-bit Windows build.
 bounded, the difference between the two limits that apply to it, and a known Qt defect that resets
 the scroll position on every paging list in the app.
 
+[Contacts list](/nm-pbx-docs/contacts-list.md) explains the contact and suggestion limits on every
+contact view, why extensions are exempt from them, and why a large address book made the app
+unusable without them.
+
 [Call state presence](/nm-pbx-docs/call-state-presence.md) explains the inbound-only "On a call"
 presence state, which comes from a call-state bridge on the server and must never be published.
 
@@ -28,6 +32,9 @@ presence state, which comes from a call-state bridge on the server and must neve
 fresh clone, by `git submodule update --force`, and by any SDK version bump. If you change anything
 under `external/linphone-sdk`, capture it as a patch there. Reapply them with
 `nm-pbx-docs/apply-sdk-patches.ps1`.
+
+[Tests](/nm-pbx-docs/tests.md) covers our Qt Test unit tests in `Linphone/tests`: what they cover,
+and how to build and run them. Running them needs a build, so ask the user to run them.
 
 ## Language
 

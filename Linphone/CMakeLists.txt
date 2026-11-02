@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Linphone VERSION 6.3.0 LANGUAGES CXX)
+project(Linphone VERSION 6.3.1 LANGUAGES CXX)
 
 ################################################################
 #						PACKAGES
@@ -239,4 +239,16 @@ if (WIN32)
 			install(FILES "$<TARGET_PDB_FILE:${T}>" DESTINATION ${CMAKE_INSTALL_BINDIR})
 		endforeach ()
 	endif()
+endif()
+
+################################################################
+#						TESTS
+################################################################
+# Our own unit tests, separate from the SDK's ENABLE_TESTS and ENABLE_UNIT_TESTS. They are quick to
+# build and never installed, so they are on by default to stop them going stale unnoticed.
+# See nm-pbx-docs/tests.md.
+option(ENABLE_APP_TESTS "Build the app's own unit tests." ON)
+if(ENABLE_APP_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
 endif()

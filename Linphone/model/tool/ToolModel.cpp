@@ -354,6 +354,12 @@ ToolModel::findFriendByAddress(const std::shared_ptr<const linphone::Address> &l
 		return friendsManager->getUnknownFriendAtKey(key);
 	}
 
+	// Looked for before and not found. Without this, an unknown number repeats every tier below on
+	// every lookup, and the call history does one lookup per row. The miss is forgotten whenever
+	// the address book changes, and checkAddressBook catches the changes nothing signals.
+	friendsManager->checkAddressBook();
+	if (friendsManager->isInOtherAddresses(key)) return nullptr;
+
 	auto core = CoreModel::getInstance()->getCore();
 	// Strip transport and uri parameters such as ";user=phone" so the lookup sees the same address
 	// the contact was stored with.
@@ -367,10 +373,13 @@ ToolModel::findFriendByAddress(const std::shared_ptr<const linphone::Address> &l
 	// inbound call from 07771514661 on address alone, but the SDK normalises both sides through the
 	// account's dial plan here. That makes this tier dependent on the account carrying an
 	// international prefix; see SettingsModel::applyAccountDialPlanDefault.
+	// FriendsManager gives the SDK's answer from an index. The SDK's own search normalises every
+	// number of every contact on each call, which with a few thousand contacts held the linphone
+	// thread for half a minute while the call history loaded.
 	if (!f) {
 		auto username = Utils::coreStringToAppString(cleanAddr->getUsername());
 		if (looksLikePhoneNumber(username)) {
-			f = core->findFriendByPhoneNumber(Utils::appStringToCoreString(username));
+			f = friendsManager->findFriendByPhoneNumber(Utils::appStringToCoreString(username));
 		}
 	}
 
@@ -389,8 +398,8 @@ ToolModel::findFriendByAddress(const std::shared_ptr<const linphone::Address> &l
 
 	// Finally the remote directories. Asynchronous, so this call still returns nothing; the result
 	// arrives via MagicSearchModel. Inert in the usual deployment, where the whole address book is
-	// synced locally and no remote directory is registered, but harmless to keep.
-	if (friendsManager->isInOtherAddresses(key)) return nullptr;
+	// synced locally and no remote directory is registered, but harmless to keep. Remembering the
+	// miss also means the directories are only asked once.
 	friendsManager->appendOtherAddress(key);
 	if (core->getRemoteContactDirectories().empty()) return nullptr;
 	qDebug() << "Couldn't find friend" << key << "in core or in maps, use magic search";

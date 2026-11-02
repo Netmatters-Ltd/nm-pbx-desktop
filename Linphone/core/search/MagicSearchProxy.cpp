@@ -31,6 +31,10 @@ MagicSearchProxy::MagicSearchProxy(QObject *parent) : LimitProxy(parent) {
 		// A proxy attached to a parent shares the parent's list, so re-running the search here would
 		// just repeat what the parent already does, once per attached view.
 		if (mParentProxy) return;
+		// An empty search text means "no search", as setSearchText("") treats it. The SDK reads an
+		// empty filter as "everything", so without this a refresh of a view with nothing typed
+		// fetched every contact and every call history address. Use "*" to ask for everything.
+		if (mSearchText.isEmpty()) return;
 		if (mList) emit mList->lSearch(mSearchText, getSourceFlags(), getAggregationFlag(), getMaxResults());
 	});
 	connect(App::getInstance(), &App::currentDateChanged, this, &MagicSearchProxy::forceUpdate);

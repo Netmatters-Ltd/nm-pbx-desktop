@@ -36,6 +36,10 @@ public:
 	Q_PROPERTY(int displayLimit READ getDisplayLimit WRITE setDisplayLimit NOTIFY displayLimitChanged)
 	Q_PROPERTY(int displayItemsStep READ getDisplayItemsStep WRITE setDisplayItemsStep NOTIFY displayItemsStepChanged)
 	Q_PROPERTY(bool haveMore READ getHaveMore NOTIFY haveMoreChanged)
+	// True once the list is showing displayLimit rows and more rows match than that. Unlike haveMore,
+	// which is also true while a list is still paging in, this means the rest can never be shown, so
+	// the view should say so.
+	Q_PROPERTY(bool limitReached READ getLimitReached NOTIFY haveMoreChanged)
 
 	// Propagation
 	Q_PROPERTY(QString filterText READ getFilterText WRITE setFilterText NOTIFY filterTextChanged)
@@ -84,6 +88,7 @@ public:
 	void setDisplayItemsStep(int step);
 
 	bool getHaveMore() const;
+	bool getLimitReached() const;
 
 	//-------------------------------------------------------------
 	QString getFilterText() const;
@@ -96,8 +101,10 @@ public:
 	void onAdded(const QModelIndex &parent, int first, int last);
 	void onRemoved();
 	// Re-runs the row filter, but only for a proxy holding a ceiling and only when the rows on show
-	// no longer match what the cap says they should be.
+	// no longer match what the cap says they should be. Enough when rows have only been inserted.
 	void resyncRowFilter();
+	// Re-runs the row filter after the search text or filter type changes underneath us.
+	void onSourceFilterChanged();
 
 	int mInitialDisplayItems = -1;
 	int mMaxDisplayItems = -1;

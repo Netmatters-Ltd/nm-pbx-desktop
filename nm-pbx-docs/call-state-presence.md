@@ -22,6 +22,9 @@ Implemented 30 September 2026. Where it differs from, or adds to, the brief belo
   (`contact_presence_status_on_call`), icon `presence_on_call.svg` (`AppIcons.presenceOnCall`),
   colour token `presence_on_call` in `DefaultStyle.qml`, `#F0BE00`. That is a golden yellow, well
   clear of Away's orange (`#FFA645`), and dark enough to read as label text on white.
+- As well as the badge, `Avatar.qml` draws a ring in the same colour round an on-call contact's
+  avatar, wherever `displayPresence` is on (so not in the call views). If the avatar is already
+  showing the security ring (verified or unsafe), that ring is shown instead.
 - `ToolModel::appPresenceToCorePresenceModel()` and `AccountModel::setPresence()` both refuse
   `OnCall`, so it is never published or written to `explicit_presence`.
 - Nothing in the app blocks calling a contact based on presence, so an extension on a call can
@@ -47,6 +50,33 @@ What is missing is the app. We have already confirmed from the Flexisip presence
 resource-list subscription **receives** the on-call activity today. It shows nothing because
 `ToolModel::corePresenceModelToAppPresence()` has no case for it and falls through to `Undefined`.
 The work below is the whole of what stands between the server working and the user seeing it.
+
+### What the subscription covers
+
+The resource-list subscription holds extensions only. Upstream also adds every phone number of
+every contact, which on a large address book meant thousands of entries the presence server tracked
+for nothing. We carry an SDK patch that leaves them out (see
+`liblinphone-rls-exclude-phone-numbers.patch` in [sdk-patches](sdk-patches/README.md)). If an
+extension shows no presence at all, check first that the SUBSCRIBE body in the log lists it as a
+plain SIP address, and that the patch is applied.
+
+The subscription goes to the resource list server named by `rls_uri` in the provisioning file's
+`[carddav_provision]` section, for example `sip:rls@nm-test.nmpbx.uk`.
+`SettingsModel::applyProvisionedRlsUri` copies it to `[sip] rls_uri`, the value every friend list
+falls back to. That covers the CardDAV address book and the app's own local list, since the
+presence server belongs to the deployment rather than to one address book. A list given its own
+address keeps it. If the value changes while the app is running, lists already subscribed are
+closed and subscribed again, because the SDK would otherwise carry on renewing the old
+subscription.
+
+`[ui] rls_provision_applied_uri` records what we wrote, so that if provisioning stops sending
+`rls_uri`, we put back the factory default (`sips:rls@sip.linphone.org`) without touching a value
+somebody else set. A provisioned `[carddav_provision] rls_uri` takes precedence over a
+`[sip] rls_uri` provisioned directly.
+
+Before this, the app ignored `[carddav_provision] rls_uri` and every subscription went to the
+factory default. That still worked, because the request is routed through our own proxy, and
+Flexisip's presence server evidently handles a list subscription whatever address it carries.
 
 ## What the app receives
 

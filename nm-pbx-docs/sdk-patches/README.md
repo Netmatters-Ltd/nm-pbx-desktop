@@ -52,6 +52,30 @@ the write in one locked region, makes rotation fall back to truncating rather th
 size from `ftell` rather than from `fprintf`'s return, which undercounts by one byte per line on
 Windows because the stream translates `\n` to `\r\n`.
 
+### `liblinphone-rls-exclude-phone-numbers.patch`
+
+Leaves contacts' phone numbers out of the presence subscription. The app subscribes to presence
+with one list (a resource list sent to `rls_uri`), and upstream builds that list from every SIP
+address *and every phone number* of every contact in the friend list. Each phone number goes in as
+`sip:<number>@<domain>;user=phone`. On our deployments only extensions publish presence, and they
+are stored as SIP addresses, so the phone numbers never have anything to report.
+
+With a 5,000 contact CardDAV address book the list had 8,370 entries, 8,352 of them phone numbers.
+The SUBSCRIBE body was 510KB before compression, and Flexisip's first NOTIFY listed every entry
+again at 536KB, with no presence in it at all. The presence server tracks every entry for every
+connected client and sends the full list again whenever the subscription is renewed. The client
+cost was small; the server cost and the log volume were not. With the patch, the list holds just
+the extensions.
+
+The change is in `FriendList::createResourceListXml` and skips any entry containing `;user=phone`,
+which `Friend::phoneNumberToSipUri` always appends. If nothing is left, it sends no subscription,
+as upstream does for an empty list. Nothing else uses the list, so matching an incoming NOTIFY to a
+contact and identifying callers by phone number both work as before.
+
+This depends on extensions being served by CardDAV as SIP addresses. An extension stored only as a
+phone number would lose its presence. `[sip] rls_include_phone_numbers=1`, in provisioning or
+`linphonerc`, restores upstream behaviour without a rebuild.
+
 ### `mediastreamer2-preprocess-timing.patch`
 
 **Diagnostic only. Remove once the cause is found.**
@@ -91,6 +115,7 @@ To do it by hand instead:
 git -C external/linphone-sdk/mediastreamer2 apply ../../../nm-pbx-docs/sdk-patches/mediastreamer2-msvc-libm.patch
 git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches/liblinphone-carddav-auth-username.patch
 git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches/liblinphone-log-collection.patch
+git -C external/linphone-sdk/liblinphone  apply ../../../nm-pbx-docs/sdk-patches/liblinphone-rls-exclude-phone-numbers.patch
 git -C external/linphone-sdk/mediastreamer2 apply ../../../nm-pbx-docs/sdk-patches/mediastreamer2-preprocess-timing.patch
 git -C external/linphone-sdk/mswasapi     apply ../../../nm-pbx-docs/sdk-patches/mswasapi-activate-timing.patch
 ```
@@ -116,12 +141,13 @@ because `-C` has already changed git's working directory.
 ```
 git -C external/linphone-sdk/liblinphone    diff --output=<repo>/nm-pbx-docs/sdk-patches/liblinphone-carddav-auth-username.patch -- src/vcard/carddav-context.cpp
 git -C external/linphone-sdk/liblinphone    diff --output=<repo>/nm-pbx-docs/sdk-patches/liblinphone-log-collection.patch        -- coreapi/linphonecore.c
+git -C external/linphone-sdk/liblinphone    diff --output=<repo>/nm-pbx-docs/sdk-patches/liblinphone-rls-exclude-phone-numbers.patch -- src/friend/friend-list.cpp
 git -C external/linphone-sdk/mediastreamer2 diff --output=<repo>/nm-pbx-docs/sdk-patches/mediastreamer2-msvc-libm.patch          -- CMakeLists.txt src/CMakeLists.txt
 git -C external/linphone-sdk/mediastreamer2 diff --output=<repo>/nm-pbx-docs/sdk-patches/mediastreamer2-preprocess-timing.patch  -- src/base/msticker.c
 git -C external/linphone-sdk/mswasapi       diff --output=<repo>/nm-pbx-docs/sdk-patches/mswasapi-activate-timing.patch          -- mswasapi.cpp
 ```
 
-Several patches share a submodule: two are against `liblinphone` and two against `mediastreamer2`.
+Several patches share a submodule: three are against `liblinphone` and two against `mediastreamer2`.
 `git -C ... diff` with no path would merge them into one, and the merged patches would then conflict
 with each other when the apply script runs. **Always pass the path.**
 

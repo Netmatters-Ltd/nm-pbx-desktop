@@ -369,6 +369,11 @@ private:
 	static std::string getAvailableCardDAVDisplayName(const std::shared_ptr<linphone::Core> &core,
 	                                                  const std::string &wantedName,
 	                                                  const std::string &currentServerUrl);
+	// Points presence subscriptions at the provisioned resource list server, [carddav_provision]
+	// rls_uri. Written to [sip] rls_uri, the core-wide value every friend list falls back to,
+	// because the server belongs to the deployment rather than to one address book. An empty
+	// value undoes our own earlier write and leaves any other alone.
+	static void applyProvisionedRlsUri(const std::shared_ptr<linphone::Core> &core, const std::string &rlsUri);
 	// Details of the last [carddav_provision] section applied in this process, unset until
 	// the first apply. Used to skip the redundant second call per launch.
 	static std::optional<std::string> sAppliedCardDAVProvisioning;
