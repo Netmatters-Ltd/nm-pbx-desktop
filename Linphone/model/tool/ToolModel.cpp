@@ -25,6 +25,7 @@
 #include "model/core/CoreModel.hpp"
 #include "model/friend/FriendsManager.hpp"
 #include "model/setting/SettingsModel.hpp"
+#include "model/tool/PresenceMapping.hpp"
 #include "tool/Constants.hpp"
 #include "tool/UriTools.hpp"
 #include "tool/Utils.hpp"
@@ -901,6 +902,9 @@ ToolModel::createGroupChatRoom(QString subject, std::list<std::shared_ptr<linpho
 // Away 	= Basic Status open with activity Away and description away
 // Offline 	= Basic Status open with activity PermanentAbsence and description offline
 // DND 		= Basic Status open with activity Other and description dnd
+// OnCall 	= Basic Status open with activity OnThePhone at any index. Inbound only: the server's call-state
+//            bridge publishes it while an extension is on a call, and it outranks the statuses above. The app
+//            never publishes it. See nm-pbx-docs/call-state-presence.md and model/tool/PresenceMapping.hpp.
 // Note : close status on the last 2 items would be preferrable, but they currently trigger multiple tuple NOTIFY from
 // flexisip presence server Note 2 : close status with no activity triggers an unsubscribe.
 LinphoneEnums::Presence
@@ -910,23 +914,20 @@ ToolModel::corePresenceModelToAppPresence(std::shared_ptr<const linphone::Presen
 		return LinphoneEnums::Presence::Undefined;
 	}
 
-	auto presenceActivity = presenceModel->getActivity();
-	if (presenceModel->getBasicStatus() == linphone::PresenceBasicStatus::Open) {
-		if (!presenceActivity) return LinphoneEnums::Presence::Online;
-		else if (presenceActivity->getType() == linphone::PresenceActivity::Type::Busy)
-			return LinphoneEnums::Presence::Busy;
-		else if (presenceActivity->getType() == linphone::PresenceActivity::Type::Away)
-			return LinphoneEnums::Presence::Away;
-		else if (presenceActivity->getType() == linphone::PresenceActivity::Type::PermanentAbsence)
-			return LinphoneEnums::Presence::Offline;
-		else if (presenceActivity->getType() == linphone::PresenceActivity::Type::Other)
-			return LinphoneEnums::Presence::DoNotDisturb;
-		else {
-			lWarning() << sLog().arg("unhandled core activity type : ") << (int)presenceActivity->getType();
-			return LinphoneEnums::Presence::Undefined;
-		}
+	// Flexisip merges each publication's <activities> into one document, in no stable order, so read them all
+	// rather than just getActivity() (which is only the first).
+	std::vector<linphone::PresenceActivity::Type> activityTypes;
+	for (unsigned int i = 0; i < presenceModel->getNbActivities(); ++i) {
+		auto activity = presenceModel->getNthActivity(i);
+		if (activity) activityTypes.push_back(activity->getType());
 	}
-	return LinphoneEnums::Presence::Undefined;
+
+	auto basicStatus = presenceModel->getBasicStatus();
+	auto presence = PresenceMapping::toAppPresence(basicStatus, activityTypes);
+	if (presence == LinphoneEnums::Presence::Undefined && basicStatus == linphone::PresenceBasicStatus::Open &&
+	    !activityTypes.empty())
+		lWarning() << sLog().arg("unhandled core activity type : ") << (int)activityTypes.front();
+	return presence;
 }
 
 std::shared_ptr<linphone::PresenceModel> ToolModel::appPresenceToCorePresenceModel(LinphoneEnums::Presence presence,
@@ -955,6 +956,11 @@ std::shared_ptr<linphone::PresenceModel> ToolModel::appPresenceToCorePresenceMod
 			break;
 		case LinphoneEnums::Presence::Undefined:
 			lWarning() << sLog().arg("Trying to build PresenceModel from Undefined presence ");
+			return nullptr;
+		case LinphoneEnums::Presence::OnCall:
+			// Reported by the server's call-state bridge, never published by the app. Publishing it would fight
+			// the bridge and only ever reflect this app's own calls.
+			lWarning() << sLog().arg("Trying to build PresenceModel from OnCall presence, which is inbound only");
 			return nullptr;
 	}
 

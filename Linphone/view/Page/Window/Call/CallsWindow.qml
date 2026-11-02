@@ -15,6 +15,10 @@ AbstractWindow {
     flags: Qt.Window
     minimumWidth: Utils.getSizeWithScreenRatio(1020)
     minimumHeight: Utils.getSizeWithScreenRatio(700)
+    // Open at the minimum rather than AbstractWindow's default, which is sized for video meetings.
+    // We only make audio calls, so the extra space is empty. Users can still enlarge it.
+    width: Math.min(minimumWidth, Screen.desktopAvailableWidth)
+    height: Math.min(minimumHeight, Screen.desktopAvailableHeight)
 
     // modality: Qt.WindowModal
     property CallGui call
