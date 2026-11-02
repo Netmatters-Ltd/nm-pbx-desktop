@@ -3120,6 +3120,18 @@ Only your correspondent can decrypt them.</translation>
         <translation>No contact at the moment</translation>
     </message>
     <message>
+        <location filename="../../view/Page/Main/Contact/ContactPage.qml" line="299"/>
+        <source>extension_list_fetching</source>
+        <extracomment>&quot;Fetching Extensions...&quot;</extracomment>
+        <translation>Fetching Extensions...</translation>
+    </message>
+    <message>
+        <location filename="../../view/Page/Main/Contact/ContactPage.qml" line="301"/>
+        <source>contact_list_fetching</source>
+        <extracomment>&quot;Fetching Contacts...&quot;</extracomment>
+        <translation>Fetching Contacts...</translation>
+    </message>
+    <message>
         <location filename="../../view/Page/Main/Contact/ContactPage.qml" line="367"/>
         <source>expand_accessible_name</source>
         <extracomment>Expand %1</extracomment>

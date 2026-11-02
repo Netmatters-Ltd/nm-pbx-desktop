@@ -21,6 +21,8 @@
 #ifndef CARDDAV_SYNC_AGENT_HPP
 #define CARDDAV_SYNC_AGENT_HPP
 
+#include "model/core/CoreModel.hpp"
+
 #include <QDebug>
 #include <QString>
 #include <linphone++/linphone.hh>
@@ -42,6 +44,11 @@ public:
 		mFriendList = friendList;
 		mOnComplete = std::move(onComplete);
 		mKeepAlive = shared_from_this();
+		// An empty list is being fetched for the first time, typically straight after provisioning.
+		// That can take a while with a large address book, so the views say so rather than showing
+		// an empty one until it lands.
+		mFirstFetch = mFriendList->getFriends().empty();
+		if (mFirstFetch) CoreModel::getInstance()->addressBookFetchStarted();
 		mFriendList->addListener(shared_from_this());
 		mFriendList->synchronizeFriendsFromServer();
 	}
@@ -60,6 +67,7 @@ public:
 			if (mOnComplete) {
 				mOnComplete(succeeded);
 			}
+			if (mFirstFetch) CoreModel::getInstance()->addressBookFetchFinished();
 			mKeepAlive = nullptr;
 		}
 	}
@@ -68,6 +76,7 @@ private:
 	std::shared_ptr<linphone::FriendList> mFriendList;
 	std::shared_ptr<CardDAVSyncAgent> mKeepAlive;
 	CompletionCallback mOnComplete;
+	bool mFirstFetch = false;
 };
 
 #endif // CARDDAV_SYNC_AGENT_HPP

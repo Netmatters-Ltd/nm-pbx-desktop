@@ -60,6 +60,11 @@ ContactsCore::ContactsCore(QObject *parent) : QObject(parent) {
 		lInfo() << log().arg("Address book loaded");
 		mInitialLoadWatchdog.stop();
 		setInitialLoadComplete(true);
+		if (mAwaitingFetchedResults) {
+			mAwaitingFetchedResults = false;
+			mFetchWatchdog.stop();
+			setFetching(false);
+		}
 	});
 
 	mSyncWatchdog.setSingleShot(true);
@@ -82,6 +87,25 @@ ContactsCore::ContactsCore(QObject *parent) : QObject(parent) {
 	// meant the one failure it exists to cover, the signal never arriving, was also the one case
 	// where it never got started, leaving the busy indicator up for the rest of the session.
 	mInitialLoadWatchdog.start();
+
+	mFetchWatchdog.setSingleShot(true);
+	mFetchWatchdog.setInterval(FetchWatchdogMs);
+	connect(&mFetchWatchdog, &QTimer::timeout, this, [this] {
+		lWarning() << log().arg("Address book fetch did not finish within %1s, showing the list as it is")
+		                  .arg(FetchWatchdogMs / 1000);
+		mAwaitingFetchedResults = false;
+		setFetching(false);
+	});
+
+	// The fetch is tracked on the linphone thread, where the syncs run. Provisioning starts one
+	// before the window opens, so read where it has got to as well as listening for changes. A
+	// change after the read is queued behind it, so the two cannot disagree.
+	connect(CoreModel::getInstance().get(), &CoreModel::fetchingAddressBookChanged, this,
+	        [this](bool fetching) { onAddressBookFetchingChanged(fetching); });
+	App::postModelAsync([]() {
+		bool fetching = CoreModel::getInstance()->isFetchingAddressBook();
+		App::postCoreAsync([fetching]() { ContactsCore::getInstance()->onAddressBookFetchingChanged(fetching); });
+	});
 
 	connect(&mPeriodicTimer, &QTimer::timeout, this, [this] { refresh(); });
 
@@ -114,6 +138,10 @@ bool ContactsCore::getInitialLoadComplete() const {
 	return mInitialLoadComplete;
 }
 
+bool ContactsCore::getFetching() const {
+	return mFetching;
+}
+
 bool ContactsCore::getSyncing() const {
 	return mSyncing;
 }
@@ -142,6 +170,28 @@ void ContactsCore::setInitialLoadComplete(bool complete) {
 	if (mInitialLoadComplete == complete) return;
 	mInitialLoadComplete = complete;
 	emit initialLoadCompleteChanged();
+}
+
+void ContactsCore::onAddressBookFetchingChanged(bool fetching) {
+	mustBeInMainThread(log().arg(Q_FUNC_INFO));
+	if (fetching) {
+		mAwaitingFetchedResults = false;
+		mFetchWatchdog.start();
+		setFetching(true);
+		return;
+	}
+	if (!mFetching) return;
+	// The contacts are in the address book now but not yet in the list. Search again and clear the
+	// flag once that lands. If the list has not run its first search yet, forceUpdate does nothing,
+	// but that first search clears the flag in the same way.
+	mAwaitingFetchedResults = true;
+	if (mRootProxy) emit mRootProxy->forceUpdate();
+}
+
+void ContactsCore::setFetching(bool fetching) {
+	if (mFetching == fetching) return;
+	mFetching = fetching;
+	emit fetchingChanged();
 }
 
 void ContactsCore::setSyncing(bool syncing) {

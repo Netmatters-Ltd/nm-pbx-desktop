@@ -256,8 +256,9 @@ AbstractMainPage {
                 icon.height: Utils.getSizeWithScreenRatio(28)
                 // A sync leaves the list on screen throughout and merges any changes in, so the
                 // only feedback needed is on the button itself.
-                enabled: !ContactsCpp.syncing
-                opacity: ContactsCpp.syncing ? 0.4 : 1.0
+                // Also held off during the first fetch, which a refresh would only duplicate.
+                enabled: !ContactsCpp.syncing && !ContactsCpp.fetching
+                opacity: ContactsCpp.syncing || ContactsCpp.fetching ? 0.4 : 1.0
                 onClicked: ContactsCpp.refresh()
                 KeyNavigation.down: searchBar
                 Accessible.name: "Refresh contacts"
@@ -290,14 +291,28 @@ AbstractMainPage {
                     visible: !contactList.loading && !contactList.haveContacts
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: Utils.getSizeWithScreenRatio(137)
-                    //: Aucun résultat…
-                    text: searchBar.text.length !== 0 ? qsTr("list_filter_no_result_found")
-                                                      //: Aucun contact pour le moment
-                                                      : qsTr("contact_list_empty")
+                    // The first download of the address book, straight after provisioning, can take
+                    // a while. Saying so beats suggesting there is nothing to show.
+                    text: ContactsCpp.fetching
+                          ? (mainItem.extensionFilter === MagicSearchProxy.ExtensionFilter.Extensions
+                             //: "Fetching Extensions..."
+                             ? qsTr("extension_list_fetching")
+                             //: "Fetching Contacts..."
+                             : qsTr("contact_list_fetching"))
+                          //: Aucun résultat…
+                          : searchBar.text.length !== 0 ? qsTr("list_filter_no_result_found")
+                                                        //: Aucun contact pour le moment
+                                                        : qsTr("contact_list_empty")
                     font {
                         pixelSize: Typography.h4.pixelSize
                         weight: Typography.h4.weight
                     }
+                }
+                BusyIndicator {
+                    visible: ContactsCpp.fetching && !contactList.loading && !contactList.haveContacts
+                    Layout.preferredWidth: Utils.getSizeWithScreenRatio(48)
+                    Layout.preferredHeight: Utils.getSizeWithScreenRatio(48)
+                    Layout.alignment: Qt.AlignHCenter
                 }
                 AllContactGridView {
                     id: contactList

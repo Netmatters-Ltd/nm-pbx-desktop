@@ -46,6 +46,10 @@ class ContactsCore : public QObject, public AbstractObject {
 	// up. Views show their busy indicator on this and nothing else, so a tab switch against an
 	// already-loaded model never spins.
 	Q_PROPERTY(bool initialLoadComplete READ getInitialLoadComplete NOTIFY initialLoadCompleteChanged)
+	// True while an address book is being downloaded for the first time, such as straight after
+	// provisioning, and its contacts are not in the list yet. Views show this in place of the empty
+	// state, which would otherwise suggest there is nothing to show.
+	Q_PROPERTY(bool fetching READ getFetching NOTIFY fetchingChanged)
 	Q_PROPERTY(bool syncing READ getSyncing NOTIFY syncingChanged)
 	Q_PROPERTY(QDateTime lastSyncTime READ getLastSyncTime NOTIFY lastSyncTimeChanged)
 	Q_PROPERTY(bool lastSyncFailed READ getLastSyncFailed NOTIFY lastSyncFailedChanged)
@@ -68,6 +72,7 @@ public:
 
 	MagicSearchProxy *getRootProxy() const;
 	bool getInitialLoadComplete() const;
+	bool getFetching() const;
 	bool getSyncing() const;
 	QDateTime getLastSyncTime() const;
 	bool getLastSyncFailed() const;
@@ -81,6 +86,7 @@ public:
 
 signals:
 	void initialLoadCompleteChanged();
+	void fetchingChanged();
 	void syncingChanged();
 	void lastSyncTimeChanged();
 	void lastSyncFailedChanged();
@@ -89,6 +95,8 @@ private:
 	void startPeriodicSync();
 	void onSyncFinished(bool succeeded);
 	void setInitialLoadComplete(bool complete);
+	void onAddressBookFetchingChanged(bool fetching);
+	void setFetching(bool fetching);
 	void setSyncing(bool syncing);
 	void setLastSyncFailed(bool failed);
 
@@ -98,6 +106,9 @@ private:
 	// How long to wait for the very first search before showing the empty state instead of a
 	// spinner.
 	static constexpr int InitialLoadWatchdogMs = 15000;
+	// How long to show a first fetch as under way before falling back to the empty state. Generous,
+	// because a large address book takes a while: 1,600 contacts took around 25 seconds.
+	static constexpr int FetchWatchdogMs = 5 * 60 * 1000;
 	static constexpr int ContactDisplayLimit = 100;
 	static constexpr int CallFormContactDisplayLimit = 50;
 	static constexpr int SuggestionDisplayLimit = 20;
@@ -106,8 +117,13 @@ private:
 	QTimer mPeriodicTimer;
 	QTimer mSyncWatchdog;
 	QTimer mInitialLoadWatchdog;
+	QTimer mFetchWatchdog;
 
 	bool mInitialLoadComplete = false;
+	bool mFetching = false;
+	// The fetch has finished and the list is being searched again. Clearing mFetching only once
+	// that search lands keeps the empty state from flashing up in between.
+	bool mAwaitingFetchedResults = false;
 	bool mSyncing = false;
 	bool mLastSyncFailed = false;
 	QDateTime mLastSyncTime;

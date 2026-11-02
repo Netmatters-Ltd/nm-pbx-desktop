@@ -25,6 +25,18 @@ as a manual override when you need to build a specific version without tagging.
 On the current branch `git describe` returns `6.1.0-beta-182-gc56aa877f`, so major is 6,
 minor is 1 and micro is 0.
 
+## Builds after a release tag become the next patch
+
+If the build is on a commit *after* a release tag (one with no pre-release part, such as `6.3.1`),
+`bc_compute_full_version` treats it as a pre-release of the next patch version
+(`BCToolboxCMakeUtils.cmake`, "interpret untagged hotfixes as pre-releases"). So `6.3.1-2-g2cd262c23`
+becomes `6.3.2-pre.2+2cd262c23`. The exe properties and installer show `6.3.2`, and the full
+string appears in the SIP user agent.
+
+To get exactly the tagged version, build from the tagged commit itself, or put the tag on the
+commit you release. A pre-release tag like `6.3.0-beta` is not bumped this way: five commits after
+it gives `6.3.0-beta.5+<hash>`.
+
 ## Where the version ends up
 
 | Surface | Source |
