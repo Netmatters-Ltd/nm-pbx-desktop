@@ -47,3 +47,8 @@ Group changes to describe their impact on the project, as follows:
 - Removed delay before contacts are shown when starting a new call or transfer during a call.
 - When starting a new call or transfer, extensions are listed before contacts.
 - The call window defaults to a smaller size.
+
+## [6.3.1] - 2026-10-08
+
+### Changed
+- Dial pad when performing a blind transfer on a call now supports entering any number manually.

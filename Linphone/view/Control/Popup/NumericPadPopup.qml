@@ -17,6 +17,7 @@ Control.Popup {
 	property bool closeButtonVisible: true
 	property bool roundedBottom: false
 	property bool lastRowVisible: true
+	property string launchCallIcon: AppIcons.phone
 	property var currentCall
 	onOpened: numPad.forceActiveFocus()
 	signal buttonPressed(string text)
@@ -70,6 +71,7 @@ Control.Popup {
 	contentItem: NumericPad{
 		id: numPad
 		lastRowVisible: mainItem.lastRowVisible
+		launchCallIcon: mainItem.launchCallIcon
 		currentCall: mainItem.currentCall
 		onButtonPressed: (text) => {
 			console.log("BUTTON PRESSED NUMPAD")
