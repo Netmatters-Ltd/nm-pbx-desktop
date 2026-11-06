@@ -61,6 +61,14 @@ public:
 			bool succeeded = status == linphone::FriendList::SyncStatus::Successful;
 			if (!succeeded) {
 				qWarning() << "[CardDAVSyncAgent] Address book sync failed:" << QString::fromStdString(message);
+			} else {
+				// The SDK adds synced contacts without subscribing to their presence, and only sends the
+				// list subscription when the account registers or the list itself changes state. On the
+				// first run after provisioning the account registers while the list is still empty, so
+				// the subscription is skipped and nothing sends it once the contacts arrive. Contacts
+				// added on the server mid-session have the same problem. A no-op when every contact is
+				// already subscribed, and deferred until registration if the account is not yet up.
+				mFriendList->updateSubscriptions();
 			}
 			mFriendList->removeListener(shared_from_this());
 			mFriendList = nullptr;

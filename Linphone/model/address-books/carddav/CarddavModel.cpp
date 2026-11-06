@@ -121,6 +121,8 @@ void CarddavModel::onSyncStatusChanged(const std::shared_ptr<linphone::FriendLis
 	if (status == linphone::FriendList::SyncStatus::Successful) {
 		lInfo() << log().arg("Successfully synchronized:") << mCarddavFriendList->getUri();
 		setMonitor(nullptr);
+		// Synced contacts are not subscribed to by the SDK. See CardDAVSyncAgent::onSyncStatusChanged.
+		friendList->updateSubscriptions();
 		SettingsModel::setCardDAVListForNewFriends(mStoreNewFriendsInIt ? friendList->getDisplayName() : "");
 		emit saved(true, Utils::coreStringToAppString(message));
 	}
