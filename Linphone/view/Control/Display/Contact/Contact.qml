@@ -145,25 +145,8 @@ Control.Control{
 				shadowOpacity: 0.15
 			}
 		}
-		Voicemail {
-            Layout.leftMargin: Utils.getSizeWithScreenRatio(18)
-            Layout.rightMargin: Utils.getSizeWithScreenRatio(20)
-            Layout.preferredWidth: Utils.getSizeWithScreenRatio(30)
-            Layout.preferredHeight: Utils.getSizeWithScreenRatio(26)
-			scaleFactor: 0.7
-			showMwi: mainItem.account.core.showMwi
-			visible: mainItem.account.core.voicemailAddress.length > 0 || mainItem.account.core.showMwi
-			voicemailCount: mainItem.account.core.voicemailCount
-			onClicked: {
-				if (mainItem.account.core.voicemailAddress.length > 0)
-					UtilsCpp.createCall(mainItem.account.core.voicemailAddress)
-				else
-                    //: Erreur
-                    UtilsCpp.showInformationPopup(qsTr("information_popup_error_title"),
-                    //: L'URI de messagerie vocale n'est pas définie.
-                    qsTr("information_popup_voicemail_address_undefined_message"), false)
-			}
-		}
+		// No voicemail icon here. It overlapped the status button when a long status such as "Do Not Disturb"
+		// was shown, and the top bar beside the avatar already has one (MainLayout.qml).
 		Item{Layout.fillWidth: true}
 	}
 }

@@ -81,6 +81,9 @@ minutes.
 - Changing only the message is a new choice of the same status. So is deleting it.
 - The message is one line of at most 80 characters (`max_presence_note_size` is capped at 80 whatever
   the config says). Line breaks typed or pasted into the box become spaces.
+- The message box (`PresenceSetCustomStatus.qml`) is filled with the current message, which may have
+  come from the server, each time it opens. While it is open, a new message from the server replaces
+  the text unless the user has started typing.
 - With no status chosen, the app publishes Available with `chosen` = 0. An older version's saved
   status, which has no time, is also published with `chosen` = 0 rather than an invented time.
 

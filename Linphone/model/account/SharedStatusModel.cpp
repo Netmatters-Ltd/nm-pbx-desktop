@@ -375,7 +375,7 @@ void SharedStatusModel::subscribe(AccountState &state) {
 	if (!core || core->getGlobalState() != linphone::GlobalState::On) return;
 	if (!isPublishingAccount(core, state.account)) return;
 
-	auto identity = account->getParams()->getIdentityAddress();
+	auto identity = state.account->getParams()->getIdentityAddress();
 	// Presence is keyed on exact string equality, so subscribe to the bare identity, as the contacts do.
 	auto resource = identity ? linphone::Factory::get()->createAddress(identity->asStringUriOnly()) : nullptr;
 	if (!resource) {

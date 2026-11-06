@@ -404,8 +404,13 @@ AbstractMainPage {
                 button.style: ButtonStyle.noBackground
                 button.icon.source: AppIcons.pencil
                 button.onClicked: mainItem.editContact(mainItem.selectedContact)
-                // Contacts are read-only within the app.
-                button.visible: false
+                // NMPBX: only contacts held locally in the app can be edited or deleted. Anything
+                // from CardDAV (or LDAP) is read-only, so no change made here can flow back to the
+                // server. Extensions come from CardDAV, so they are covered by this too.
+                property bool canModify: !!mainItem.selectedContact
+                                         && mainItem.selectedContact.core.isStored
+                                         && !mainItem.selectedContact.core.readOnly
+                button.visible: canModify
                 property string contactAddress: contact ? contact.core.defaultAddress : ""
                 property var computedContactNameObj: UtilsCpp.getDisplayName(contactAddress)
                 property string computedContactName: computedContactNameObj ? computedContactNameObj.value : ""
@@ -752,15 +757,16 @@ AbstractMainPage {
                             }
                         }
                         ContactDetailLayout {
-                            // Other actions are not exposed in this version of the app.
-                            visible: false
+                            // NMPBX: this section only holds "Delete", so it is shown only for
+                            // contacts that can be modified. Edit is the button in the header.
+                            visible: contactDetail.canModify
                             Layout.fillWidth: true
                             //: "Autres actions"
                             label: qsTr("contact_details_actions_title")
                             content: ColumnLayout {
                                 spacing: Utils.getSizeWithScreenRatio(10)
                                 ColumnLayout {
-                                    // Contacts are read-only within the app.
+                                    // NMPBX: duplicates the Edit button in the header.
                                     visible: false
                                     IconLabelButton {
                                         Layout.fillWidth: true
@@ -778,7 +784,8 @@ AbstractMainPage {
                                     }
                                 }
                                 ColumnLayout {
-                                    visible: mainItem.selectedContact && mainItem.selectedContact.core.isStored && !mainItem.selectedContact.core.readOnly
+                                    // NMPBX: favourites are not used.
+                                    visible: false
                                     IconLabelButton {
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
@@ -802,6 +809,8 @@ AbstractMainPage {
                                     }
                                 }
                                 IconLabelButton {
+                                    // NMPBX: sharing contacts is not offered.
+                                    visible: false
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
                                     icon.source: AppIcons.shareNetwork
@@ -859,9 +868,9 @@ AbstractMainPage {
                                 // 	color: DefaultStyle.main2_200
                                 // }
                                 ColumnLayout {
-                                    // Contacts are read-only within the app.
-                                    visible: false
                                     Rectangle {
+                                        // NMPBX: nothing sits above Delete, so no divider.
+                                        visible: false
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: Utils.getSizeWithScreenRatio(1)
                                         color: DefaultStyle.main2_200

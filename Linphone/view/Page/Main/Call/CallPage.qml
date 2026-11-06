@@ -445,22 +445,21 @@ AbstractMainPage {
                         ColumnLayout {
                             id: detailsButtons
                             anchors.fill: parent
+                            // NMPBX: contacts can't be created or edited in the app, so "Add to
+                            // contacts" is removed. The item only appears as "Show contact" when
+                            // the address already belongs to a contact.
                             IconLabelButton {
                                 id: addContactButton
                                 Layout.fillWidth: true
+                                visible: contactDetail.isLocalFriend
                                 //: "Show contact"
-                                text: contactDetail.isLocalFriend ? qsTr("menu_see_existing_contact") :
-                                                              //: "Add to contacts"
-                                                              qsTr("menu_add_address_to_contacts")
+                                text: qsTr("menu_see_existing_contact")
                                 icon.source: AppIcons.plusCircle
                                 icon.width: Utils.getSizeWithScreenRatio(32)
                                 icon.height: Utils.getSizeWithScreenRatio(32)
                                 onClicked: {
                                     detailOptions.close()
-                                    if (contactDetail.isLocalFriend)
-                                        mainWindow.displayContactPage(contactDetail.contactAddress)
-                                    else
-                                        mainItem.createContactRequested(contactDetail.contactName, contactDetail.contactAddress)
+                                    mainWindow.displayContactPage(contactDetail.contactAddress)
                                 }
                                 KeyNavigation.up: visibleChildren.length
                                                     != 0 ? detailOptions.getPreviousItem(

@@ -13,6 +13,25 @@ Column {
 	property var accountGui
 	signal isSet
 
+	// The editor stays alive inside the status popup, so it is filled afresh from the account's current
+	// message, which may have come from the server, each time it is shown. While it is open, a new message
+	// from the server replaces the text only if the user has not started typing.
+	property string loadedNote: ""
+	function loadNote() {
+		loadedNote = mainItem.accountGui ? mainItem.accountGui.core.presenceNote : ""
+		statusMessage.previoustext = loadedNote
+		statusMessage.text = loadedNote
+		statusMessage.cursorPosition = statusMessage.text.length
+	}
+	onVisibleChanged: if (visible) loadNote()
+	Component.onCompleted: loadNote()
+	Connections {
+		target: mainItem.accountGui ? mainItem.accountGui.core : null
+		function onPresenceChanged() {
+			if (!mainItem.visible || statusMessage.text === mainItem.loadedNote) mainItem.loadNote()
+		}
+	}
+
 	Text {
 		text: qsTr("contact_presence_button_set_custom_status_title")
 		horizontalAlignment: Text.AlignHCenter
@@ -39,7 +58,6 @@ Column {
 				Layout.fillHeight: true
 				Layout.fillWidth: true
 				property string previoustext: ""
-				text: mainItem.accountGui.core.presenceNote
 				onTextChanged: {
 					// The message is kept on one line, as the server stores it.
 					if (/[\r\n]/.test(statusMessage.text)) {

@@ -98,3 +98,16 @@ from `haveMore`, which is also true while a list is still paging in. The views u
 - show the note,
 - stop asking for another page at the end of the list,
 - stop holding suggestions back, which they do while contacts are still paging in.
+
+## Editing and deleting
+
+Only contacts held locally in the app can be edited or deleted. Anything from CardDAV or LDAP is
+read-only, so no change made in the app can flow back to the CardDAV server. The rule is
+`FriendCore::readOnly`, which takes CardDAV from the list a contact actually belongs to rather than
+from the search that found it. The Contacts page shows Edit and Delete only when a contact is saved
+and not read-only.
+
+Contacts cannot be created in the app. "Add to contacts" is gone from the call history menu, and the
+other ways in (the empty state button and the chat screens) are not reachable. This matters because
+a new contact goes to the CardDAV list named by `friend_list_to_store_newly_created_contacts` when
+that is set, and would be pushed to the server. Favourites and sharing are hidden too.
