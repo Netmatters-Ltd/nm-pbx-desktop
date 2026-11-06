@@ -123,6 +123,29 @@ Leave the Calls page and come back: the row should now show the contact's name. 
 rebuilt each time it opens, so this tests the lookup, not a live refresh. An open row only
 refreshes by itself when the new contact holds the caller's SIP address, not a phone number.
 
+### `tst_SharedStatus.cpp`
+
+`SharedStatus.hpp` holds the wire format of the shared extension status, with no SDK in it (see
+[shared-extension-status.md](shared-extension-status.md)). The XML in the tests is the server's
+document from the handover and a merged document of the kind Flexisip sends.
+
+| Test | Checks |
+| --- | --- |
+| `choiceTupleIdMatchesTheServersPattern` | What we publish matches the server's own pattern, including a token made from a braced UUID. |
+| `parsesTheServersTuple`, `parsesAnAppsTuple` | Status, time and source or device come out of an `nmpbx-s.` and an `nmpbx-c.` id. |
+| `ignoresAnythingElse` | Random SDK ids, the call-state bridge, and near misses (`offline`, upper case, a 13 digit time, a bad source) are not read as ours. |
+| `cleansDeviceTokens` | Braces, `<urn:uuid:...>` and anything outside `A-Z a-z 0-9 -` are removed, and the token is capped at 64. |
+| `notesAreOneLineOfAtMost80` | Line breaks become spaces, the message stops at 80, and never in the middle of a character. |
+| `readsTheServersDocument` | The handover's example gives Away, its time, its source and "Holiday, back 3 Feb". |
+| `readsAMergedDocument` | With an older app, another app's choice and the call-state bridge in the same document, the shared status is the one taken, and its empty message is not filled from another tuple. |
+| `sharedAvailableIsClosedAndHasNoNote` | A closed `nmpbx-s.` tuple is still read as Available. |
+| `noSharedTupleMeansSwitchedOff` | No `nmpbx-s.` tuple, an empty body or junk gives nothing to follow. |
+| `newerSharedTupleWins` | If two shared tuples are briefly present, the newer choice wins in either order. |
+| `pendingChoiceWinsForThirtySeconds` | A choice on this device the server has not shown yet stays for 30 seconds, and no longer. |
+
+Not covered here: `SharedStatusModel` itself (the subscription, following, start-up publish), which
+needs the SDK. Test it by hand against test-a as described in the handover.
+
 ## Relationship to `limit-proxy-probe`
 
 [limit-proxy-probe](limit-proxy-probe/README.md) holds PySide6 copies of `LimitProxy` driving real

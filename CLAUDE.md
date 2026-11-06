@@ -27,6 +27,10 @@ unusable without them.
 [Call state presence](/nm-pbx-docs/call-state-presence.md) explains the inbound-only "On a call"
 presence state, which comes from a call-state bridge on the server and must never be published.
 
+[Shared extension status](/nm-pbx-docs/shared-extension-status.md) explains how the user's own
+status is published as a choice with a time, and how the app follows the server's shared status for
+its own extension and shows it for colleagues. The app never changes its own status by itself.
+
 [SDK patches](/nm-pbx-docs/sdk-patches/README.md) lists the local fixes we carry inside the
 `external/linphone-sdk` submodules. Those live in untracked working trees, so they are lost by a
 fresh clone, by `git submodule update --force`, and by any SDK version bump. If you change anything

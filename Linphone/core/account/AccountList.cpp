@@ -73,10 +73,8 @@ void AccountList::setSelf(QSharedPointer<AccountList> me) {
 				setHaveAccount(accounts->size() > 0);
 				setDefaultAccount(defaultAccountCore);
 				if (isInitialization) setInitialized(true);
-				for (const QSharedPointer<AccountCore> &accountCore : *accounts) {
-					if (accountCore->getExplicitPresence() != LinphoneEnums::Presence::Undefined)
-						emit accountCore->lSetPresence(accountCore->getExplicitPresence(), true, false);
-				}
+				// The saved status is republished by SharedStatusModel when the core starts, with the time it
+				// was chosen. Doing it here, as a new user choice, would stamp it as newer than it is.
 				delete accounts;
 			});
 			// Update notification count at startup

@@ -324,15 +324,8 @@ LinphoneEnums::Presence FriendModel::getPresence(const std::shared_ptr<linphone:
 }
 
 QString FriendModel::getPresenceNote(const std::shared_ptr<linphone::Friend> &contact) {
-	auto presenceModel = contact->getPresenceModel();
-	// When there is no real presence information, the SDK returns a placeholder note
-	// ("No presence information available"). Treat that as no status message so it is
-	// not shown to the user; only a genuine custom status message should be displayed.
-	if (ToolModel::corePresenceModelToAppPresence(presenceModel) == LinphoneEnums::Presence::Undefined) return "";
-	auto note = presenceModel && presenceModel->getNote(Utils::appStringToCoreString(QLocale().name().left(2)))
-	                ? presenceModel->getNote(Utils::appStringToCoreString(QLocale().name().left(2)))->getContent()
-	                : "";
-	return Utils::coreStringToAppString(note);
+	// Placeholder notes, and the shared status's own message, are handled in ToolModel.
+	return ToolModel::corePresenceModelToAppNote(contact->getPresenceModel());
 }
 
 QString FriendModel::getPictureUri() const {

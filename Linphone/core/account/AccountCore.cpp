@@ -25,6 +25,7 @@
 #include "tool/Utils.hpp"
 #include "tool/thread/SafeConnection.hpp"
 #include <QHostInfo>
+#include <algorithm>
 
 DEFINE_ABSTRACT_OBJECT(AccountCore)
 
@@ -88,14 +89,15 @@ AccountCore::AccountCore(const std::shared_ptr<linphone::Account> &account) : QO
 	// Add listener
 	mAccountModel = Utils::makeQObject_ptr<AccountModel>(account); // OK
 	mAccountModel->setSelf(mAccountModel);
-	mExplicitPresence = LinphoneEnums::fromString(
-	    Utils::coreStringToAppString(CoreModel::getInstance()->getCore()->getConfig()->getString(
-	        ToolModel::configAccountSection(account), "explicit_presence", "")));
-	mPresenceNote = Utils::coreStringToAppString(CoreModel::getInstance()->getCore()->getConfig()->getString(
-	    ToolModel::configAccountSection(account), "presence_note", ""));
-	mMaxPresenceNoteSize = CoreModel::getInstance()->getCore()->getConfig()->getInt(
-	    ToolModel::configAccountSection(account), "max_presence_note_size", 140);
+	// The saved choice, shown until the server's shared status arrives (if the customer is switched on).
 	mPresence = mAccountModel->getPresence();
+	mPresenceNote = mAccountModel->getPresenceNote();
+	// Never more than the 80 characters the Portal, the server and the other apps allow, whatever the
+	// config says.
+	mMaxPresenceNoteSize = std::clamp(CoreModel::getInstance()->getCore()->getConfig()->getInt(
+	                                      ToolModel::configAccountSection(account), "max_presence_note_size",
+	                                      SharedStatus::MaxNoteLength),
+	                                  1, SharedStatus::MaxNoteLength);
 	mNotificationsAllowed = mAccountModel->getNotificationsAllowed();
 	mDialPlan = Utils::createDialPlanVariant("", " ");
 	mDialPlans << mDialPlan;
@@ -240,11 +242,10 @@ void AccountCore::setSelf(QSharedPointer<AccountCore> me) {
 	    &AccountModel::removed, [this]() { mAccountModelConnection->invokeToCore([this]() { emit removed(); }); });
 
 	mAccountModelConnection->makeConnectToModel(
-	    &AccountModel::presenceChanged, [this](LinphoneEnums::Presence presence, bool userInitiated) {
-		    mAccountModelConnection->invokeToCore([this, presence, userInitiated]() {
-			    if (userInitiated) mExplicitPresence = presence;
-			    else mExplicitPresence = LinphoneEnums::Presence::Undefined;
+	    &AccountModel::presenceChanged, [this](LinphoneEnums::Presence presence, QString note) {
+		    mAccountModelConnection->invokeToCore([this, presence, note]() {
 			    mPresence = presence;
+			    mPresenceNote = note;
 			    emit presenceChanged();
 		    });
 	    });
@@ -285,11 +286,9 @@ void AccountCore::setSelf(QSharedPointer<AccountCore> me) {
 		mAccountModelConnection->invokeToModel([this, value]() { mAccountModel->setNotificationsAllowed(value); });
 	});
 	mAccountModelConnection->makeConnectToCore(
-	    &AccountCore::lSetPresence, [this](LinphoneEnums::Presence presence, bool userInitiated, bool resetToAuto) {
+	    &AccountCore::lSetPresence, [this](LinphoneEnums::Presence presence) {
 		    mAccountModelConnection->invokeToModel(
-		        [this, presence, userInitiated, resetToAuto, presenceNote = mPresenceNote]() {
-			        mAccountModel->setPresence(presence, userInitiated, resetToAuto, presenceNote);
-		        });
+		        [this, presence, presenceNote = mPresenceNote]() { mAccountModel->setPresence(presence, presenceNote); });
 	    });
 
 	DEFINE_CORE_GET_CONNECT(mAccountModelConnection, AccountCore, AccountModel, mAccountModel, int, voicemailCount,
@@ -874,18 +873,13 @@ QString AccountCore::getPresenceStatus() {
 	return Utils::getPresenceStatus(mPresence);
 }
 
-void AccountCore::resetToAutomaticPresence() {
-	emit lSetPresence(LinphoneEnums::Presence::Online, false, true);
-}
-
-LinphoneEnums::Presence AccountCore::getExplicitPresence() {
-	return mExplicitPresence;
-}
-
 void AccountCore::setPresenceNote(QString presenceNote) {
+	// One line of at most 80 characters, as the server keeps it. Changing only the message counts as a new
+	// choice of the same status.
+	presenceNote = SharedStatus::cleanNote(presenceNote);
 	if (presenceNote != mPresenceNote) {
 		mPresenceNote = presenceNote;
-		emit lSetPresence(mPresence, mExplicitPresence != LinphoneEnums::Presence::Undefined, false);
+		emit lSetPresence(mPresence);
 	}
 }
 

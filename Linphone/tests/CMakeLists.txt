@@ -34,3 +34,17 @@ add_test(NAME PhoneNumberIndexTest COMMAND PhoneNumberIndexTest)
 set_tests_properties(PhoneNumberIndexTest PROPERTIES
 	ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
 )
+
+# Header only, and kept free of the SDK so it can be tested here.
+qt6_add_executable(SharedStatusTest
+	tst_SharedStatus.cpp
+	${APP_SOURCE_DIR}/model/tool/SharedStatus.hpp
+)
+set_target_properties(SharedStatusTest PROPERTIES AUTOMOC ON)
+target_include_directories(SharedStatusTest PRIVATE "${APP_SOURCE_DIR}")
+target_link_libraries(SharedStatusTest PRIVATE Qt6::Core Qt6::Test)
+
+add_test(NAME SharedStatusTest COMMAND SharedStatusTest)
+set_tests_properties(SharedStatusTest PROPERTIES
+	ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+)

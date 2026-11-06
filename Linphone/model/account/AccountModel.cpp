@@ -21,6 +21,7 @@
 #include "AccountModel.hpp"
 
 #include "core/path/Paths.hpp"
+#include "model/account/SharedStatusModel.hpp"
 #include "model/core/CoreModel.hpp"
 #include "model/setting/SettingsModel.hpp"
 #include "model/tool/ToolModel.hpp"
@@ -43,6 +44,14 @@ AccountModel::AccountModel(const std::shared_ptr<linphone::Account> &account, QO
 		emit displayNameChanged(
 		    Utils::coreStringToAppString(mMonitor->getParams()->getIdentityAddress()->getDisplayName()));
 	});
+
+	// The status changes when the user chooses one here, and when it follows the shared status set elsewhere.
+	connect(SharedStatusModel::getInstance().get(), &SharedStatusModel::choiceChanged, this,
+	        [this](const std::shared_ptr<linphone::Account> &account, LinphoneEnums::Presence presence, QString note) {
+		        if (!account || !mMonitor || account->cPtr() != mMonitor->cPtr()) return;
+		        emit presenceChanged(presence, note);
+		        emit notificationsAllowedChanged(getNotificationsAllowed());
+	        });
 
 	connect(CoreModel::getInstance().get(), &CoreModel::unreadNotificationsChanged, this, [this]() {
 		emit unreadNotificationsChanged(mMonitor->getUnreadChatMessageCount(), mMonitor->getMissedCallsCount());
@@ -514,88 +523,23 @@ void AccountModel::removeUserData(const std::shared_ptr<linphone::Account> &acco
 	userDataMap.remove(account);
 }
 
-// Up to date there are api to get/set presence from/to a linphone account object
-// therefore retrieved/set from core
+// The account's own status is held by SharedStatusModel, the one place that publishes it and follows
+// the server's shared status. See nm-pbx-docs/shared-extension-status.md.
 
 LinphoneEnums::Presence AccountModel::getPresence() {
-	auto presenceModel = CoreModel::getInstance()->getCore()->getPresenceModel(); // No api (yet) at the account level
-	return ToolModel::corePresenceModelToAppPresence(presenceModel);
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return ToolModel::sharedStatusToAppPresence(SharedStatusModel::getInstance()->getChoice(mMonitor).status);
 }
 
-void AccountModel::setPresence(LinphoneEnums::Presence presence,
-                               bool userInitiated,
-                               bool resetToAuto,
-                               QString presenceNote) {
+QString AccountModel::getPresenceNote() {
 	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	return SharedStatusModel::getInstance()->getChoice(mMonitor).note;
+}
 
-	lDebug() << log().arg("presence set request to: " + LinphoneEnums::toString(presence) + " | user initiated? " +
-	                      (userInitiated ? "true" : "false") + " | reset to auto? " + (resetToAuto ? "true" : "false"));
-
-	auto core = CoreModel::getInstance()->getCore();
-
-	if (core->getGlobalState() != linphone::GlobalState::On) {
-		lWarning() << log().arg("Unable to set presence this time as core state is not ON");
-		return;
-	}
-
-	if (presence == LinphoneEnums::Presence::Undefined) {
-		lWarning() << log().arg("Unable to set Undefined presence");
-		return;
-	}
-
-	// OnCall comes from the server's call-state bridge. Refuse it before anything reaches config, so it can never be
-	// persisted as explicit_presence or published.
-	if (presence == LinphoneEnums::Presence::OnCall) {
-		lWarning() << log().arg("Unable to set OnCall presence, it is reported by the server only");
-		return;
-	}
-
-	auto accountSection = ToolModel::configAccountSection(mMonitor);
-
-	if (!resetToAuto && !userInitiated &&
-	    !core->getConfig()->getString(accountSection, "explicit_presence", "").empty()) {
-		lDebug() << log().arg("Ignoring automatic presence update, as user already set a presence explicitely : ")
-		         << Utils::coreStringToAppString(core->getConfig()->getString(accountSection, "explicit_presence", ""));
-		return;
-	}
-
-	if (userInitiated) {
-		core->getConfig()->setString(accountSection, "explicit_presence",
-		                             Utils::appStringToCoreString(LinphoneEnums::toString(presence)));
-		core->getConfig()->sync();
-	}
-
-	if (resetToAuto) {
-		core->getConfig()->cleanEntry(accountSection, "explicit_presence");
-		core->getConfig()->sync();
-	}
-
-	core->getConfig()->setString(accountSection, "presence_note", Utils::appStringToCoreString(presenceNote));
-	core->getConfig()->sync();
-
-	auto presenceModel = ToolModel::appPresenceToCorePresenceModel(presence, presenceNote);
-	core->setPresenceModel(presenceModel); // No api (yet) at the account level
-
-	if (presence == LinphoneEnums::Presence::Offline) {
-		for (auto friendList : core->getFriendsLists())
-			friendList->enableSubscriptions(false);
-	} else {
-		for (auto friendList : core->getFriendsLists())
-			friendList->enableSubscriptions(true);
-	}
-
-	setNotificationsAllowed(
-	    presence != LinphoneEnums::Presence::Offline && presence != LinphoneEnums::Presence::DoNotDisturb &&
-	    (presence != LinphoneEnums::Presence::Away ||
-	     core->getConfig()->getBool(accountSection, "allow_notifications_in_presence_away", true)) &&
-	    (presence != LinphoneEnums::Presence::Busy ||
-	     core->getConfig()->getBool(accountSection, "allow_notifications_in_presence_busy", true)));
-
-	if (!SettingsModel::dndEnabled(core->getConfig())) {
-		SettingsModel::getInstance()->enableRinging(presence != LinphoneEnums::Presence::DoNotDisturb);
-	}
-
-	emit presenceChanged(presence, userInitiated);
+void AccountModel::setPresence(LinphoneEnums::Presence presence, QString presenceNote) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	// Only ever called for a choice the user made. Undefined, Offline and OnCall are refused there.
+	SharedStatusModel::getInstance()->choose(mMonitor, presence, presenceNote);
 }
 
 bool AccountModel::forwardToVoiceMailInDndPresence() {

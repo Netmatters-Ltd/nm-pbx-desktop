@@ -81,7 +81,6 @@ public:
 	Q_PROPERTY(QString presenceStatus READ getPresenceStatus NOTIFY presenceChanged)
 	Q_PROPERTY(QColor registrationColor READ getRegistrationColor NOTIFY registrationStateChanged)
 	Q_PROPERTY(QUrl registrationIcon READ getRegistrationIcon NOTIFY registrationStateChanged)
-	Q_PROPERTY(LinphoneEnums::Presence explicitPresence MEMBER mExplicitPresence NOTIFY presenceChanged)
 	Q_PROPERTY(QString presenceNote READ getPresenceNote WRITE setPresenceNote NOTIFY presenceChanged)
 	Q_PROPERTY(int maxPresenceNoteSize MEMBER mMaxPresenceNoteSize CONSTANT)
 
@@ -185,8 +184,6 @@ public:
 	QUrl getPresenceIcon();
 	QString getPresenceStatus();
 	LinphoneEnums::Presence getPresence();
-	Q_INVOKABLE void resetToAutomaticPresence();
-	LinphoneEnums::Presence getExplicitPresence();
 	void setPresenceNote(QString presenceNote);
 	QString getPresenceNote();
 
@@ -233,7 +230,8 @@ signals:
 	void lSetDialPlan(QVariantMap internationalPrefix);
 	void lSetRegisterEnabled(bool enabled);
 	void lSetNotificationsAllowed(bool value);
-	void lSetPresence(LinphoneEnums::Presence presence, bool userInitiated = true, bool resetToAuto = false);
+	// The user chose a status. Never emitted for anything the app decides by itself.
+	void lSetPresence(LinphoneEnums::Presence presence);
 
 protected:
 	void writeIntoModel(std::shared_ptr<AccountModel> model) const;
@@ -269,7 +267,6 @@ private:
 	QString mLimeServerUrl;
 	QString mVoicemailAddress;
 	LinphoneEnums::Presence mPresence = LinphoneEnums::Presence::Undefined;
-	LinphoneEnums::Presence mExplicitPresence;
 	QString mPresenceNote;
 	int mMaxPresenceNoteSize;
 

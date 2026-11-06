@@ -57,3 +57,9 @@ Group changes to describe their impact on the project, as follows:
 - Call history performance improved with a large contact list, with matches against contacts now being cached.
 - No longer attempt to track presence status for external phone numbers.
 - The Contacts and Extensions tabs say they are fetching while the address book is first downloaded, rather than appearing empty.
+
+## [6.4.0] - 2026-11-06
+
+### Changed
+- Status management is now compatible with the centrally managed approach, allowing status to be shared between different apps and/or handsets connect to the same extension.
+

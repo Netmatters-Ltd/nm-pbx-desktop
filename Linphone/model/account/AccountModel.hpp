@@ -87,7 +87,9 @@ public:
 	void setVoicemailAddress(QString value);
 	QString getVoicemailAddress() const;
 	LinphoneEnums::Presence getPresence();
-	void setPresence(LinphoneEnums::Presence presence, bool userInitiated, bool resetToAuto, QString presenceNote);
+	QString getPresenceNote();
+	// The user chose a status or a message. Never called for anything the app decides by itself.
+	void setPresence(LinphoneEnums::Presence presence, QString presenceNote);
 	std::string configAccountSection();
 	bool forwardToVoiceMailInDndPresence();
 	std::list<std::shared_ptr<linphone::ChatRoom>> getChatRooms();
@@ -125,7 +127,7 @@ signals:
 	void voicemailCountChanged(int count);
 	void showMwiChanged(bool show);
 	void voicemailAddressChanged(QString value);
-	void presenceChanged(LinphoneEnums::Presence presence, bool userInitiated);
+	void presenceChanged(LinphoneEnums::Presence presence, QString note);
 
 	void setValueFailed(const QString &errorMessage);
 

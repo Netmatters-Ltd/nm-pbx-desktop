@@ -256,9 +256,10 @@ The path from the SDK to the GUI is `FriendModel::onPresenceReceived()` (`Friend
 - **Your own avatar.** The user's own presence badge comes from `AccountCore::mPresence`, which is
   local state, not a subscription. It will not show the bridge's on-call state, and that is fine for
   this change.
-- **The existing automatic Busy.** `CoreModel.cpp:587-595` already publishes Busy for the user's own
-  account while they have a call in progress, unless they have chosen a status explicitly. It stays
-  as it is. The merged document then carries both `busy` and `on-the-phone`, and the precedence rule
+- **The existing automatic Busy.** *Since removed, see
+  [shared-extension-status.md](shared-extension-status.md).* `CoreModel.cpp:587-595` already
+  publishes Busy for the user's own account while they have a call in progress, unless they have
+  chosen a status explicitly. It stays as it is. The merged document then carries both `busy` and `on-the-phone`, and the precedence rule
   shows on a call. Whether to remove that automatic Busy, now that Busy could mean "chose Busy" only,
   is a separate decision for us to make later. Do not change it as part of this work.
 - **Recovery after a presence server restart.** If `flexisip-presence.service` is restarted, the

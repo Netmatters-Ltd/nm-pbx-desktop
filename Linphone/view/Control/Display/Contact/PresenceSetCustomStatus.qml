@@ -41,6 +41,12 @@ Column {
 				property string previoustext: ""
 				text: mainItem.accountGui.core.presenceNote
 				onTextChanged: {
+					// The message is kept on one line, as the server stores it.
+					if (/[\r\n]/.test(statusMessage.text)) {
+						statusMessage.text = statusMessage.text.replace(/[\r\n]+/g, " ")
+						statusMessage.cursorPosition = statusMessage.text.length
+						return
+					}
 					if (statusMessage.text.length > accountGui.core.maxPresenceNoteSize) {
 						statusMessage.text = previoustext
 						statusMessage.cursorPosition = statusMessage.text.length

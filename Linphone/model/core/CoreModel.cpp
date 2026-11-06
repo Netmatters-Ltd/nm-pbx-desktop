@@ -31,6 +31,7 @@
 #include "core/App.hpp"
 #include "core/notifier/Notifier.hpp"
 #include "core/path/Paths.hpp"
+#include "model/account/SharedStatusModel.hpp"
 #include "model/address-books/carddav/CardDAVSyncAgent.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
@@ -100,6 +101,9 @@ void CoreModel::start() {
 	QString userAgent = ToolModel::computeUserAgent(config);
 	mCore->setUserAgent(Utils::appStringToCoreString(userAgent), LINPHONESDK_VERSION);
 	mCore->start();
+	// Created here so it hears every registration from the start. It republishes the saved status and watches the
+	// own extension once the core is On (now, or later after remote provisioning).
+	SharedStatusModel::getInstance()->start();
 	migrate();
 	setPathAfterStart();
 	setCustomTones();
@@ -626,16 +630,9 @@ void CoreModel::onCallStateChanged(const std::shared_ptr<linphone::Core> &core,
 	    core->getCallsNb() == 0) { // Disable tones in DND mode if no more calls are running.
 		SettingsModel::getInstance()->setCallToneIndicationsEnabled(false);
 	}
-	App::postModelAsync([core]() {
-		auto accounts = App::getInstance()->getAccountList();
-		if (!accounts) return;
-		for (int i = 0; i < accounts->rowCount(); ++i) {
-			auto accountCore = App::getInstance()->getAccountList()->getAt<AccountCore>(i);
-			emit accountCore->lSetPresence(core->getCallsNb() == 0 ? LinphoneEnums::Presence::Online
-			                                                       : LinphoneEnums::Presence::Busy,
-			                               false, false);
-		}
-	});
+	// The app no longer publishes Busy/Online by itself on calls. Colleagues still see the call from the server's
+	// call-state bridge, and an automatic status published as a choice would overwrite the user's real choice on
+	// every other device. See nm-pbx-docs/shared-extension-status.md.
 	emit callStateChanged(core, call, state, message);
 }
 void CoreModel::onCallStatsUpdated(const std::shared_ptr<linphone::Core> &core,

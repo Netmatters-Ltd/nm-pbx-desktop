@@ -62,6 +62,24 @@ inline LinphoneEnums::Presence toAppPresence(linphone::PresenceBasicStatus basic
 	}
 }
 
+// As above, for a document that carries the server's shared status (an nmpbx-s tuple), whose status
+// comes from that tuple's id. The pooled activities are only consulted for the call-state bridge's
+// OnThePhone, which still outranks it. The basic status still decides whether there is anything to
+// show at all: the server publishes a shared Available as closed, so on its own it never makes an
+// extension with nothing connected look online, while Away, Busy and DND are open and always show.
+// See nm-pbx-docs/shared-extension-status.md.
+inline LinphoneEnums::Presence toAppPresence(linphone::PresenceBasicStatus basicStatus,
+                                             const std::vector<linphone::PresenceActivity::Type> &activityTypes,
+                                             LinphoneEnums::Presence sharedPresence) {
+	if (basicStatus != linphone::PresenceBasicStatus::Open) return LinphoneEnums::Presence::Undefined;
+
+	if (std::find(activityTypes.begin(), activityTypes.end(), linphone::PresenceActivity::Type::OnThePhone) !=
+	    activityTypes.end())
+		return LinphoneEnums::Presence::OnCall;
+
+	return sharedPresence;
+}
+
 } // namespace PresenceMapping
 
 #endif

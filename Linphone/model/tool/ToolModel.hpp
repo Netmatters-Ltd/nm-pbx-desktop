@@ -22,6 +22,7 @@
 #define TOOL_MODEL_H_
 
 #include "core/call/CallCore.hpp"
+#include "model/tool/SharedStatus.hpp"
 #include "tool/AbstractObject.hpp"
 
 #include <QHash>
@@ -115,8 +116,17 @@ public:
 
 	static LinphoneEnums::Presence
 	corePresenceModelToAppPresence(std::shared_ptr<const linphone::PresenceModel> presenceModel);
-	static std::shared_ptr<linphone::PresenceModel> appPresenceToCorePresenceModel(LinphoneEnums::Presence presence,
-	                                                                               QString presenceNote);
+	// The custom status message to show for a presence model: the shared status's own message where the
+	// server publishes one, otherwise the note in the user's language, as before.
+	static QString corePresenceModelToAppNote(std::shared_ptr<const linphone::PresenceModel> presenceModel);
+	// The server's shared status (an nmpbx-s tuple) in a presence model, if it has one.
+	static std::optional<SharedStatus::Shared>
+	findSharedStatus(std::shared_ptr<const linphone::PresenceModel> presenceModel);
+	// Builds what the app publishes. tupleId is the nmpbx-c id of the choice; see SharedStatus.hpp.
+	static std::shared_ptr<linphone::PresenceModel>
+	appPresenceToCorePresenceModel(LinphoneEnums::Presence presence, QString presenceNote, const QString &tupleId);
+	static std::optional<SharedStatus::Status> appPresenceToSharedStatus(LinphoneEnums::Presence presence);
+	static LinphoneEnums::Presence sharedStatusToAppPresence(SharedStatus::Status status);
 	static std::string configAccountSection(const std::shared_ptr<linphone::Account> &account);
 
 private:

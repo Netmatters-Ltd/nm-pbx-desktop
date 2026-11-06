@@ -1,6 +1,7 @@
 list(APPEND _LINPHONEAPP_SOURCES
 	model/account/AccountDeviceModel.cpp
 	model/account/AccountModel.cpp
+	model/account/SharedStatusModel.cpp
 	model/account/AccountManager.cpp
 	model/account/AccountManagerServicesModel.cpp
 	model/account/AccountManagerServicesRequestModel.cpp
@@ -49,6 +50,7 @@ list(APPEND _LINPHONEAPP_SOURCES
 	
 	model/tool/ToolModel.cpp
 	model/tool/PresenceMapping.hpp
+	model/tool/SharedStatus.hpp
 	model/tool/VfsUtils.cpp
 
 	model/videoSource/VideoSourceDescriptorModel.cpp

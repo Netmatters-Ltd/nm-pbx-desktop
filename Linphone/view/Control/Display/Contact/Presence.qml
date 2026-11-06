@@ -18,29 +18,8 @@ ColumnLayout {
 	PresenceStatusItem { presence: LinphoneEnums.Presence.Busy; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
 	PresenceStatusItem { presence: LinphoneEnums.Presence.DoNotDisturb; accountGui: mainItem.accountGui; onClick: mainItem.isSet()}
 
-	RowLayout {
-		spacing: 0
-		visible: accountGui.core.explicitPresence != LinphoneEnums.Presence.Undefined
-		Layout.alignment: Qt.AlignLeft
-		Layout.topMargin: Utils.getSizeWithScreenRatio(3)
-		Layout.bottomMargin: Utils.getSizeWithScreenRatio(3)
-		Label {
-			font: Typography.p1
-			text: qsTr("contact_presence_reset_status")
-			color: DefaultStyle.main2_600
-		}
-		Item {
-			   Layout.fillWidth: true
-		}
-		Button {
-			id: resetStatusItem
-			style: ButtonStyle.noBackground
-			icon.width: Utils.getSizeWithScreenRatio(17)
-			icon.height: Utils.getSizeWithScreenRatio(17)
-			icon.source: AppIcons.reloadArrow
-			onClicked: accountGui.core.resetToAutomaticPresence()
-		}
-	}
+	// No "reset to automatic status" here: the app no longer changes its status by itself, so the status
+	// is always one the user chose (or the shared status it follows). See nm-pbx-docs/shared-extension-status.md.
 	HorizontalBar {
 		Layout.topMargin: Utils.getSizeWithScreenRatio(8)
 	}

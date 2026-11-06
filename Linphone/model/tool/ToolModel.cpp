@@ -914,6 +914,9 @@ ToolModel::createGroupChatRoom(QString subject, std::list<std::shared_ptr<linpho
 // OnCall 	= Basic Status open with activity OnThePhone at any index. Inbound only: the server's call-state
 //            bridge publishes it while an extension is on a call, and it outranks the statuses above. The app
 //            never publishes it. See nm-pbx-docs/call-state-presence.md and model/tool/PresenceMapping.hpp.
+// Shared status : where the server publishes a shared status (an nmpbx-s tuple), the status comes from that tuple's
+// id rather than from the activities, which Flexisip pools from every publisher in no stable order. OnCall still
+// outranks it. See nm-pbx-docs/shared-extension-status.md and model/tool/SharedStatus.hpp.
 // Note : close status on the last 2 items would be preferrable, but they currently trigger multiple tuple NOTIFY from
 // flexisip presence server Note 2 : close status with no activity triggers an unsubscribe.
 LinphoneEnums::Presence
@@ -932,6 +935,11 @@ ToolModel::corePresenceModelToAppPresence(std::shared_ptr<const linphone::Presen
 	}
 
 	auto basicStatus = presenceModel->getBasicStatus();
+
+	if (auto shared = findSharedStatus(presenceModel))
+		return PresenceMapping::toAppPresence(basicStatus, activityTypes,
+		                                      sharedStatusToAppPresence(shared->choice.status));
+
 	auto presence = PresenceMapping::toAppPresence(basicStatus, activityTypes);
 	if (presence == LinphoneEnums::Presence::Undefined && basicStatus == linphone::PresenceBasicStatus::Open &&
 	    !activityTypes.empty())
@@ -939,8 +947,71 @@ ToolModel::corePresenceModelToAppPresence(std::shared_ptr<const linphone::Presen
 	return presence;
 }
 
+QString ToolModel::corePresenceModelToAppNote(std::shared_ptr<const linphone::PresenceModel> presenceModel) {
+	// When there is no real presence information, the SDK returns a placeholder note
+	// ("No presence information available"). Treat that as no status message so it is
+	// not shown to the user; only a genuine custom status message should be displayed.
+	if (corePresenceModelToAppPresence(presenceModel) == LinphoneEnums::Presence::Undefined) return QString();
+	// The shared status carries its own message (none means an empty one). Other apps' tuples may hold
+	// older messages, so do not fall back to them.
+	if (auto shared = findSharedStatus(presenceModel)) return shared->choice.note;
+	auto lang = Utils::appStringToCoreString(QLocale().name().left(2));
+	auto note = presenceModel->getNote(lang);
+	return note ? Utils::coreStringToAppString(note->getContent()) : QString();
+}
+
+std::optional<SharedStatus::Shared>
+ToolModel::findSharedStatus(std::shared_ptr<const linphone::PresenceModel> presenceModel) {
+	if (!presenceModel) return std::nullopt;
+	QList<SharedStatus::Tuple> tuples;
+	for (unsigned int i = 0; i < presenceModel->getNbServices(); ++i) {
+		auto service = presenceModel->getNthService(i);
+		if (!service) continue;
+		SharedStatus::Tuple tuple;
+		tuple.id = Utils::coreStringToAppString(service->getId());
+		tuple.open = service->getBasicStatus() == linphone::PresenceBasicStatus::Open;
+		if (service->getNbNotes() > 0) {
+			auto note = service->getNthNote(0);
+			if (note) tuple.note = Utils::coreStringToAppString(note->getContent());
+		}
+		tuples << tuple;
+	}
+	return SharedStatus::findShared(tuples);
+}
+
+std::optional<SharedStatus::Status> ToolModel::appPresenceToSharedStatus(LinphoneEnums::Presence presence) {
+	switch (presence) {
+		case LinphoneEnums::Presence::Online:
+			return SharedStatus::Status::Available;
+		case LinphoneEnums::Presence::Away:
+			return SharedStatus::Status::Away;
+		case LinphoneEnums::Presence::Busy:
+			return SharedStatus::Status::Busy;
+		case LinphoneEnums::Presence::DoNotDisturb:
+			return SharedStatus::Status::Dnd;
+		default:
+			// Undefined, Offline and OnCall are never chosen by the user, so never published.
+			return std::nullopt;
+	}
+}
+
+LinphoneEnums::Presence ToolModel::sharedStatusToAppPresence(SharedStatus::Status status) {
+	switch (status) {
+		case SharedStatus::Status::Available:
+			return LinphoneEnums::Presence::Online;
+		case SharedStatus::Status::Away:
+			return LinphoneEnums::Presence::Away;
+		case SharedStatus::Status::Busy:
+			return LinphoneEnums::Presence::Busy;
+		case SharedStatus::Status::Dnd:
+			return LinphoneEnums::Presence::DoNotDisturb;
+	}
+	return LinphoneEnums::Presence::Online;
+}
+
 std::shared_ptr<linphone::PresenceModel> ToolModel::appPresenceToCorePresenceModel(LinphoneEnums::Presence presence,
-                                                                                   QString presenceNote) {
+                                                                                   QString presenceNote,
+                                                                                   const QString &tupleId) {
 	auto presenceModel = CoreModel::getInstance()->getCore()->createPresenceModel();
 
 	switch (presence) {
@@ -973,10 +1044,19 @@ std::shared_ptr<linphone::PresenceModel> ToolModel::appPresenceToCorePresenceMod
 			return nullptr;
 	}
 
+	// setBasicStatus() above leaves exactly one service, with a random id. Every publication must carry the choice's
+	// tuple id instead, or the server cannot read it. The SDK only invents an id when the model has no service at all.
+	auto service = presenceModel->getNthService(0);
+	if (!service) {
+		service = CoreModel::getInstance()->getCore()->createPresenceService(
+		    "", linphone::PresenceBasicStatus::Open, "");
+		presenceModel->addService(service);
+	}
+	if (!tupleId.isEmpty()) service->setId(Utils::appStringToCoreString(tupleId));
+
 	if (!presenceNote.isEmpty()) {
 		auto note = CoreModel::getInstance()->getCore()->createPresenceNote(
 		    Utils::appStringToCoreString(presenceNote), Utils::appStringToCoreString(QLocale().name().left(2)));
-		auto service = presenceModel->getNthService(0);
 		service->addNote(note);
 	}
 	return presenceModel;
